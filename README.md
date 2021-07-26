@@ -104,14 +104,14 @@ Features
  Changelog
  ---------
  
- The changelog of features for Blunder can be found in the `docs/chanelog.md`.
+ The changelog of features for Blunder can be found in the `docs/changelog.md`.
  
  Credits
  -------
  
  Although Blunder is an orginal project, there are many people without whom Blunder would not have been finished. 
  The brief listing is included here (in no particular order). For the full listing, with elaborations, 
- see `docs/credit.md`:
+ see `docs/credits.md`:
  
  ```
  My girlfriend, Marcel Vanthoor, Hart Gert Muller, Sven Schüle, J.V. Merlino, Niels Abildskov, 
