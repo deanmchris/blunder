@@ -90,12 +90,14 @@ Features
  -------
  
  Although Blunder is an orginal project, there are many people without whom Blunder would not have been finished. 
- The brief listing is included here. For the full listing, with elaborations, see `docs/credit.md`:
+ The brief listing is included here (in no particular order). For the full listing, with elaborations, 
+ see `docs/credit.md`:
  
  ```
  My girlfriend, Marcel Vanthoor, Hart Gert Muller, Sven Schüle, J.V. Merlino, Niels Abildskov, 
  Maksim Korzh, Erik Madsen, Pedro Duran, Nihar Karve, Rhys Rustad Elliott, Lithander, 
- Jonatan Pettersson, Rein Halbersma, Tony Mokonen, SmallChess, Richard Allbert, and Spirch.
+ Jonatan Pettersson, Rein Halbersma, Tony Mokonen, SmallChess, Richard Allbert, Spirch, and
+ the Stockfish Developers.
  ```
  
  These credits will be updated from time to time as a remember or encounter more people who have helped me
