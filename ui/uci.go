@@ -50,7 +50,7 @@ func moveFromCoord(board *engine.Board, move string) engine.Move {
 		moveType = engine.CastleBKS
 	} else if move == "e8c8" && movePieceType == engine.King {
 		moveType = engine.CastleBQS
-	} else if toPos == board.EPSquare {
+	} else if toPos == board.EPSquare && movePieceType == engine.Pawn {
 		moveType = engine.AttackEP
 	} else {
 		capturePieceType := board.Squares[toPos].Type
