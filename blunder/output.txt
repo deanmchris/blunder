@@ -1,0 +1,186 @@
+
+f8xa3: 600 (D=1)
+g2xe3: 400 (D=1)
+g2-f4: 300 (D=1)
+g2-h4: 300 (D=1)
+c6-b4: 300 (D=1)
+c6-d4: 300 (D=1)
+c6-a5: 300 (D=1)
+c6-e5: 300 (D=1)
+c6-e7: 300 (D=1)
+c6-b8: 300 (D=1)
+g2-e1: 300 (D=1)
+f8-b4: 300 (D=1)
+f8-c5: 300 (D=1)
+f8-d6: 300 (D=1)
+f8-h6: 300 (D=1)
+f8-e7: 300 (D=1)
+f8-g7: 300 (D=1)
+a8-b8: 300 (D=1)
+a8-c8: 300 (D=1)
+h8-g8: 300 (D=1)
+d8-h4: 300 (D=1)
+d8-g5: 300 (D=1)
+d8-d6: 300 (D=1)
+d8-f6: 300 (D=1)
+d8-d7: 300 (D=1)
+d8-e7: 300 (D=1)
+d8-b8: 300 (D=1)
+d8-c8: 300 (D=1)
+e8-d7: 300 (D=1)
+e8-e7: 300 (D=1)
+d5-d4: 300 (D=1)
+g6-g5: 300 (D=1)
+a7-a5: 300 (D=1)
+a7-a6: 300 (D=1)
+b7-b5: 300 (D=1)
+b7-b6: 300 (D=1)
+f7-f5: 300 (D=1)
+f7-f6: 300 (D=1)
+
+8 | r . . q k b . r 
+7 | p p p . . p . . 
+6 | . . n . . . p . 
+5 | . . . p . . . p 
+4 | . . . . p . . . 
+3 | N . . . P . . P 
+2 | P P P P Q P n P 
+1 | R . B K . R . . 
+   ----------------
+    a b c d e f g h 
+
+turn: white
+castling rights: kq
+en passant: h6
+rule 50: 2
+game ply: 24
+
+SCORE: -300
+h7-h5: 300 (D=1)
+h7-h6: 300 (D=1)
+g2xe3: 400 (D=1)
+g2-e1: 300 (D=1)
+g2-f4: 300 (D=1)
+g2-h4: 300 (D=1)
+c6-b4: 300 (D=1)
+c6-d4: 300 (D=1)
+c6-a5: 300 (D=1)
+c6-e5: 300 (D=1)
+c6-e7: 300 (D=1)
+c6-b8: 300 (D=1)
+f8-a3: 300 (D=1)
+f8-b4: 300 (D=1)
+f8-c5: 300 (D=1)
+f8-d6: 300 (D=1)
+f8-h6: 300 (D=1)
+f8-e7: 300 (D=1)
+f8-g7: 300 (D=1)
+a8-b8: 300 (D=1)
+a8-c8: 300 (D=1)
+h8-g8: 300 (D=1)
+d8-h4: 300 (D=1)
+d8-g5: 300 (D=1)
+d8-d6: 300 (D=1)
+d8-f6: 300 (D=1)
+d8-d7: 300 (D=1)
+d8-e7: 300 (D=1)
+d8-b8: 300 (D=1)
+d8-c8: 300 (D=1)
+e8-d7: 300 (D=1)
+e8-e7: 300 (D=1)
+d5-d4: 300 (D=1)
+g6-g5: 300 (D=1)
+a7-a5: 300 (D=1)
+a7-a6: 300 (D=1)
+b7-b5: 300 (D=1)
+b7-b6: 300 (D=1)
+f7-f5: 300 (D=1)
+f7-f6: 300 (D=1)
+
+8 | r . . q k b . r 
+7 | p p p . . p . . 
+6 | . . n . . . p . 
+5 | . . . p . . . p 
+4 | . . . . p . . . 
+3 | . . N . P . . P 
+2 | P P P P Q P n P 
+1 | R . B K . R . . 
+   ----------------
+    a b c d e f g h 
+
+turn: white
+castling rights: kq
+en passant: h6
+rule 50: 2
+game ply: 24
+
+SCORE: -300
+h7-h5: 300 (D=1)
+h7-h6: 300 (D=1)
+g2xe1: 800 (D=1)
+REACHED 400 800
+g2xe3: 400 (D=1)
+REACHED 400 400
+g2xe3: 400 (D=1)
+REACHED 400 400
+g2xe1: 1200 (D=1)
+REACHED 400 1200
+e4xd3: 1200 (D=1)
+REACHED 400 1200
+e4xf3: 1200 (D=1)
+REACHED 400 1200
+d5xc4: 1200 (D=1)
+REACHED 400 1200
+g2xe3: 400 (D=1)
+REACHED 400 400
+g2xe3: 400 (D=1)
+REACHED 400 400
+
+8 | r . . q k b . r 
+7 | p p p . . p . p 
+6 | . . n . . . . . 
+5 | . . . p . . . p 
+4 | . . . . p . . . 
+3 | . . . . P . . P 
+2 | P P P P . P n P 
+1 | R N B K . R . . 
+   ----------------
+    a b c d e f g h 
+
+turn: white
+castling rights: kq
+en passant: none
+rule 50: 1
+game ply: 24
+
+SCORE: -1200
+g6xh5: 1200 (D=1)
+REACHED 400 1200
+b7xa6: 1200 (D=1)
+REACHED 400 1200
+g2xe3: 400 (D=1)
+REACHED 400 400
+g2xe3: 400 (D=1)
+REACHED 400 400
+g2xe3: 400 (D=1)
+REACHED 400 400
+g2xe3: 400 (D=1)
+REACHED 400 400
+g2xe3: 400 (D=1)
+REACHED 400 400
+d5xc4: 400 (D=1)
+REACHED 400 400
+e4xd3: 400 (D=1)
+REACHED 400 400
+g2xe3: 400 (D=1)
+REACHED 400 400
+e4xf3: 400 (D=1)
+REACHED 400 400
+g2xe3: 400 (D=1)
+REACHED 400 400
+g2xe3: 400 (D=1)
+REACHED 400 400
+info depth 2 score cp -400 time 0 nodes 126
+
+move: b1-c3
+time: 0ms
