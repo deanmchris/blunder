@@ -1,6 +1,18 @@
 Changelog
 ---------
-* [Blunder 1.0.0 (Initial release)](#Blunder-1.0.0)
+* Blunder 2.0.0
+* Blunder 1.0.0 (Initial release)
+
+Blunder 2.0.0
+-------------
+Blunder 2.0.0 adds three new features: Zobrist hashing, because of the hashing, three-fold repetition detection, and better piece-square table
+values, courtesey of Marcel Vanthoor, author of [Rustic](https://github.com/mvanthoor/rustic). A future goal is to automatically generate piece-square table, and other evaluation
+values via [Texel tuning](https://www.chessprogramming.org/Texel%27s_Tuning_Method). These features combined show an increase of ~175 Elo (+/- 38.4) in self-play testing against Blunder 1.0.0.
+
+* Engine
+    - [Zobrist hashing](https://www.chessprogramming.org/Zobrist_Hashing)
+* Search & Evaluation
+    - Three-fold repetiton detection
 
 Blunder 1.0.0
 -------------
