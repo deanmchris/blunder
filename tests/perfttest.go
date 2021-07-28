@@ -70,7 +70,7 @@ func padToCenter(s string, fill string, w int) string {
 }
 
 // Print a row in the perft test output
-func printRow(fen, depth, expected, moves, correct string) {
+func printPerftTestRow(fen, depth, expected, moves, correct string) {
 	fmt.Printf(
 		"| %s | %s | %s | %s | %s |\n",
 		padToCenter(fen, " ", 84),
@@ -82,15 +82,15 @@ func printRow(fen, depth, expected, moves, correct string) {
 }
 
 // Print a row separator in the perft test output
-func printRowSeparator() {
+func printPerftTestRowSeparator() {
 	fmt.Println("+" + strings.Repeat("-", 86) + "+" + "--------+------------+------------+----------+")
 }
 
 // Test blunder against the perft suite
 func RunPerftTests(board *engine.Board) {
-	printRowSeparator()
-	printRow("position", "depth", "expected", "moves", "correct")
-	printRowSeparator()
+	printPerftTestRowSeparator()
+	printPerftTestRow("position", "depth", "expected", "moves", "correct")
+	printPerftTestRowSeparator()
 
 	perftTests := loadPerftSuite()
 	var totalNodes uint64
@@ -116,14 +116,14 @@ func RunPerftTests(board *engine.Board) {
 				correct = "no"
 			}
 
-			printRow(
+			printPerftTestRow(
 				perftTest.FEN,
 				strconv.Itoa(depth+1),
 				strconv.FormatInt(int64(nodeCount), 10),
 				strconv.FormatInt(int64(result), 10),
 				correct,
 			)
-			printRowSeparator()
+			printPerftTestRowSeparator()
 		}
 	}
 

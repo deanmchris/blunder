@@ -8,6 +8,7 @@ import (
 const (
 	SearchDepth             = 8
 	NullMove    engine.Move = 0
+	DrawValue               = -(PawnValue / 2)
 )
 
 // A table used to implement Most-Valuable-Victim,
@@ -29,11 +30,13 @@ type Search struct {
 	Timer         Timer
 	nodesSearched uint64
 	searchOver    bool
+	engineColor   int
 }
 
 // Search for the best move for the side to move in the given position.
 // Implemented using iterative deepening.
 func (search *Search) Search() engine.Move {
+	search.engineColor = search.Board.ColorToMove
 	bestMove, bestScore := NullMove, NegInf
 	search.Timer.StartSearch()
 
@@ -95,8 +98,13 @@ func (search *Search) negamax(depth, alpha, beta int) int {
 	}
 
 	search.nodesSearched++
+
 	if depth == 0 {
 		return search.quiescence(alpha, beta)
+	}
+
+	if search.isRepition() {
+		return search.contempt()
 	}
 
 	moves := engine.GenPseduoLegalMoves(&search.Board)
@@ -129,7 +137,7 @@ func (search *Search) negamax(depth, alpha, beta int) int {
 		if search.Board.KingIsAttacked(search.Board.ColorToMove) {
 			return NegInf + (SearchDepth - depth - 1)
 		}
-		return 0
+		return search.contempt()
 	}
 
 	return alpha
@@ -177,6 +185,26 @@ func (search *Search) quiescence(alpha, beta int) int {
 		}
 	}
 	return alpha
+}
+
+// Determine if the current board state is being repeated.
+func (search *Search) isRepition() bool {
+	for repPly := 0; repPly < search.Board.RepitionPly; repPly++ {
+		if search.Board.Repitions[repPly] == search.Board.Hash {
+			return true
+		}
+	}
+	return false
+}
+
+// Determine the draw score based on whose moving. If the engine is moving,
+// return a negative score, and if the opponet is moving, return a positive
+// score.
+func (search *Search) contempt() int {
+	if search.Board.ColorToMove == search.engineColor {
+		return DrawValue
+	}
+	return -DrawValue
 }
 
 // Score the moves given
