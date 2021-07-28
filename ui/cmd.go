@@ -18,9 +18,10 @@ Options:
 - perft <DEPTH>: Run perft up to <DEPTH>
 - fen <FEN>: Load a fen string given by <FEN>
 - print: Display the current board state
-- options: Display this help message
+- help: Display this help message
+- ptest: Run the perft tests for Blunder (may take up to 10 minutes)
+- ztest: Run the zobrist hash tests (resets board to starting position)
 - quit: Quit the program
-- test: Run the perft tests for Blunder (will take a bit!)
 `
 )
 
@@ -39,11 +40,16 @@ func CmdLoop() {
 			break
 		} else if command == "print\n" {
 			fmt.Println(board)
-		} else if command == "options\n" {
+		} else if command == "help\n" {
 			fmt.Println(HelpMessage)
-		} else if command == "test\n" {
+		} else if command == "ptest\n" {
 			fmt.Println()
 			tests.RunPerftTests(&board)
+			fmt.Println()
+		} else if command == "ztest\n" {
+			fmt.Println()
+			board.LoadFEN(engine.FENStartPosition)
+			tests.RunAllZobristHashingTests(&board)
 			fmt.Println()
 		} else if strings.HasPrefix(command, "perft ") {
 			perftCommand(&board, command)
@@ -51,7 +57,7 @@ func CmdLoop() {
 			fenCommand(&board, command)
 		} else {
 			fmt.Printf("Unknown command \"%v\"\n", strings.TrimSuffix(command, "\n"))
-			fmt.Printf("Enter \"options\" to show available commands\n")
+			fmt.Printf("Enter \"help\" to show available commands\n")
 		}
 	}
 }

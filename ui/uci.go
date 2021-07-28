@@ -25,49 +25,6 @@ func uciCommandResponse() {
 	fmt.Printf("uciok\n")
 }
 
-func moveFromCoord(board *engine.Board, move string) engine.Move {
-	fromPos := engine.CoordinateToPos(move[0:2])
-	toPos := engine.CoordinateToPos(move[2:4])
-	movePieceType := board.Squares[fromPos].Type
-	var moveType int
-
-	moveLen := len(move)
-	if moveLen == 5 {
-		if move[moveLen-1] == 'n' {
-			moveType = engine.KnightPromotion
-		} else if move[moveLen-1] == 'b' {
-			moveType = engine.BishopPromotion
-		} else if move[moveLen-1] == 'r' {
-			moveType = engine.RookPromotion
-		} else if move[moveLen-1] == 'q' {
-			moveType = engine.QueenPromotion
-		}
-	} else if move == "e1g1" && movePieceType == engine.King {
-		moveType = engine.CastleWKS
-	} else if move == "e1c1" && movePieceType == engine.King {
-		moveType = engine.CastleWQS
-	} else if move == "e8g8" && movePieceType == engine.King {
-		moveType = engine.CastleBKS
-	} else if move == "e8c8" && movePieceType == engine.King {
-		moveType = engine.CastleBQS
-	} else if toPos == board.EPSquare && movePieceType == engine.Pawn {
-		moveType = engine.AttackEP
-	} else {
-		capturePieceType := board.Squares[toPos].Type
-		if capturePieceType == engine.NoType {
-			if movePieceType == engine.Pawn && abs(fromPos-toPos) == 16 {
-				moveType = engine.DoublePawnPush
-			} else {
-				moveType = engine.Quiet
-			}
-		} else {
-			moveType = engine.Attack
-		}
-	}
-	return engine.MakeMove(fromPos, toPos, moveType)
-
-}
-
 // Get the absolute value of a number n
 func abs(n int) int {
 	if n < 0 {
@@ -93,7 +50,7 @@ func positionCommandResponse(board *engine.Board, command string) {
 	if strings.HasPrefix(args, "moves") {
 		args = strings.TrimPrefix(args, "moves ")
 		for _, moveAsString := range strings.Fields(args) {
-			move := moveFromCoord(board, moveAsString)
+			move := engine.MoveFromCoord(board, moveAsString, false)
 			board.DoMove(move, false)
 		}
 	}

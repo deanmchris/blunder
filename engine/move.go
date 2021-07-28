@@ -22,7 +22,7 @@ const (
 	MaxMoves = 50
 )
 
-type Move = uint32
+type Move = uint16
 type Moves = []Move
 
 // A helper function to create moves. Each move generated
@@ -74,4 +74,54 @@ func MoveStr(move Move) string {
 		PosToCoordinate(int(to)),
 		promotionType,
 	)
+}
+
+func MoveFromCoord(board *Board, move string, useChess960Castling bool) Move {
+	fromPos := CoordinateToPos(move[0:2])
+	toPos := CoordinateToPos(move[2:4])
+	movePieceType := board.Squares[fromPos].Type
+	var moveType int
+
+	moveLen := len(move)
+	if moveLen == 5 {
+		if move[moveLen-1] == 'n' {
+			moveType = KnightPromotion
+		} else if move[moveLen-1] == 'b' {
+			moveType = BishopPromotion
+		} else if move[moveLen-1] == 'r' {
+			moveType = RookPromotion
+		} else if move[moveLen-1] == 'q' {
+			moveType = QueenPromotion
+		}
+	} else if move == "e1g1" && movePieceType == King && !useChess960Castling {
+		moveType = CastleWKS
+	} else if move == "e1c1" && movePieceType == King && !useChess960Castling {
+		moveType = CastleWQS
+	} else if move == "e8g8" && movePieceType == King && !useChess960Castling {
+		moveType = CastleBKS
+	} else if move == "e8c8" && movePieceType == King && !useChess960Castling {
+		moveType = CastleBQS
+	} else if move == "e1h1" && movePieceType == King && useChess960Castling {
+		moveType = CastleWKS
+	} else if move == "e1a1" && movePieceType == King && useChess960Castling {
+		moveType = CastleWQS
+	} else if move == "e8h8" && movePieceType == King && useChess960Castling {
+		moveType = CastleBKS
+	} else if move == "e8a8" && movePieceType == King && useChess960Castling {
+		moveType = CastleBQS
+	} else if toPos == board.EPSquare && movePieceType == Pawn {
+		moveType = AttackEP
+	} else {
+		capturePieceType := board.Squares[toPos].Type
+		if capturePieceType == NoType {
+			if movePieceType == Pawn && abs(fromPos-toPos) == 16 {
+				moveType = DoublePawnPush
+			} else {
+				moveType = Quiet
+			}
+		} else {
+			moveType = Attack
+		}
+	}
+	return MakeMove(fromPos, toPos, moveType)
 }
