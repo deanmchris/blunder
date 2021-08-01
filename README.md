@@ -3,7 +3,7 @@ Overview
 
 Blunder is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
 straightforward and easy to read, so that others can benefit from the project. Currently my estimate is that Blunder
-is at about ~1400 Elo, so around the level of a decent ameatuer chess player.
+is at about ~1770 Elo (in self play).
 
 Installation
 -----
@@ -86,20 +86,12 @@ Features
  One of the most fun and exciting parts of chess programming is adding new features to your engine, and watching it
  slowly become stronger and better than previous versions. 
  
- With that said, here are some features that will be added in the upcoming versions of Blunder (in no particular
- order):
+ With that said, here is a list of the next few features planned for blunder 4.0.0. Note that these are subject to change:
  
- * A transposition table using zobrist hashing
- * Repition draw detection
-     - I'd like to add this feature especially, since Blunder currently draws many games because
-       it sees a position as being equal, or that it has an advantage, no matter what move it makes,
-       so it simply repeats a particular move, not realizing that it'll draw the game soon.
- * Tapered evaluation
- * Null-move pruning
- * Killer heuristics
- * History heuristics
+ * Transposition table
+ * Principal variation search
+ * King saftey evaluation
  * Pawn structure evaluation
- * Texel tuning
     
  Changelog
  ---------
