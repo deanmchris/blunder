@@ -6,7 +6,7 @@ Changelog
 
 Blunder 3.0.0
 -------------
-Blunder 3.0.0, now includes a tapered evaluation (and updated piece-square tables to better suite the update), killer move heuristics, and a transposition table, only for running perft. And upcoming feature will be a transposition table added to the search. These new features added to the search and evaluation phases of Blunder gave a collective increase of about ~207 Elo, putting at roughly ~1782 Elo in self play.
+Blunder 3.0.0, now includes a tapered evaluation (and updated piece-square tables to better suit the update), killer move heuristics, and a transposition table, only for running perft. An upcoming feature will be a transposition table added to the search. These new features added to the search and evaluation phases of Blunder gave a collective increase of about ~207 Elo, putting at roughly ~1782 Elo in self-play.
 
 * Engine
     - Transposition table for perft
