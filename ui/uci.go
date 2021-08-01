@@ -25,14 +25,6 @@ func uciCommandResponse() {
 	fmt.Printf("uciok\n")
 }
 
-// Get the absolute value of a number n
-func abs(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
-}
-
 func positionCommandResponse(board *engine.Board, command string) {
 	args := strings.TrimPrefix(command, "position ")
 	var fenString string
@@ -100,7 +92,6 @@ func UCILoop() {
 	var search ai.Search
 
 	uciCommandResponse()
-
 	for {
 		command, _ := reader.ReadString('\n')
 		if command == "uci\n" {
@@ -110,15 +101,10 @@ func UCILoop() {
 		} else if strings.HasPrefix(command, "setoption") {
 			// TODO: set internal engine options
 		} else if strings.HasPrefix(command, "ucinewgame") {
-			// TODO: restart engine internals
+			// TODO: prepare engine for new game
 		} else if strings.HasPrefix(command, "position") {
 			positionCommandResponse(&search.Board, command)
 		} else if strings.HasPrefix(command, "go") {
-			/*defer func() {
-				if err := recover(); err != nil {
-					fmt.Println(err)
-				}
-			}()*/
 			goCommandResponse(&search, command)
 		} else if strings.HasPrefix(command, "stop") {
 			// TODO: stop the search of the engine

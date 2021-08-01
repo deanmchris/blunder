@@ -252,6 +252,16 @@ func attackersOfSquare(board *Board, usColor int, sq int) (attackers uint64) {
 	return attackers
 }
 
+const TTSize = 10000000
+
+type perftTTEntry struct {
+	Hash      uint64
+	NodeCount uint64
+	Depth     int
+}
+
+var TT [TTSize]perftTTEntry
+
 // Explore the move tree up to depth, and return the total
 // number of nodes explored.  This function is used to
 // debug move generation and ensure it is working by comparing
@@ -259,6 +269,10 @@ func attackersOfSquare(board *Board, usColor int, sq int) (attackers uint64) {
 func Perft(board *Board, depth, divdeAt int, silent bool) uint64 {
 	if depth == 0 {
 		return 1
+	}
+
+	if entry := TT[board.Hash%TTSize]; entry.Hash == board.Hash && entry.Depth == depth {
+		return entry.NodeCount
 	}
 
 	moves := GenPseduoLegalMoves(board)
@@ -280,5 +294,7 @@ func Perft(board *Board, depth, divdeAt int, silent bool) uint64 {
 		nodes += moveNodes
 		board.UndoMove(move)
 	}
+
+	TT[board.Hash%TTSize] = perftTTEntry{Hash: board.Hash, NodeCount: nodes, Depth: depth}
 	return nodes
 }

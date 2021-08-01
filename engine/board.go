@@ -328,6 +328,9 @@ func (board *Board) DoMove(move Move, saveState bool) {
 
 	board.EPSquare = NoEPSquare
 
+	board.Rule50++
+	board.GamePly++
+
 	switch movType {
 	case CastleWKS:
 		board.movePiece(E1, G1)
@@ -387,6 +390,10 @@ func (board *Board) DoMove(move Move, saveState bool) {
 		fallthrough
 	case Quiet:
 		board.movePiece(from, to)
+
+		if state.Moved.Type == Pawn {
+			board.Rule50 = 0
+		}
 	}
 
 	clearBit(&board.CastlingRights, from)
@@ -396,9 +403,6 @@ func (board *Board) DoMove(move Move, saveState bool) {
 	if board.EPSquare != NoEPSquare {
 		board.Hash ^= Random64[EPRand64+FileOf(board.EPSquare)]
 	}
-
-	board.Rule50++
-	board.GamePly++
 
 	board.KingPos[board.ColorToMove][state.Moved.Type] = to
 	board.ColorToMove ^= 1
@@ -425,6 +429,7 @@ func (board *Board) UndoMove(move Move) {
 	board.Hash ^= Random64[SideToMoveRand64]
 
 	from, to, movType := FromSq(move), ToSq(move), MoveType(move)
+
 	board.GamePly--
 
 	switch movType {

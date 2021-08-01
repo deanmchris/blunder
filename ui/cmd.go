@@ -19,7 +19,7 @@ Options:
 - fen <FEN>: Load a fen string given by <FEN>
 - print: Display the current board state
 - help: Display this help message
-- ptest: Run the perft tests for Blunder (may take up to 10 minutes)
+- ptest: Run the perft tests for Blunder
 - ztest: Run the zobrist hash tests (resets board to starting position)
 - quit: Quit the program
 `
@@ -78,7 +78,7 @@ func perftCommand(board *engine.Board, command string) {
 			fmt.Printf("Time: %vms\n", elapsed.Milliseconds())
 			fmt.Printf("Nps: %d\n", int(float64(nodes)/elapsed.Seconds()))
 		} else {
-			fmt.Printf("Depth limit for perft is %d", DepthLimit)
+			fmt.Printf("Depth limit for perft is %d\n", DepthLimit)
 		}
 	} else {
 		fmt.Println("Perft depth should be an integer")

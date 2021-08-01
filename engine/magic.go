@@ -240,8 +240,7 @@ func genRookMagics() {
 				RookAttacks[sq][index] = attacks
 			}
 		}
-
-		//fmt.Printf("Magic 0x%x for square %d, found in %d tries\n", magic.MagicNo, sq, tries)
+		// fmt.Printf("Magic 0x%x for square %d, found in %d tries\n", magic.MagicNo, sq, tries)
 	}
 }
 
@@ -289,8 +288,7 @@ func genBishopMagics() {
 				BishopAttacks[sq][index] = attacks
 			}
 		}
-
-		//fmt.Printf("Magic 0x%x for square %d, found in %d tries\n", magic.MagicNo, sq, tries)
+		// fmt.Printf("Magic 0x%x for square %d, found in %d tries\n", magic.MagicNo, sq, tries)
 	}
 }
 
