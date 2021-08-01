@@ -3,7 +3,7 @@ Overview
 
 Blunder is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
 straightforward and easy to read, so that others can benefit from the project. Currently my estimate is that Blunder
-is at about ~1780 Elo (in self play).
+is at about ~1780 Elo (in self-play).
 
 Installation
 -----
