@@ -3,7 +3,7 @@ Overview
 
 Blunder is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
 straightforward and easy to read, so that others can benefit from the project. Currently my estimate is that Blunder
-is at about ~1780 Elo (in self-play).
+is at about ~1830 Elo (in self-play).
 
 Installation
 -----
@@ -71,15 +71,21 @@ Features
 * Engine
     - [Bitboards representation](https://www.chessprogramming.org/Bitboards)
     - [Magic bitboards for slider move generation](https://www.chessprogramming.org/Magic_Bitboards)
+    - [Zobrist hashing]().
+    - [Transposition table for perft]().
+    - Basic filtered move generation (not to be confused with STAGED move generation).
 * Search
     - [Negamax search framework](https://www.chessprogramming.org/Negamax)
     - [Alpha-Beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
     - [MVV-LVA move ordering](https://www.chessprogramming.org/MVV-LVA)
     - [Quiescence search](https://www.chessprogramming.org/Quiescence_Search)
-    - Time-control logic supporting classical, rapid, bullet, and ultra-bullet time formats.
+    - [Time-control logic supporting classical, rapid, bullet, and ultra-bullet time formats](https://www.chessprogramming.org/Time_Management).
+    - [Repition detection](https://www.chessprogramming.org/Repetitions).
+    - [Killer moves](https://www.chessprogramming.org/Killer_Move).
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
-    - [Hand-written piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
+    - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
+    - [Tapered evaluation](https://www.chessprogramming.org/Tapered_Eval).
 
  Future Features
  ---------------
