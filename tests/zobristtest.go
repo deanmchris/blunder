@@ -57,7 +57,7 @@ func RunZobristHashingTest(board *engine.Board, path string) {
 
 	// Implement the 3-repititon rule for draws
 	positionRepeats := make(map[uint64]int)
-	var movesMade []uint16
+	var movesMade []engine.Move
 
 	for {
 		if entry, ok := entries[board.Hash]; ok {
@@ -97,7 +97,7 @@ func RunZobristHashingTest(board *engine.Board, path string) {
 }
 
 // A helper function to pop and item from a slice
-func pop(s *[]uint16) (item uint16) {
+func pop(s *[]engine.Move) (item engine.Move) {
 	item, *s = (*s)[len(*s)-1], (*s)[:len(*s)-1]
 	return item
 }

@@ -6,7 +6,7 @@ import "fmt"
 // for moves in Blunder.
 
 const (
-	Quiet = iota
+	Quiet uint8 = iota
 	DoublePawnPush
 	Attack
 	AttackEP
@@ -22,36 +22,36 @@ const (
 	MaxMoves = 50
 )
 
-type Move = uint16
+type Move uint16
 type Moves = []Move
 
 // A helper function to create moves. Each move generated
 // by our move generator is encoded in 16-bits, where the
 // first six bits are the from square, the second 6, are the
 // to square, and the last four are the move type (see above).
-func MakeMove(from, to, moveType int) Move {
-	return Move(from<<10 | to<<4 | moveType)
+func MakeMove(from, to, moveType uint8) Move {
+	return Move(uint16(from)<<10 | uint16(to)<<4 | uint16(moveType))
 }
 
 // Get the type of the move.
-func MoveType(move Move) int {
-	return int(move & 0xf)
+func (move Move) MoveType() uint8 {
+	return uint8(move & 0xf)
 }
 
 // Get the from square of the move.
-func FromSq(move Move) int {
-	return int((move & 0xFC00) >> 10)
+func (move Move) FromSq() uint8 {
+	return uint8((move & 0xFC00) >> 10)
 }
 
 // Get the to square of the move.
-func ToSq(move Move) int {
-	return int((move & 0x3F0) >> 4)
+func (move Move) ToSq() uint8 {
+	return uint8((move & 0x3F0) >> 4)
 }
 
 // A helper function to extract the info from a move represented
 // as 32-bits, and display it.
-func MoveStr(move Move) string {
-	from, to, movType := FromSq(move), ToSq(move), MoveType(move)
+func (move Move) String() string {
+	from, to, movType := move.FromSq(), move.ToSq(), move.MoveType()
 	promotionType, seperator := "", "-"
 	switch movType {
 	case Attack:
@@ -69,9 +69,9 @@ func MoveStr(move Move) string {
 	}
 	return fmt.Sprintf(
 		"%v%v%v%v",
-		PosToCoordinate(int(from)),
+		PosToCoordinate(from),
 		seperator,
-		PosToCoordinate(int(to)),
+		PosToCoordinate(to),
 		promotionType,
 	)
 }
@@ -80,7 +80,7 @@ func MoveFromCoord(board *Board, move string, useChess960Castling bool) Move {
 	fromPos := CoordinateToPos(move[0:2])
 	toPos := CoordinateToPos(move[2:4])
 	movePieceType := board.Squares[fromPos].Type
-	var moveType int
+	var moveType uint8
 
 	moveLen := len(move)
 	if moveLen == 5 {
@@ -114,7 +114,7 @@ func MoveFromCoord(board *Board, move string, useChess960Castling bool) Move {
 	} else {
 		capturePieceType := board.Squares[toPos].Type
 		if capturePieceType == NoType {
-			if movePieceType == Pawn && abs(fromPos-toPos) == 16 {
+			if movePieceType == Pawn && abs(int8(fromPos)-int8(toPos)) == 16 {
 				moveType = DoublePawnPush
 			} else {
 				moveType = Quiet

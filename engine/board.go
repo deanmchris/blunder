@@ -10,36 +10,36 @@ import (
 // A file containg the implementation of Blunder's internal board representation.
 
 const (
-	Pawn   = 0
-	Knight = 1
-	Bishop = 2
-	Rook   = 3
-	Queen  = 4
-	King   = 5
-	NoType = 6
+	Pawn   uint8 = 0
+	Knight uint8 = 1
+	Bishop uint8 = 2
+	Rook   uint8 = 3
+	Queen  uint8 = 4
+	King   uint8 = 5
+	NoType uint8 = 6
 
-	Black   = 0
-	White   = 1
-	NoColor = 2
+	Black   uint8 = 0
+	White   uint8 = 1
+	NoColor uint8 = 2
 
-	MaxHistory = 50
-	MaxPlies   = 1024
+	MaxHistory   uint16 = 100
+	MaxGamePlies uint16 = 1024
 
-	NoEPSquare       = 64
-	FENStartPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0"
-	FENKiwiPete      = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
+	NoEPSquare       uint8 = 64
+	FENStartPosition       = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0"
+	FENKiwiPete            = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
-	WhiteKingside  uint64 = 0x900000000000000
-	WhiteQueenside uint64 = 0x8800000000000000
-	BlackKingside  uint64 = 0x9
-	BlackQueenside uint64 = 0x88
+	WhiteKingside  Bitboard = 0x900000000000000
+	WhiteQueenside Bitboard = 0x8800000000000000
+	BlackKingside  Bitboard = 0x9
+	BlackQueenside Bitboard = 0x88
 
-	CastleWKSRand64  = 768
-	CastleWQSRand64  = 769
-	CastleBKSRand64  = 770
-	CastleBQSRand64  = 771
-	EPRand64         = 772
-	SideToMoveRand64 = 780
+	CastleWKSRand64  uint16 = 768
+	CastleWQSRand64  uint16 = 769
+	CastleBKSRand64  uint16 = 770
+	CastleBQSRand64  uint16 = 771
+	EPRand64         uint16 = 772
+	SideToMoveRand64 uint16 = 780
 )
 const (
 	A1, B1, C1, D1, E1, F1, G1, H1 = 0, 1, 2, 3, 4, 5, 6, 7
@@ -67,7 +67,7 @@ var CharToPiece map[byte]Piece = map[byte]Piece{
 	'k': {King, Black},
 }
 
-var PieceTypeToChar map[int]rune = map[int]rune{
+var PieceTypeToChar map[uint8]rune = map[uint8]rune{
 	Pawn:   'p',
 	Knight: 'n',
 	Bishop: 'b',
@@ -77,47 +77,47 @@ var PieceTypeToChar map[int]rune = map[int]rune{
 	NoType: '.',
 }
 
-var EPDelta [2]int = [2]int{8, -8}
+var EPDelta [2]int8 = [2]int8{8, -8}
 
 type Piece struct {
-	Type  int
-	Color int
+	Type  uint8
+	Color uint8
 }
 
 type BoardState struct {
 	Moved          Piece
 	Captured       Piece
-	CastlingRights uint64
-	Rule50         int
-	EPSquare       int
+	CastlingRights Bitboard
+	Rule50         uint8
+	EPSquare       uint8
 }
 
 type Board struct {
-	PieceBB [2][6]uint64
-	SideBB  [2]uint64
+	PieceBB [2][6]Bitboard
+	SideBB  [2]Bitboard
 	Squares [64]Piece
-	KingPos [2][6]int
+	KingPos [2][6]uint8
 
-	ColorToMove int
-	GamePly     int
-	Rule50      int
+	ColorToMove uint8
+	GamePly     uint16
+	Rule50      uint8
 
-	EPSquare       int
-	CastlingRights uint64
+	EPSquare       uint8
+	CastlingRights Bitboard
 	Hash           uint64
 
 	history    [MaxHistory]BoardState
-	historyPly int
+	historyPly uint16
 
-	Repitions   [MaxPlies]uint64
-	RepitionPly int
+	Repitions   [MaxGamePlies]uint64
+	RepitionPly uint16
 }
 
 // Setup a new Board with the internal fields set using a
 // Forsyth–Edwards Notation (FEN) line.
 func (board *Board) LoadFEN(fen string) {
-	board.PieceBB = [2][6]uint64{}
-	board.SideBB = [2]uint64{}
+	board.PieceBB = [2][6]Bitboard{}
+	board.SideBB = [2]Bitboard{}
 	board.Squares = [64]Piece{}
 	board.CastlingRights = 0
 	board.Hash = 0
@@ -139,12 +139,12 @@ func (board *Board) LoadFEN(fen string) {
 		switch char {
 		case 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K':
 			piece := CharToPiece[char]
-			board.putPiece(piece.Type, piece.Color, sq)
+			board.putPiece(piece.Type, piece.Color, uint8(sq))
 
 			if char == 'K' {
-				board.KingPos[White][King] = sq
+				board.KingPos[White][King] = uint8(sq)
 			} else if char == 'k' {
-				board.KingPos[Black][King] = sq
+				board.KingPos[Black][King] = uint8(sq)
 			}
 
 			board.Squares[sq] = piece
@@ -173,37 +173,37 @@ func (board *Board) LoadFEN(fen string) {
 		}
 
 		if board.EPSquare != NoEPSquare {
-			board.Hash ^= Random64[EPRand64+FileOf(board.EPSquare)]
+			board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
 		}
 	}
 
 	halfMoveCounter, _ := strconv.Atoi(halfMove)
-	board.Rule50 = halfMoveCounter
+	board.Rule50 = uint8(halfMoveCounter)
 
 	gamePly, _ := strconv.Atoi(fullMove)
 	gamePly *= 2
 	if board.ColorToMove == Black {
 		gamePly--
 	}
-	board.GamePly = gamePly
+	board.GamePly = uint16(gamePly)
 
 	for _, char := range castling {
 		switch char {
 		case 'K':
-			setBit(&board.CastlingRights, E1)
-			setBit(&board.CastlingRights, H1)
+			board.CastlingRights.SetBit(E1)
+			board.CastlingRights.SetBit(H1)
 			board.Hash ^= Random64[CastleWKSRand64]
 		case 'Q':
-			setBit(&board.CastlingRights, E1)
-			setBit(&board.CastlingRights, A1)
+			board.CastlingRights.SetBit(E1)
+			board.CastlingRights.SetBit(A1)
 			board.Hash ^= Random64[CastleWQSRand64]
 		case 'k':
-			setBit(&board.CastlingRights, E8)
-			setBit(&board.CastlingRights, H8)
+			board.CastlingRights.SetBit(E8)
+			board.CastlingRights.SetBit(H8)
 			board.Hash ^= Random64[CastleBKSRand64]
 		case 'q':
-			setBit(&board.CastlingRights, E8)
-			setBit(&board.CastlingRights, A8)
+			board.CastlingRights.SetBit(E8)
+			board.CastlingRights.SetBit(A8)
 			board.Hash ^= Random64[CastleBQSRand64]
 		}
 	}
@@ -214,11 +214,11 @@ func (board *Board) LoadFEN(fen string) {
 
 // Get the random 64-bit number corresponding to the given piece
 // of a certian color and type, on a certian square.
-func getPieceHash(pieceType, pieceColor, sq int) uint64 {
+func getPieceHash(pieceType, pieceColor uint8, sq uint8) uint64 {
 	if pieceColor == White {
-		return Random64[(pieceType*2+1)*64+sq]
+		return Random64[(uint16(pieceType)*2+1)*64+uint16(sq)]
 	}
-	return Random64[(pieceType*2)*64+sq]
+	return Random64[(uint16(pieceType)*2)*64+uint16(sq)]
 
 }
 
@@ -309,7 +309,7 @@ func (board Board) String() (str string) {
 }
 
 func (board *Board) DoMove(move Move, saveState bool) {
-	from, to, movType := FromSq(move), ToSq(move), MoveType(move)
+	from, to, movType := move.FromSq(), move.ToSq(), move.MoveType()
 	state := &board.history[board.historyPly]
 
 	if saveState {
@@ -323,7 +323,7 @@ func (board *Board) DoMove(move Move, saveState bool) {
 	state.EPSquare = board.EPSquare
 
 	if board.EPSquare != NoEPSquare {
-		board.Hash ^= Random64[EPRand64+FileOf(board.EPSquare)]
+		board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
 	}
 
 	board.EPSquare = NoEPSquare
@@ -369,21 +369,17 @@ func (board *Board) DoMove(move Move, saveState bool) {
 		}
 		board.putPiece(Queen, board.ColorToMove, to)
 	case AttackEP:
-		capturePos := to + EPDelta[board.ColorToMove]
+		capturePos := uint8(int8(to) + EPDelta[board.ColorToMove])
 		state.Captured = board.Squares[capturePos]
 		board.removePiece(capturePos)
 		board.movePiece(from, to)
 		board.Rule50 = 0
 	case Attack:
-		if state.Captured.Type == King {
-			fmt.Println(board)
-			panic("illegal king capture")
-		}
 		board.removePiece(to)
 		board.movePiece(from, to)
 		board.Rule50 = 0
 	case DoublePawnPush:
-		board.EPSquare = to + EPDelta[board.ColorToMove]
+		board.EPSquare = uint8(int8(to) + EPDelta[board.ColorToMove])
 		if (PawnAttacks[board.ColorToMove][board.EPSquare] & board.PieceBB[board.ColorToMove^1][Pawn]) == 0 {
 			board.EPSquare = NoEPSquare
 		}
@@ -396,12 +392,12 @@ func (board *Board) DoMove(move Move, saveState bool) {
 		}
 	}
 
-	clearBit(&board.CastlingRights, from)
-	clearBit(&board.CastlingRights, to)
+	board.CastlingRights.ClearBit(from)
+	board.CastlingRights.ClearBit(to)
 	board.hashCastlingRights(state)
 
 	if board.EPSquare != NoEPSquare {
-		board.Hash ^= Random64[EPRand64+FileOf(board.EPSquare)]
+		board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
 	}
 
 	board.KingPos[board.ColorToMove][state.Moved.Type] = to
@@ -418,7 +414,7 @@ func (board *Board) UndoMove(move Move) {
 
 	board.hashCastlingRights(state)
 	if board.EPSquare != NoEPSquare {
-		board.Hash ^= Random64[EPRand64+FileOf(board.EPSquare)]
+		board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
 	}
 
 	board.CastlingRights = state.CastlingRights
@@ -428,7 +424,7 @@ func (board *Board) UndoMove(move Move) {
 	board.ColorToMove ^= 1
 	board.Hash ^= Random64[SideToMoveRand64]
 
-	from, to, movType := FromSq(move), ToSq(move), MoveType(move)
+	from, to, movType := move.FromSq(), move.ToSq(), move.MoveType()
 
 	board.GamePly--
 
@@ -458,7 +454,7 @@ func (board *Board) UndoMove(move Move) {
 		}
 		board.putPiece(Pawn, board.ColorToMove, from)
 	case AttackEP:
-		capturePos := to + EPDelta[board.ColorToMove]
+		capturePos := uint8(int8(to) + EPDelta[board.ColorToMove])
 		board.movePiece(to, from)
 		board.putPiece(Pawn, state.Captured.Color, capturePos)
 	case Attack:
@@ -472,7 +468,7 @@ func (board *Board) UndoMove(move Move) {
 	}
 
 	if board.EPSquare != NoEPSquare {
-		board.Hash ^= Random64[EPRand64+FileOf(board.EPSquare)]
+		board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
 	}
 
 	board.KingPos[board.ColorToMove][state.Moved.Type] = from
@@ -481,14 +477,14 @@ func (board *Board) UndoMove(move Move) {
 
 // Move a piece from the given square to the given square.
 // For this function, the move is guaranteed to be quiet.
-func (board *Board) movePiece(from, to int) {
+func (board *Board) movePiece(from, to uint8) {
 	piece := &board.Squares[from]
-	clearBit(&board.PieceBB[piece.Color][piece.Type], from)
-	clearBit(&board.SideBB[piece.Color], from)
+	board.PieceBB[piece.Color][piece.Type].ClearBit(from)
+	board.SideBB[piece.Color].ClearBit(from)
 	board.Hash ^= getPieceHash(piece.Type, piece.Color, from)
 
-	setBit(&board.PieceBB[piece.Color][piece.Type], to)
-	setBit(&board.SideBB[piece.Color], to)
+	board.PieceBB[piece.Color][piece.Type].SetBit(to)
+	board.SideBB[piece.Color].SetBit(to)
 	board.Hash ^= getPieceHash(piece.Type, piece.Color, to)
 
 	board.Squares[to].Type = piece.Type
@@ -498,19 +494,19 @@ func (board *Board) movePiece(from, to int) {
 }
 
 // Put the piece given on the given square
-func (board *Board) putPiece(pieceType, pieceColor, to int) {
-	setBit(&board.PieceBB[pieceColor][pieceType], to)
-	setBit(&board.SideBB[pieceColor], to)
+func (board *Board) putPiece(pieceType, pieceColor, to uint8) {
+	board.PieceBB[pieceColor][pieceType].SetBit(to)
+	board.SideBB[pieceColor].SetBit(to)
 	board.Squares[to].Type = pieceType
 	board.Squares[to].Color = pieceColor
 	board.Hash ^= getPieceHash(pieceType, pieceColor, to)
 }
 
 // Remove the piece given on the given square.
-func (board *Board) removePiece(from int) {
+func (board *Board) removePiece(from uint8) {
 	piece := &board.Squares[from]
-	clearBit(&board.PieceBB[piece.Color][piece.Type], from)
-	clearBit(&board.SideBB[piece.Color], from)
+	board.PieceBB[piece.Color][piece.Type].ClearBit(from)
+	board.SideBB[piece.Color].ClearBit(from)
 	board.Hash ^= getPieceHash(piece.Type, piece.Color, from)
 
 	piece.Type = NoType
@@ -519,30 +515,30 @@ func (board *Board) removePiece(from int) {
 
 // Test whether or not the king is attacked for the side
 // who moved. Called after board.DoMove.
-func (board *Board) KingIsAttacked(kingColor int) bool {
+func (board *Board) KingIsAttacked(kingColor uint8) bool {
 	return sqIsAttacked(board, kingColor, board.KingPos[kingColor][King])
 }
 
 // Given a board square, return it's file.
-func FileOf(sq int) int {
+func FileOf(sq uint8) uint8 {
 	return sq % 8
 }
 
 // Given a board square, return it's rank.
-func RankOf(sq int) int {
+func RankOf(sq uint8) uint8 {
 	return sq / 8
 }
 
 // Convert a string board coordinate to its position
 // number.
-func CoordinateToPos(coordinate string) int {
+func CoordinateToPos(coordinate string) uint8 {
 	file := coordinate[0] - 'a'
 	rank := int(coordinate[1]-'0') - 1
-	return int(rank*8 + int(file))
+	return uint8(rank*8 + int(file))
 }
 
 // Convert a position number to a string board coordinate.
-func PosToCoordinate(pos int) string {
+func PosToCoordinate(pos uint8) string {
 	file := FileOf(pos)
 	rank := RankOf(pos)
 	return string(rune('a'+file)) + string(rune('0'+rank+1))

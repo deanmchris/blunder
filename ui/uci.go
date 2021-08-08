@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 1.0.0"
+	EngineName   = "Blunder 4.0.0"
 	EngineAuthor = "Christian Dean"
 
 	// If Blunder's playing a game with no time limit, it shouldn't spend too long searching,
@@ -71,10 +71,10 @@ func goCommandResponse(search *ai.Search, command string) {
 	bestMove := search.Search()
 
 	if bestMove == ai.NullMove {
-		panic("nullmove encountered")
+		panic(fmt.Sprintf("nullmove encountered:\n%s", search.Board))
 	}
 
-	move := strings.Replace(engine.MoveStr(bestMove), "x", "", -1)
+	move := strings.Replace(fmt.Sprintf("%s", bestMove), "x", "", -1)
 	move = strings.Replace(move, "-", "", -1)
 	fmt.Printf("bestmove %v\n", move)
 }
@@ -92,6 +92,7 @@ func UCILoop() {
 	var search ai.Search
 
 	uciCommandResponse()
+
 	for {
 		command, _ := reader.ReadString('\n')
 		if command == "uci\n" {

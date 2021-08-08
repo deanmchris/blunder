@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"math/bits"
+	"fmt"
 )
 
 /*
@@ -98,117 +98,57 @@ So for every square, and random number is generated, and tested using the above 
 If it passes both conditions, it's a magic number. If it doesn't, then it's not, and we need to
 generate a new random number and start the process over. This is done repeadtly until we have
 magic numbers for every square, for rooks and bishops.
+
+These numbers only need to be generated once, and can then be saved into an array and used in the
+program. So magic.go isn't actually used into releases of Blunder, but serves as a didatic example
+of how to construct a program to generate magic numbers.
 */
 
-const EmptyEntry uint64 = 0
-
-var RookMagics [64]Magic
-var BishopMagics [64]Magic
-
-var RookAttacks [64][4096]uint64
-var BishopAttacks [64][512]uint64
+const EmptyEntry Bitboard = 0
 
 var MagicSeeds [8]uint64 = [8]uint64{728, 10316, 55013, 32803, 12281, 15100, 16645, 255}
 
-// A struct to hold information regarding a magic number
-// for a rook or bishop on a particular square.
-type Magic struct {
-	MagicNo uint64
-	Mask    uint64
-	Shift   uint64
+// An implementation of a xorshift pseudo-random number
+// generator for 64 bit numbers, based on the implementation
+// by Stockfish.
+type PseduoRandomGenerator struct {
+	state uint64
 }
 
-// Generate a blocker mask for rooks.
-func genRookMasks(sq int) uint64 {
-	var occupiedBB uint64
-	sliderBB := SquareBB[sq]
-	sliderPos := msb(sliderBB)
-
-	fileMask := MaskFile[FileOf(sliderPos)]
-	rankMask := MaskRank[RankOf(sliderPos)]
-
-	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & rankMask)) - (2 * bits.Reverse64(sliderBB)))
-	lhs := (occupiedBB & rankMask) - 2*sliderBB
-	eastWestMoves := ((rhs ^ lhs) & rankMask) & (ClearFile[FileA] & ClearFile[FileH])
-
-	rhs = bits.Reverse64(bits.Reverse64((occupiedBB & fileMask)) - (2 * bits.Reverse64(sliderBB)))
-	lhs = (occupiedBB & fileMask) - 2*sliderBB
-	northSouthMoves := ((rhs ^ lhs) & fileMask) & (ClearRank[Rank1] & ClearRank[Rank8])
-
-	return northSouthMoves | eastWestMoves
+// Seed the generator.
+func (prng *PseduoRandomGenerator) Seed(seed uint64) {
+	prng.state = seed
 }
 
-// Generate a blocker mask for bishops.
-func genBishopMasks(sq int) uint64 {
-	var occupiedBB uint64
-	sliderBB := SquareBB[sq]
-	sliderPos := msb(sliderBB)
-
-	diagonalMask := MaskDiagonal[FileOf(sliderPos)-RankOf(sliderPos)+7]
-	antidiagonalMask := MaskAntidiagonal[14-(RankOf(sliderPos)+FileOf(sliderPos))]
-
-	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & diagonalMask)) - (2 * bits.Reverse64(sliderBB)))
-	lhs := (occupiedBB & diagonalMask) - 2*sliderBB
-	diagonalMoves := (rhs ^ lhs) & diagonalMask
-
-	rhs = bits.Reverse64(bits.Reverse64((occupiedBB & antidiagonalMask)) - (2 * bits.Reverse64(sliderBB)))
-	lhs = (occupiedBB & antidiagonalMask) - 2*sliderBB
-	antidiagonalMoves := (rhs ^ lhs) & antidiagonalMask
-
-	edges := ClearFile[FileA] & ClearFile[FileH] & ClearRank[Rank1] & ClearRank[Rank8]
-	return (diagonalMoves | antidiagonalMoves) & edges
+// Generator a random 64 bit number.
+func (prng *PseduoRandomGenerator) Random64() uint64 {
+	prng.state ^= prng.state >> 12
+	prng.state ^= prng.state << 25
+	prng.state ^= prng.state >> 27
+	return prng.state * 2685821657736338717
 }
 
-func genRookAttacks(sq int, occupiedBB uint64) uint64 {
-	sliderBB := SquareBB[sq]
-	sliderPos := msb(sliderBB)
-
-	fileMask := MaskFile[FileOf(sliderPos)]
-	rankMask := MaskRank[RankOf(sliderPos)]
-
-	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & rankMask)) - (2 * bits.Reverse64(sliderBB)))
-	lhs := (occupiedBB & rankMask) - 2*sliderBB
-	eastWestMoves := (rhs ^ lhs) & rankMask
-
-	rhs = bits.Reverse64(bits.Reverse64((occupiedBB & fileMask)) - (2 * bits.Reverse64(sliderBB)))
-	lhs = (occupiedBB & fileMask) - 2*sliderBB
-	northSouthMoves := (rhs ^ lhs) & fileMask
-
-	return northSouthMoves | eastWestMoves
-}
-
-// Generate the moves a bishop has given a square and board occupancy.
-func genBishopAttacks(sq int, occupiedBB uint64) uint64 {
-	sliderBB := SquareBB[sq]
-	sliderPos := msb(sliderBB)
-
-	diagonalMask := MaskDiagonal[FileOf(sliderPos)-RankOf(sliderPos)+7]
-	antidiagonalMask := MaskAntidiagonal[14-(RankOf(sliderPos)+FileOf(sliderPos))]
-
-	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & diagonalMask)) - (2 * bits.Reverse64(sliderBB)))
-	lhs := (occupiedBB & diagonalMask) - 2*sliderBB
-	diagonalMoves := (rhs ^ lhs) & diagonalMask
-
-	rhs = bits.Reverse64(bits.Reverse64((occupiedBB & antidiagonalMask)) - (2 * bits.Reverse64(sliderBB)))
-	lhs = (occupiedBB & antidiagonalMask) - 2*sliderBB
-	antidiagonalMoves := (rhs ^ lhs) & antidiagonalMask
-
-	return diagonalMoves | antidiagonalMoves
+// Generate a random 64 bit number with few bits. This method is
+// useful in finding magic numbers faster for generating slider
+// attacks.
+func (prng *PseduoRandomGenerator) SparseRandom64() uint64 {
+	return prng.Random64() & prng.Random64() & prng.Random64()
 }
 
 // Find magic numbers for rooks.
 func genRookMagics() {
 	var prng PseduoRandomGenerator
 
-	for sq := 0; sq < 64; sq++ {
+	var sq uint8
+	for sq = 0; sq < 64; sq++ {
 		magic := &RookMagics[sq]
 
 		magic.Mask = genRookMasks(sq)
-		no_bits := CountBits(magic.Mask)
-		magic.Shift = 64 - uint64(no_bits)
+		no_bits := magic.Mask.CountBits()
+		magic.Shift = 64 - no_bits
 
-		permutations := make([]uint64, 1<<no_bits)
-		var blockers uint64
+		permutations := make([]Bitboard, 1<<no_bits)
+		var blockers Bitboard
 		var index int
 
 		for ok := true; ok; ok = (blockers != 0) {
@@ -226,10 +166,10 @@ func genRookMagics() {
 			magic.MagicNo = possible_magic
 			searching = false
 
-			RookAttacks[sq] = [4096]uint64{}
+			RookAttacks[sq] = [4096]Bitboard{}
 
 			for idx := 0; idx < (1 << no_bits); idx++ {
-				index := (permutations[idx] * possible_magic) >> magic.Shift
+				index := (uint64(permutations[idx]) * possible_magic) >> magic.Shift
 				attacks := genRookAttacks(sq, permutations[idx])
 
 				if RookAttacks[sq][index] != EmptyEntry && RookAttacks[sq][index] != attacks {
@@ -240,7 +180,7 @@ func genRookMagics() {
 				RookAttacks[sq][index] = attacks
 			}
 		}
-		// fmt.Printf("Magic 0x%x for square %d, found in %d tries\n", magic.MagicNo, sq, tries)
+		fmt.Printf("Magic 0x%x for square %d, found in %d tries\n", magic.MagicNo, sq, tries)
 	}
 }
 
@@ -248,15 +188,16 @@ func genRookMagics() {
 func genBishopMagics() {
 	var prng PseduoRandomGenerator
 
-	for sq := 0; sq < 64; sq++ {
+	var sq uint8
+	for sq = 0; sq < 64; sq++ {
 		magic := &BishopMagics[sq]
 
 		magic.Mask = genBishopMasks(sq)
-		no_bits := CountBits(magic.Mask)
-		magic.Shift = 64 - uint64(no_bits)
+		no_bits := magic.Mask.CountBits()
+		magic.Shift = 64 - no_bits
 
-		permutations := make([]uint64, 1<<no_bits)
-		var blockers uint64
+		permutations := make([]Bitboard, 1<<no_bits)
+		var blockers Bitboard
 		var index int
 
 		for ok := true; ok; ok = (blockers != 0) {
@@ -274,10 +215,10 @@ func genBishopMagics() {
 			magic.MagicNo = possible_magic
 			searching = false
 
-			BishopAttacks[sq] = [512]uint64{}
+			BishopAttacks[sq] = [512]Bitboard{}
 
 			for idx := 0; idx < (1 << no_bits); idx++ {
-				index := (permutations[idx] * possible_magic) >> magic.Shift
+				index := (uint64(permutations[idx]) * possible_magic) >> magic.Shift
 				attacks := genBishopAttacks(sq, permutations[idx])
 
 				if BishopAttacks[sq][index] != EmptyEntry && BishopAttacks[sq][index] != attacks {
@@ -288,13 +229,37 @@ func genBishopMagics() {
 				BishopAttacks[sq][index] = attacks
 			}
 		}
-		// fmt.Printf("Magic 0x%x for square %d, found in %d tries\n", magic.MagicNo, sq, tries)
+		fmt.Printf("Magic 0x%x for square %d, found in %d tries\n", magic.MagicNo, sq, tries)
 	}
 }
 
-func init() {
-	//fmt.Print("Finding rook magics....\n\n")
+func genMagics() {
+	fmt.Println("Generating rook magic numbers...")
 	genRookMagics()
-	//fmt.Print("\nFinding bishop magics....\n\n")
+	fmt.Print("\nGenerating bishop magic numbers...\n")
 	genBishopMagics()
+
+	fmt.Println("\nvar RookMagicNumbers [64]uint64 = [64]uint64{")
+	fmt.Print("    ")
+
+	for idx, magic := range RookMagics {
+		if idx%4 == 0 && idx != 0 {
+			fmt.Println()
+			fmt.Print("    ")
+		}
+		fmt.Printf("0x%x, ", magic.MagicNo)
+	}
+	fmt.Print("\n}\n\n")
+
+	fmt.Println("var BishopMagicNumbers [64]uint64 = [64]uint64{")
+	fmt.Print("    ")
+
+	for idx, magic := range BishopMagics {
+		if idx%4 == 0 && idx != 0 {
+			fmt.Println()
+			fmt.Print("    ")
+		}
+		fmt.Printf("0x%x, ", magic.MagicNo)
+	}
+	fmt.Print("\n}\n\n")
 }

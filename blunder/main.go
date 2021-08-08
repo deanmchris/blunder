@@ -11,7 +11,7 @@ import (
 const HelpMessage = `
 Options:
 - uci: Begin Blunder's UCI protocol
-- interactive: Enter Blunder's interactive debug mode
+- cli: Enter Blunder's command-line interface
 - help: Quit the program
 `
 
@@ -23,7 +23,7 @@ func mainLoop() {
 		if programMode == "uci\n" || programMode == "uci" {
 			ui.UCILoop()
 			break
-		} else if programMode == "interactive\n" {
+		} else if programMode == "cli\n" {
 			ui.CmdLoop()
 			break
 		} else if programMode == "quit\n" {

@@ -16,13 +16,13 @@ const (
 func GenPseduoLegalMoves(board *Board) (moves Moves) {
 	kingPos := board.KingPos[board.ColorToMove][King]
 	checkers := attackersOfSquare(board, board.ColorToMove, kingPos)
-	var targets uint64 = FullBB
+	var targets Bitboard = FullBB
 
-	if CountBits(checkers) > 1 {
-		genPieceMoves(board, King, kingPos, &moves, targets)
+	if checkers.CountBits() > 1 {
+		genPieceMoves(board, King, kingPos, &moves, targets, false)
 		return
-	} else if CountBits(checkers) == 1 {
-		checkerPos := msb(checkers)
+	} else if checkers.CountBits() == 1 {
+		checkerPos := checkers.Msb()
 		if board.Squares[checkerPos].Type == Knight {
 			targets = SquareBB[checkerPos]
 		} else {
@@ -31,11 +31,13 @@ func GenPseduoLegalMoves(board *Board) (moves Moves) {
 	}
 
 	moves = make([]Move, 0, 100)
-	for piece := Knight; piece < NoType; piece++ {
+	var piece uint8
+
+	for piece = Knight; piece < NoType; piece++ {
 		piecesBB := board.PieceBB[board.ColorToMove][piece]
 		for piecesBB != 0 {
-			piecePos := PopBit(&piecesBB)
-			genPieceMoves(board, piece, piecePos, &moves, targets)
+			piecePos := piecesBB.PopBit()
+			genPieceMoves(board, piece, piecePos, &moves, targets, false)
 		}
 	}
 
@@ -44,8 +46,38 @@ func GenPseduoLegalMoves(board *Board) (moves Moves) {
 	return moves
 }
 
-// Generate the moves a single piece has.
-func genPieceMoves(board *Board, piece, sq int, moves *Moves, targets uint64) {
+// Generate all pseduo-legal moves for a given position.
+func GenPseduoLegalCaptures(board *Board) (moves Moves) {
+	kingPos := board.KingPos[board.ColorToMove][King]
+	checkers := attackersOfSquare(board, board.ColorToMove, kingPos)
+	var targets = board.SideBB[board.ColorToMove^1]
+
+	if checkers.CountBits() > 1 {
+		genPieceMoves(board, King, kingPos, &moves, targets, true)
+		return
+	} else if checkers.CountBits() == 1 {
+		checkerPos := checkers.Msb()
+		targets = SquareBB[checkerPos]
+	}
+
+	moves = make([]Move, 0, 100)
+	var piece uint8
+
+	for piece = Knight; piece < NoType; piece++ {
+		piecesBB := board.PieceBB[board.ColorToMove][piece]
+		for piecesBB != 0 {
+			piecePos := piecesBB.PopBit()
+			genPieceMoves(board, piece, piecePos, &moves, targets, true)
+		}
+	}
+	genPawnMoves(board, &moves, targets)
+	return moves
+}
+
+// Generate the moves a single piece, making sure they all align with the squares specified
+// by a targets bitboard. Filter king moves using the target bitboard if includeKing is set to
+// true.
+func genPieceMoves(board *Board, piece, sq uint8, moves *Moves, targets Bitboard, includeKing bool) {
 	usBB := board.SideBB[board.ColorToMove]
 	enemyBB := board.SideBB[board.ColorToMove^1]
 
@@ -55,6 +87,9 @@ func genPieceMoves(board *Board, piece, sq int, moves *Moves, targets uint64) {
 		genMovesFromBB(board, sq, knightMoves, enemyBB, moves)
 	case King:
 		kingMoves := KingMoves[sq] & ^usBB
+		if includeKing {
+			kingMoves &= targets
+		}
 		genMovesFromBB(board, sq, kingMoves, enemyBB, moves)
 	case Bishop:
 		bishopMoves := (genBishopMoves(sq, usBB|enemyBB) & ^usBB) & targets
@@ -70,29 +105,29 @@ func genPieceMoves(board *Board, piece, sq int, moves *Moves, targets uint64) {
 }
 
 // Generate rook moves.
-func genRookMoves(sq int, blockers uint64) uint64 {
+func genRookMoves(sq uint8, blockers Bitboard) Bitboard {
 	magic := &RookMagics[sq]
 	blockers &= magic.Mask
-	return RookAttacks[sq][(blockers*magic.MagicNo)>>magic.Shift]
+	return RookAttacks[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
 }
 
-// Generate bishop moves.
-func genBishopMoves(sq int, blockers uint64) uint64 {
+// Generate rook moves.
+func genBishopMoves(sq uint8, blockers Bitboard) Bitboard {
 	magic := &BishopMagics[sq]
 	blockers &= magic.Mask
-	return BishopAttacks[sq][(blockers*magic.MagicNo)>>magic.Shift]
+	return BishopAttacks[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
 }
 
 // Generate pawn moves for the current side. Pawns are treated
 // seperately from the rest of the pieces as they have more
 // complicated and exceptional rules for how they can move.
-func genPawnMoves(board *Board, moves *Moves, targets uint64) {
+func genPawnMoves(board *Board, moves *Moves, targets Bitboard) {
 	usBB := board.SideBB[board.ColorToMove]
 	enemyBB := board.SideBB[board.ColorToMove^1]
 	pawnsBB := board.PieceBB[board.ColorToMove][Pawn]
 
 	for pawnsBB != 0 {
-		from := PopBit(&pawnsBB)
+		from := pawnsBB.PopBit()
 		pawnOnePush := PawnPushes[board.ColorToMove][from] & ^(usBB | enemyBB)
 
 		pawnTwoPush := ((pawnOnePush & MaskRank[Rank6]) << 8) & ^(usBB | enemyBB)
@@ -103,19 +138,19 @@ func genPawnMoves(board *Board, moves *Moves, targets uint64) {
 		pawnPush := (pawnOnePush | pawnTwoPush) & targets
 		pawnAttacks := PawnAttacks[board.ColorToMove][from] & (targets | SquareBB[board.EPSquare])
 		for pawnPush != 0 {
-			to := PopBit(&pawnPush)
+			to := pawnPush.PopBit()
 			if isPromoting(board.ColorToMove, to) {
 				makePromotionMoves(board, from, to, moves)
 				continue
 			}
-			if abs(from-to) == 16 {
+			if abs(int8(from)-int8(to)) == 16 {
 				*moves = append(*moves, MakeMove(from, to, DoublePawnPush))
 				continue
 			}
 			*moves = append(*moves, MakeMove(from, to, Quiet))
 		}
 		for pawnAttacks != 0 {
-			to := PopBit(&pawnAttacks)
+			to := pawnAttacks.PopBit()
 			toBB := SquareBB[to]
 
 			if to == board.EPSquare {
@@ -132,7 +167,7 @@ func genPawnMoves(board *Board, moves *Moves, targets uint64) {
 }
 
 // Get the absolute value of a number n
-func abs(n int) int {
+func abs(n int8) int8 {
 	if n < 0 {
 		return -n
 	}
@@ -141,15 +176,15 @@ func abs(n int) int {
 
 // A helper function to determine if a pawn has reached the 8th or
 // 1st rank and will promote.
-func isPromoting(usColor, toSq int) bool {
+func isPromoting(usColor, toSq uint8) bool {
 	if usColor == White {
 		return toSq >= 56 && toSq <= 63
 	}
-	return toSq >= 0 && toSq <= 7
+	return toSq <= 7
 }
 
 // Generate promotion moves for pawns
-func makePromotionMoves(board *Board, from, to int, moves *Moves) {
+func makePromotionMoves(board *Board, from, to uint8, moves *Moves) {
 	*moves = append(*moves, MakeMove(from, to, KnightPromotion))
 	*moves = append(*moves, MakeMove(from, to, BishopPromotion))
 	*moves = append(*moves, MakeMove(from, to, RookPromotion))
@@ -184,9 +219,9 @@ func genCastlingMoves(board *Board, moves *Moves) {
 
 // From a bitboard representing possible squares a piece can move,
 // serialize it, and generate a list of moves.
-func genMovesFromBB(board *Board, from int, movesBB, enemyBB uint64, moves *Moves) {
+func genMovesFromBB(board *Board, from uint8, movesBB, enemyBB Bitboard, moves *Moves) {
 	for movesBB != 0 {
-		to := PopBit(&movesBB)
+		to := movesBB.PopBit()
 		toBB := SquareBB[to]
 		moveType := Quiet
 		if toBB&enemyBB != 0 {
@@ -196,7 +231,7 @@ func genMovesFromBB(board *Board, from int, movesBB, enemyBB uint64, moves *Move
 	}
 }
 
-func sqIsAttacked(board *Board, usColor, sq int) bool {
+func sqIsAttacked(board *Board, usColor, sq uint8) bool {
 	enemyBB := board.SideBB[usColor^1]
 	usBB := board.SideBB[usColor]
 
@@ -230,7 +265,7 @@ func sqIsAttacked(board *Board, usColor, sq int) bool {
 }
 
 // Compute a bitboard representing the enemy attackers of a particular square.
-func attackersOfSquare(board *Board, usColor int, sq int) (attackers uint64) {
+func attackersOfSquare(board *Board, usColor, sq uint8) (attackers Bitboard) {
 	enemyBB := board.SideBB[usColor^1]
 	usBB := board.SideBB[usColor]
 
@@ -288,7 +323,7 @@ func Perft(board *Board, depth, divdeAt int, silent bool) uint64 {
 		moveNodes := Perft(board, depth-1, divdeAt, silent)
 
 		if depth == divdeAt && !silent {
-			fmt.Printf("%v: %v\n", MoveStr(move), moveNodes)
+			fmt.Printf("%v: %v\n", move, moveNodes)
 		}
 
 		nodes += moveNodes

@@ -12,6 +12,7 @@ const (
 	DrawValue               = -(PawnValue / 2)
 	R                       = 2
 
+	TTMoveScore           = 60
 	FirstKillerMoveScore  = 10
 	SecondKillerMoveScore = 9
 )
@@ -31,13 +32,12 @@ var MvvLva [7][6]int = [7][6]int{
 
 // A struct to hold state during a search
 type Search struct {
-	Board       engine.Board
-	Timer       Timer
-	killerMoves [SearchDepth + 1][2]engine.Move
+	Board engine.Board
+	Timer Timer
 
+	killerMoves   [SearchDepth + 1][2]engine.Move
 	nodesSearched uint64
-	searchOver    bool
-	engineColor   int
+	engineColor   uint8
 }
 
 // Search for the best move for the side to move in the given position.
@@ -45,6 +45,7 @@ type Search struct {
 func (search *Search) Search() engine.Move {
 	search.engineColor = search.Board.ColorToMove
 	bestMove, bestScore := NullMove, NegInf
+
 	search.Timer.StartSearch()
 
 	for depth := 1; depth <= SearchDepth; depth++ {
@@ -52,7 +53,7 @@ func (search *Search) Search() engine.Move {
 		move, score := search.rootNegamax(depth)
 		searchTimeEnd := time.Since(searchTimeStart)
 
-		if search.searchOver || search.Timer.TimeIsUp() {
+		if search.Timer.TimeIsUp() {
 			break
 		}
 
@@ -71,11 +72,10 @@ func (search *Search) Search() engine.Move {
 func (search *Search) rootNegamax(depth int) (engine.Move, int) {
 	search.nodesSearched = 0
 	moves := engine.GenPseduoLegalMoves(&search.Board)
-	scores := search.scoreMoves(&moves, -1)
+	scores := search.scoreMoves(&moves, -1, NullMove)
 
 	bestMove := NullMove
 	alpha, beta := NegInf, PosInf
-
 	for index := range moves {
 		orderMoves(index, &moves, &scores)
 		move := moves[index]
@@ -86,10 +86,10 @@ func (search *Search) rootNegamax(depth int) (engine.Move, int) {
 			continue
 		}
 
-		score := -search.negamax(depth-1, -beta, -alpha, true)
+		score := -search.negamax(depth-1, 0, -beta, -alpha)
 		search.Board.UndoMove(move)
 
-		if score == PosInf {
+		if score == beta {
 			return move, beta
 		}
 
@@ -102,8 +102,8 @@ func (search *Search) rootNegamax(depth int) (engine.Move, int) {
 }
 
 // The primary negamax function, which only returns a score and no best move.
-func (search *Search) negamax(depth, alpha, beta int, canSearchNull bool) int {
-	if search.searchOver || search.Timer.TimeIsUp() {
+func (search *Search) negamax(depth, ply, alpha, beta int) int {
+	if search.Timer.TimeIsUp() {
 		return 0
 	}
 
@@ -123,7 +123,7 @@ func (search *Search) negamax(depth, alpha, beta int, canSearchNull bool) int {
 	}
 
 	moves := engine.GenPseduoLegalMoves(&search.Board)
-	scores := search.scoreMoves(&moves, depth)
+	scores := search.scoreMoves(&moves, depth, NullMove)
 
 	noMoves := true
 	for index := range moves {
@@ -136,7 +136,7 @@ func (search *Search) negamax(depth, alpha, beta int, canSearchNull bool) int {
 			continue
 		}
 
-		score := -search.negamax(depth-1, -beta, -alpha, true)
+		score := -search.negamax(depth-1, ply+1, -beta, -alpha)
 		search.Board.UndoMove(move)
 		noMoves = false
 
@@ -152,17 +152,17 @@ func (search *Search) negamax(depth, alpha, beta int, canSearchNull bool) int {
 
 	if noMoves {
 		if inCheck {
-			return NegInf + (SearchDepth - depth - 1)
+			alpha = NegInf + ply
+		} else {
+			alpha = search.contempt()
 		}
-		return search.contempt()
 	}
-
 	return alpha
 }
 
 // An implementation of a quiesence search algorithm.
 func (search *Search) quiescence(alpha, beta int) int {
-	if search.searchOver || search.Timer.TimeIsUp() {
+	if search.Timer.TimeIsUp() {
 		return 0
 	}
 
@@ -177,28 +177,26 @@ func (search *Search) quiescence(alpha, beta int) int {
 		alpha = standPat
 	}
 
-	moves := engine.GenPseduoLegalMoves(&search.Board)
-	scores := search.scoreMoves(&moves, -1)
+	moves := engine.GenPseduoLegalCaptures(&search.Board)
+	scores := search.scoreMoves(&moves, -1, NullMove)
 
 	for index := range moves {
-		if engine.MoveType(moves[index]) == engine.Attack || engine.MoveType(moves[index]) == engine.AttackEP {
-			orderMoves(index, &moves, &scores)
-			move := moves[index]
-			search.Board.DoMove(move, true)
-			if search.Board.KingIsAttacked(search.Board.ColorToMove ^ 1) {
-				search.Board.UndoMove(move)
-				continue
-			}
-
-			score := -search.quiescence(-beta, -alpha)
+		orderMoves(index, &moves, &scores)
+		move := moves[index]
+		search.Board.DoMove(move, true)
+		if search.Board.KingIsAttacked(search.Board.ColorToMove ^ 1) {
 			search.Board.UndoMove(move)
+			continue
+		}
 
-			if score >= beta {
-				return beta
-			}
-			if score > alpha {
-				alpha = score
-			}
+		score := -search.quiescence(-beta, -alpha)
+		search.Board.UndoMove(move)
+
+		if score >= beta {
+			return beta
+		}
+		if score > alpha {
+			alpha = score
 		}
 	}
 	return alpha
@@ -213,7 +211,8 @@ func (search *Search) isDraw() bool {
 
 // Determine if the current board state is being repeated.
 func (search *Search) isRepition() bool {
-	for repPly := 0; repPly < search.Board.RepitionPly; repPly++ {
+	var repPly uint16
+	for repPly = 0; repPly < search.Board.RepitionPly; repPly++ {
 		if search.Board.Repitions[repPly] == search.Board.Hash {
 			return true
 		}
@@ -234,7 +233,7 @@ func (search *Search) contempt() int {
 // Given a "killer move" (a quiet move that caused a beta cut-off), store the
 // Move in the slot for the given depth.
 func (search *Search) storeKiller(depth int, move engine.Move) {
-	if engine.MoveType(move) != engine.Attack && engine.MoveType(move) != engine.AttackEP {
+	if move.MoveType() != engine.Attack && move.MoveType() != engine.AttackEP {
 		if move != search.killerMoves[depth][0] {
 			search.killerMoves[depth][1] = search.killerMoves[depth][0]
 			search.killerMoves[depth][0] = move
@@ -243,18 +242,18 @@ func (search *Search) storeKiller(depth int, move engine.Move) {
 }
 
 // Score the moves given
-func (search *Search) scoreMoves(moves *engine.Moves, depth int) (scores []int) {
+func (search *Search) scoreMoves(moves *engine.Moves, depth int, ttMove engine.Move) (scores []int) {
 	scores = make([]int, len(*moves))
 	for index, move := range *moves {
-		captured := &search.Board.Squares[engine.ToSq(move)]
-		moved := &search.Board.Squares[engine.FromSq(move)]
+		captured := &search.Board.Squares[move.ToSq()]
+		moved := &search.Board.Squares[move.FromSq()]
 		scores[index] = MvvLva[captured.Type][moved.Type]
 
-		if depth > 0 && move == search.killerMoves[depth][0] {
+		if move == ttMove {
+			scores[index] = TTMoveScore
+		} else if depth > 0 && move == search.killerMoves[depth][0] {
 			scores[index] = FirstKillerMoveScore
-		}
-
-		if depth > 0 && move == search.killerMoves[depth][1] {
+		} else if depth > 0 && move == search.killerMoves[depth][1] {
 			scores[index] = SecondKillerMoveScore
 		}
 	}

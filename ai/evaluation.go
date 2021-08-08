@@ -18,7 +18,7 @@ const (
 	QueenPhase  = 4
 	TotalPhase  = PawnPhase*16 + KnightPhase*4 + BishopPhase*4 + RookPhase*4 + QueenPhase*2
 
-	PosInf = 200000
+	PosInf = 10000
 	NegInf = -PosInf
 )
 
@@ -220,22 +220,22 @@ func EvaluateBoard(board *engine.Board) int {
 }
 
 // Evaluate the material a side has.
-func evaluateMaterial(board *engine.Board, usColor int) (score int) {
-	score += engine.CountBits(board.PieceBB[usColor][engine.Pawn]) * PawnValue
-	score += engine.CountBits(board.PieceBB[usColor][engine.Knight]) * KnightValue
-	score += engine.CountBits(board.PieceBB[usColor][engine.Bishop]) * BishopValue
-	score += engine.CountBits(board.PieceBB[usColor][engine.Rook]) * RookValue
-	score += engine.CountBits(board.PieceBB[usColor][engine.Queen]) * QueenValue
+func evaluateMaterial(board *engine.Board, usColor uint8) (score int) {
+	score += board.PieceBB[usColor][engine.Pawn].CountBits() * PawnValue
+	score += board.PieceBB[usColor][engine.Knight].CountBits() * KnightValue
+	score += board.PieceBB[usColor][engine.Bishop].CountBits() * BishopValue
+	score += board.PieceBB[usColor][engine.Rook].CountBits() * RookValue
+	score += board.PieceBB[usColor][engine.Queen].CountBits() * QueenValue
 	return score
 }
 
 // Evaluate a board position using piece-square tables.
-func evaluatePosition(board *engine.Board, usColor int) int {
+func evaluatePosition(board *engine.Board, usColor uint8) int {
 	usBB := board.SideBB[usColor]
 	var opening, endgame int
 
 	for usBB != 0 {
-		sq := engine.PopBit(&usBB)
+		sq := usBB.PopBit()
 		pieceType := board.Squares[sq].Type
 
 		opening += PSQT_MG[pieceType][FlipSq[usColor][sq]]
@@ -250,17 +250,17 @@ func evaluatePosition(board *engine.Board, usColor int) int {
 func calcGamePhase(board *engine.Board) int {
 	phase := TotalPhase
 
-	phase -= PawnPhase * engine.CountBits(board.PieceBB[engine.White][engine.Pawn])
-	phase -= KnightPhase * engine.CountBits(board.PieceBB[engine.White][engine.Knight])
-	phase -= BishopPhase * engine.CountBits(board.PieceBB[engine.White][engine.Bishop])
-	phase -= RookPhase * engine.CountBits(board.PieceBB[engine.White][engine.Rook])
-	phase -= QueenPhase * engine.CountBits(board.PieceBB[engine.White][engine.Queen])
+	phase -= PawnPhase * board.PieceBB[engine.White][engine.Pawn].CountBits()
+	phase -= KnightPhase * board.PieceBB[engine.White][engine.Knight].CountBits()
+	phase -= BishopPhase * board.PieceBB[engine.White][engine.Bishop].CountBits()
+	phase -= RookPhase * board.PieceBB[engine.White][engine.Rook].CountBits()
+	phase -= QueenPhase * board.PieceBB[engine.White][engine.Queen].CountBits()
 
-	phase -= PawnPhase * engine.CountBits(board.PieceBB[engine.Black][engine.Pawn])
-	phase -= KnightPhase * engine.CountBits(board.PieceBB[engine.Black][engine.Knight])
-	phase -= BishopPhase * engine.CountBits(board.PieceBB[engine.Black][engine.Bishop])
-	phase -= RookPhase * engine.CountBits(board.PieceBB[engine.Black][engine.Rook])
-	phase -= QueenPhase * engine.CountBits(board.PieceBB[engine.Black][engine.Queen])
+	phase -= PawnPhase * board.PieceBB[engine.Black][engine.Pawn].CountBits()
+	phase -= KnightPhase * board.PieceBB[engine.Black][engine.Knight].CountBits()
+	phase -= BishopPhase * board.PieceBB[engine.Black][engine.Bishop].CountBits()
+	phase -= RookPhase * board.PieceBB[engine.Black][engine.Rook].CountBits()
+	phase -= QueenPhase * board.PieceBB[engine.Black][engine.Queen].CountBits()
 
 	return (phase*256 + (TotalPhase / 2)) / TotalPhase
 }
