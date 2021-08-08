@@ -7,12 +7,14 @@ Changelog
 
 Blunder 4.0.0
 -------------
-Blunder 4.0.0 includes "filtered" move generation. In other words, Blunder's move generator can now produce all moves, or only captures. The ability to producce only capture moves was added to speed up quiesence search, and this speed-up gave Blunder a ~35 Elo increase (in self play). Addtionally, I did extensive refractoring of the size of types used throughout Blunder's codebase, and shrinking types to only as big as they needed to be speed-up blunder and gained roughly another ~15 Elo (in self play); putting Blunder's total Elo gain between version 3.0.0 and 4.0.0 at ~50 Elo (in self play).
+Blunder 4.0.0 includes "filtered" move generation. In other words, Blunder's move generator can now produce all moves or only captures. The ability to produce only capture moves were added to speed up quiescence search, and this speed-up gave Blunder a ~35 Elo increase (in self-play). Additionally, I did extensive refactoring of the size of types used throughout Blunder's codebase, and shrinking types to only as big as they needed to be speedup blunder and gained roughly another ~15 Elo (in self-play); putting Blunder's total Elo gain between version 3.0.0 and 4.0.0 at ~50 Elo (in self-play).
 
-* Engine
-    - Filtered move generation
+One more thing of note is that Blunder 4.0.0 is the first version to include releases for Windows and macOS in addition to Linux. Going forward, all future releases of Blunder will include releases targeting all three operating systems. If any of the three releases still don't work for you, see the README on how to build your own fairly easily. With these new releases, a bug had to be fixed with the way Blunder handled IO operations across platforms.
 
-(I don't include the type refractoring in the changelog here since I consider it more of a bug that needed to have been fixed since Blunder first version.)
+Engine
+* Filtered move generation
+* Refractor types to more conservative sizes
+* Update IO operations to be cross-platform compatible
 
 Blunder 3.0.0
 -------------
