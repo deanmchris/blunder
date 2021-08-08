@@ -1,8 +1,18 @@
 Changelog
 ---------
+* Blunder 4.0.0
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 4.0.0
+-------------
+Blunder 4.0.0 includes "filtered" move generation. In other words, Blunder's move generator can now produce all moves, or only captures. The ability to producce only capture moves was added to speed up quiesence search, and this speed-up gave Blunder a ~35 Elo increase (in self play). Addtionally, I did extensive refractoring of the size of types used throughout Blunder's codebase, and shrinking types to only as big as they needed to be speed-up blunder and gained roughly another ~15 Elo (in self play); putting Blunder's total Elo gain between version 3.0.0 and 4.0.0 at ~50 Elo (in self play).
+
+* Engine
+    - Filtered move generation
+
+(I don't include the type refractoring in the changelog here since I consider it more of a bug that needed to have been fixed since Blunder first version.)
 
 Blunder 3.0.0
 -------------
