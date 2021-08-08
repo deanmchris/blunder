@@ -31,10 +31,11 @@ func CmdLoop() {
 	board.LoadFEN(engine.FENStartPosition)
 	fmt.Println(board)
 
+	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print(">> ")
-		reader := bufio.NewReader(os.Stdin)
 		command, _ := reader.ReadString('\n')
+		command = strings.Replace(command, "\r\n", "\n", -1)
 
 		if command == "quit\n" {
 			break

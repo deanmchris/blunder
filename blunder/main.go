@@ -19,6 +19,10 @@ func mainLoop() {
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		programMode, _ := reader.ReadString('\n')
+		programMode = strings.Replace(programMode, "\r\n", "\n", -1)
+
+		//fmt.Printf("HERE: %#v\n", programMode)
+		//fmt.Printf("HERE: %#v\n", strings.Replace(programMode, "\r\n", "\n", -1))
 
 		if programMode == "uci\n" || programMode == "uci" {
 			ui.UCILoop()

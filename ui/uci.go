@@ -95,6 +95,8 @@ func UCILoop() {
 
 	for {
 		command, _ := reader.ReadString('\n')
+		command = strings.Replace(command, "\r\n", "\n", -1)
+
 		if command == "uci\n" {
 			uciCommandResponse()
 		} else if command == "isready\n" {
