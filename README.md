@@ -41,22 +41,21 @@ Features
 * Engine
     - [Bitboards representation](https://www.chessprogramming.org/Bitboards)
     - [Magic bitboards for slider move generation](https://www.chessprogramming.org/Magic_Bitboards)
-    - [Zobrist hashing]().
-    - [Transposition table for perft]().
+    - [Zobrist hashing](https://www.chessprogramming.org/Zobrist_Hashing)
 * Search
     - [Negamax search framework](https://www.chessprogramming.org/Negamax)
     - [Alpha-Beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
     - [MVV-LVA move ordering](https://www.chessprogramming.org/MVV-LVA)
     - [Quiescence search](https://www.chessprogramming.org/Quiescence_Search)
     - [Time-control logic supporting classical, rapid, bullet, and ultra-bullet time formats](https://www.chessprogramming.org/Time_Management).
-    - [Repition detection](https://www.chessprogramming.org/Repetitions).
-    - [Killer moves](https://www.chessprogramming.org/Killer_Move).
-    - [Transposition table](https://www.chessprogramming.org/Transposition_Table).
-    - [Null-move pruning](https://www.chessprogramming.org/Null_Move_Pruning).
+    - [Repition detection](https://www.chessprogramming.org/Repetitions)
+    - [Killer moves](https://www.chessprogramming.org/Killer_Move)
+    - [Transposition table](https://www.chessprogramming.org/Transposition_Table)
+    - [Null-move pruning](https://www.chessprogramming.org/Null_Move_Pruning)
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
-    - [Tapered evaluation](https://www.chessprogramming.org/Tapered_Eval).
+    - [Tapered evaluation](https://www.chessprogramming.org/Tapered_Eval)
     
  Changelog
  ---------
