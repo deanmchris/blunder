@@ -1,9 +1,42 @@
 Changelog
 ---------
+* Blunder 5.0.0
 * Blunder 4.0.0
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 5.0.0
+-------------
+
+Blunder 5.0.0 is a complete rewrite of the engine. Many basic design ideas and principles were kept, and some areas were just ported over, but the majority of the code-base was rewritten, and the layout of the project was completely changed.
+
+The movitations behind this rewrite were twofold: First, I was dissatisfied with Blunder's speed and wanted to take another crack at creating an engine that was simply faster. Second, I didn't like how Blunder was designed in several places, and I quickly realized these "several places" constitued large chunks of the code-base. So Blunder 5.0.0 was the result.
+
+From the testing I've done, Blunder 5.0.0 is 20-30% faster than Blunder 4.0.0, and perft(6) from the starting position was coming in at around 6-8s (14-18 Mnps), whereas perft(6) from the starting position for Blunder 4.0.0 was generally 10-12s (10-12Mnps). And overall, I'm happy with the refractoring I've done and my code feels cleaner in many of the places that bothered me. So both goals, all things considered, were meet.
+
+Although Blunder 5.0.0 is a rewrite, it did build on Blunder 4.0.0, and two new features were added: a transposition table, and null-move pruning. Additional, the tapered evaluation has been refractored and is stronger. And the speed increase should add some Elo to engine, though I didn't test for a specfic amount. Overall, these changes have added about 200-250 Elo to the engine in self-play, and shows promising result in gaunlet tests from 1800-1900 Elo engines.
+
+Since Blunder 5.0.0 is a rewrite, a listing of all of the current features are listed below:
+
+* Engine
+    - [Bitboards representation](https://www.chessprogramming.org/Bitboards)
+    - [Magic bitboards for slider move generation](https://www.chessprogramming.org/Magic_Bitboards)
+    - [Zobrist hashing](https://www.chessprogramming.org/Zobrist_Hashing)
+* Search
+    - [Negamax search framework](https://www.chessprogramming.org/Negamax)
+    - [Alpha-Beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
+    - [MVV-LVA move ordering](https://www.chessprogramming.org/MVV-LVA)
+    - [Quiescence search](https://www.chessprogramming.org/Quiescence_Search)
+    - [Time-control logic supporting classical, rapid, bullet, and ultra-bullet time formats](https://www.chessprogramming.org/Time_Management)
+    - [Repition detection](https://www.chessprogramming.org/Repetitions)
+    - [Killer moves](https://www.chessprogramming.org/Killer_Move)
+    - [Transposition table](https://www.chessprogramming.org/Transposition_Table)
+    - [Null-move pruning](https://www.chessprogramming.org/Null_Move_Pruning)
+* Evaluation
+    - [Material evaluation](https://www.chessprogramming.org/Material)
+    - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
+    - [Tapered evaluation](https://www.chessprogramming.org/Tapered_Eval)
 
 Blunder 4.0.0
 -------------
