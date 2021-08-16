@@ -1,13 +1,16 @@
-package tests
+package engine
+
+// movegen_test.go implements a file parser to read in test positions to ensure
+// Blunder's move generator is working correctly.
 
 import (
-	"blunder/engine"
 	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 )
 
@@ -27,7 +30,7 @@ type PerftTest struct {
 func loadPerftSuite() (perftTests []PerftTest) {
 	wd, _ := os.Getwd()
 	parentFolder := filepath.Dir(wd)
-	filePath := filepath.Join(parentFolder, "/tests/perftsuite.txt")
+	filePath := filepath.Join(parentFolder, "/testdata/perftsuite.epd")
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -87,25 +90,27 @@ func printPerftTestRowSeparator() {
 }
 
 // Test blunder against the perft suite
-func RunPerftTests(board *engine.Board) {
+func TestMovegen(t *testing.T) {
 	printPerftTestRowSeparator()
 	printPerftTestRow("position", "depth", "expected", "moves", "correct")
 	printPerftTestRowSeparator()
 
-	perftTests := loadPerftSuite()
+	var pos Position
 	var totalNodes uint64
 	testsPassed := true
+
+	perftTests := loadPerftSuite()
 	start := time.Now()
 
 	for _, perftTest := range perftTests {
-		board.LoadFEN(perftTest.FEN)
+		pos.LoadFEN(perftTest.FEN)
 
 		for depth, nodeCount := range perftTest.DepthValues {
 			if nodeCount == 0 {
 				continue
 			}
 
-			result := engine.Perft(board, depth+1, depth+1, true)
+			result := Perft(&pos, uint8(depth)+1)
 			totalNodes += result
 
 			var correct string
@@ -127,10 +132,8 @@ func RunPerftTests(board *engine.Board) {
 		}
 	}
 
-	if testsPassed {
-		fmt.Println("\nAll tests passed")
-	} else {
-		fmt.Println("\nTesting failed on some positions")
+	if !testsPassed {
+		t.Error("\nTesting failed on some positions. See table for exact positions.")
 	}
 
 	fmt.Println("\nTotal Nodes:", totalNodes)

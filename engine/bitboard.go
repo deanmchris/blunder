@@ -5,54 +5,30 @@ import (
 	"math/bits"
 )
 
-// bitboard.go defines the bitboard type and its various methods.
+// bitboard.go contains the implementation of a bitboard datatype for the engine.
 
-var SquareBB [65]Bitboard
-
-func init() {
-	for sq := 0; sq < 65; sq++ {
-		SquareBB[sq] = 0x8000000000000000 >> sq
-	}
-}
-
+// A type representing a bitboard, which is a unsigned 64-bit number. Blunder's
+// bitboard representation has the most significant bit being A1 and the least signficanrt
+// bit being H8.
 type Bitboard uint64
 
-// Pretty print a bitboard.
-func (bb Bitboard) String() (boardStr string) {
-	bitstring := fmt.Sprintf("%064b\n", bb)
-	boardStr += "\n"
-	for rankStartPos := 56; rankStartPos >= 0; rankStartPos -= 8 {
-		boardStr += fmt.Sprintf("%v | ", (rankStartPos/8)+1)
-		for index := rankStartPos; index < rankStartPos+8; index++ {
-			squareChar := bitstring[index]
-			if squareChar == '0' {
-				squareChar = '.'
-			}
-			boardStr += fmt.Sprintf("%c ", squareChar)
-		}
-		boardStr += "\n"
-	}
-	boardStr += "   "
-	for fileNo := 0; fileNo < 8; fileNo++ {
-		boardStr += "--"
-	}
+// A constant representing a bitboard with every square set
+const FullBB Bitboard = 0xffffffffffffffff
 
-	boardStr += "\n    "
-	for _, file := range "abcdefgh" {
-		boardStr += fmt.Sprintf("%c ", file)
-	}
-	boardStr += "\n"
-	return boardStr
+// A global constant where each entry represents a square on the chess board,
+// and each entry contains a bitboard with the bit set high at that square.
+// An extra entry is given so that the invalid square constant NoSq can be
+// indexed into the table without the program crashing.
+var SquareBB [64]Bitboard
+
+// Set the bit at given square.
+func (bitboard *Bitboard) SetBit(sq uint8) {
+	*bitboard |= SquareBB[sq]
 }
 
-// Set the bit of the given bitbord at the given position.
-func (bb *Bitboard) SetBit(sq uint8) {
-	*bb |= SquareBB[sq]
-}
-
-// Clear the bit of the given bitbord at the given position.
-func (bb *Bitboard) ClearBit(sq uint8) {
-	*bb &= ^SquareBB[sq]
+// Clear the bit at given square.
+func (bitboard *Bitboard) ClearBit(sq uint8) {
+	*bitboard &= ^SquareBB[sq]
 }
 
 // Test whether the bit of the given bitbord at the given
@@ -62,25 +38,56 @@ func (bb Bitboard) BitSet(sq uint8) bool {
 }
 
 // Get the position of the MSB of the given bitboard.
-func (bb Bitboard) Msb() uint8 {
-	return uint8(bits.LeadingZeros64(uint64(bb)))
+func (bitboard Bitboard) Msb() uint8 {
+	return uint8(bits.LeadingZeros64(uint64(bitboard)))
 }
 
 // Get the position of the LSB of the given bitboard,
 // a bitboard with only the LSB set, and clear the LSB.
-func (bb *Bitboard) PopBit() uint8 {
-	sq := bb.Msb()
-	bb.ClearBit(sq)
+func (bitboard *Bitboard) PopBit() uint8 {
+	sq := bitboard.Msb()
+	bitboard.ClearBit(sq)
 	return sq
 }
 
 // Count the bits in a given bitboard using the SWAR-popcount
 // algorithm for 64-bit integers.
-func (bb Bitboard) CountBits() int {
-	u := uint64(bb)
-	u = u - ((u >> 1) & 0x5555555555555555)
-	u = (u & 0x3333333333333333) + ((u >> 2) & 0x3333333333333333)
-	u = (u + (u >> 4)) & 0x0f0f0f0f0f0f0f0f
-	u = (u * 0x0101010101010101) >> 56
-	return int(u)
+func (bitboard Bitboard) CountBits() int {
+	return bits.OnesCount64(uint64(bitboard))
+}
+
+// Return a string representation of the given bitboard
+func (bitboard Bitboard) String() (bitboardAsString string) {
+	bitstring := fmt.Sprintf("%064b\n", bitboard)
+	bitboardAsString += "\n"
+	for rankStartPos := 56; rankStartPos >= 0; rankStartPos -= 8 {
+		bitboardAsString += fmt.Sprintf("%v | ", (rankStartPos/8)+1)
+		for index := rankStartPos; index < rankStartPos+8; index++ {
+			squareChar := bitstring[index]
+			if squareChar == '0' {
+				squareChar = '.'
+			}
+			bitboardAsString += fmt.Sprintf("%c ", squareChar)
+		}
+		bitboardAsString += "\n"
+	}
+	bitboardAsString += "   "
+	for fileNo := 0; fileNo < 8; fileNo++ {
+		bitboardAsString += "--"
+	}
+
+	bitboardAsString += "\n    "
+	for _, file := range "abcdefgh" {
+		bitboardAsString += fmt.Sprintf("%c ", file)
+	}
+	bitboardAsString += "\n"
+	return bitboardAsString
+}
+
+// Initalize the bitboard constants.
+func init() {
+	var sq uint8
+	for sq = 0; sq < 64; sq++ {
+		SquareBB[sq] = 0x8000000000000000 >> sq
+	}
 }

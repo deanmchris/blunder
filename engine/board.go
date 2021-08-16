@@ -7,9 +7,10 @@ import (
 	"unicode"
 )
 
-// A file containg the implementation of Blunder's internal board representation.
-
 const (
+	// Constants representing each piece type. The value of the constants
+	// are selected so they can be used in Position.PieceBB to index the
+	// bitboards representing the given piece.
 	Pawn   uint8 = 0
 	Knight uint8 = 1
 	Bishop uint8 = 2
@@ -18,30 +19,26 @@ const (
 	King   uint8 = 5
 	NoType uint8 = 6
 
+	// Constants representing each piece color. The value of the constants
+	// are selected so they can be used in Position.PieceBB and Position.SideBB to
+	// index the bitboards representing the given piece of the given color, or
+	// the given color.
 	Black   uint8 = 0
 	White   uint8 = 1
 	NoColor uint8 = 2
 
-	MaxHistory   uint16 = 100
-	MaxGamePlies uint16 = 1024
+	// Constants representing the four castling rights. Each constant is set to a number
+	// with a single high bit, corresponding to each castling right.
+	WhiteKingsideRight  uint8 = 0x8
+	WhiteQueensideRight uint8 = 0x4
+	BlackKingsideRight  uint8 = 0x2
+	BlackQueensideRight uint8 = 0x1
 
-	NoEPSquare       uint8 = 64
-	FENStartPosition       = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0"
-	FENKiwiPete            = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
+	// Common fen strings used in debugging and initalizing the engine.
+	FENStartPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0"
+	FENKiwiPete      = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
-	WhiteKingside  Bitboard = 0x900000000000000
-	WhiteQueenside Bitboard = 0x8800000000000000
-	BlackKingside  Bitboard = 0x9
-	BlackQueenside Bitboard = 0x88
-
-	CastleWKSRand64  uint16 = 768
-	CastleWQSRand64  uint16 = 769
-	CastleBKSRand64  uint16 = 770
-	CastleBQSRand64  uint16 = 771
-	EPRand64         uint16 = 772
-	SideToMoveRand64 uint16 = 780
-)
-const (
+	// Constants mapping each board coordinate to its square
 	A1, B1, C1, D1, E1, F1, G1, H1 = 0, 1, 2, 3, 4, 5, 6, 7
 	A2, B2, C2, D2, E2, F2, G2, H2 = 8, 9, 10, 11, 12, 13, 14, 15
 	A3, B3, C3, D3, E3, F3, G3, H3 = 16, 17, 18, 19, 20, 21, 22, 23
@@ -50,8 +47,45 @@ const (
 	A6, B6, C6, D6, E6, F6, G6, H6 = 40, 41, 42, 43, 44, 45, 46, 47
 	A7, B7, C7, D7, E7, F7, G7, H7 = 48, 49, 50, 51, 52, 53, 54, 55
 	A8, B8, C8, D8, E8, F8, G8, H8 = 56, 57, 58, 59, 60, 61, 62, 63
+
+	// A constant representing no square
+	NoSq = 64
+
+	// Constant representing north and south deltas on the board
+	NorthDelta = 8
+	SouthDelta = -8
+
+	// A constant representing the maximum game ply,
+	// used to initalize the array for holding repetition
+	// detection history.
+	MaxGamePly = 1024
 )
 
+// A 64 element array where each entry, when bitwise ANDed with the
+// castling rights, destorys the correct bit in the castling rights
+// if a move to or from that square would take away castling rights.
+var Spoilers [64]uint8 = [64]uint8{
+	0xb, 0xf, 0xf, 0xf, 0x3, 0xf, 0xf, 0x7,
+	0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf,
+	0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf,
+	0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf,
+	0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf,
+	0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf,
+	0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf,
+	0xe, 0xf, 0xf, 0xf, 0xc, 0xf, 0xf, 0xd,
+}
+
+// An array mapping a castling kings destination square,
+// to the origin and destination square of the appropriate
+// rook to move.
+var CastlingRookSq map[uint8][2]uint8 = map[uint8][2]uint8{
+	G1: {H1, F1},
+	C1: {A1, D1},
+	G8: {H8, F8},
+	C8: {A8, D8},
+}
+
+// A constant mapping piece characters to Piece objects.
 var CharToPiece map[byte]Piece = map[byte]Piece{
 	'P': {Pawn, White},
 	'N': {Knight, White},
@@ -67,8 +101,9 @@ var CharToPiece map[byte]Piece = map[byte]Piece{
 	'k': {King, Black},
 }
 
+// A constant mapping piece types to their respective characters.
 var PieceTypeToChar map[uint8]rune = map[uint8]rune{
-	Pawn:   'p',
+	Pawn:   'i',
 	Knight: 'n',
 	Bishop: 'b',
 	Rook:   'r',
@@ -77,51 +112,349 @@ var PieceTypeToChar map[uint8]rune = map[uint8]rune{
 	NoType: '.',
 }
 
-var EPDelta [2]int8 = [2]int8{8, -8}
-
+// A struct representing a piece
 type Piece struct {
 	Type  uint8
 	Color uint8
 }
 
-type BoardState struct {
-	Moved          Piece
-	Captured       Piece
-	CastlingRights Bitboard
+// A struct representing position state that is irreversible (cannot be undone in
+// UnmakeMove). A position state object is used each time a move is made, and then popped
+// off of a stack once a move needs to be unmade.
+type State struct {
+	CastlingRights uint8
+	EPSq           uint8
 	Rule50         uint8
-	EPSquare       uint8
+
+	Captured Piece
+	Moved    Piece
 }
 
-type Board struct {
+// A struct reprenting Blunder's core internal position representation, which consists
+// of 12 bitboards for each piece type, 2 bitboards for each color, 64-square
+// mailbox representation of the board for easy accsess to square-centric information,
+// and several other state keeping fields (enpassant square, side to move, etc.)
+type Position struct {
 	PieceBB [2][6]Bitboard
 	SideBB  [2]Bitboard
 	Squares [64]Piece
-	KingPos [2][6]uint8
 
-	ColorToMove uint8
-	GamePly     uint16
-	Rule50      uint8
+	// The castling rights are keep track of using 4-bits:
+	// 00001000 = white kingside castling right
+	// 00000100 = white queenside castling right
+	// 00000010 = black kingside castling right
+	// 00000001 = black queenside castling right
+	CastlingRights uint8
 
-	EPSquare       uint8
-	CastlingRights Bitboard
-	Hash           uint64
+	// The zobrist hash of the position
+	Hash uint64
 
-	history    [MaxHistory]BoardState
-	historyPly uint16
+	SideToMove uint8
+	EPSq       uint8
 
-	Repitions   [MaxGamePlies]uint64
-	RepitionPly uint16
+	Ply    uint16
+	Rule50 uint8
+
+	prevStates [100]State
+	StatePly   uint8
+
+	History    [MaxGamePly]uint64
+	HistoryPly uint16
 }
 
-// Setup a new Board with the internal fields set using a
-// Forsyth–Edwards Notation (FEN) line.
-func (board *Board) LoadFEN(fen string) {
-	board.PieceBB = [2][6]Bitboard{}
-	board.SideBB = [2]Bitboard{}
-	board.Squares = [64]Piece{}
-	board.CastlingRights = 0
-	board.Hash = 0
+func (pos *Position) MakeMove(move Move) bool {
+	// Get the data we need from the given move
+	from := move.FromSq()
+	to := move.ToSq()
+	moveType := move.MoveType()
+	flag := move.Flag()
 
+	// Create a new State object to save the state of the irreversible aspects
+	// of the position before making the current move.
+	state := State{
+		CastlingRights: pos.CastlingRights,
+		EPSq:           pos.EPSq,
+		Rule50:         pos.Rule50,
+		Captured:       pos.Squares[to],
+		Moved:          pos.Squares[from],
+	}
+
+	// Increment the game ply and the fifty-move rule counter
+	pos.Ply++
+	pos.Rule50++
+
+	// Clear the en passant square and en passant zobrist number
+	pos.Hash ^= Zobrist.EPNumber(pos.EPSq)
+	pos.EPSq = NoSq
+
+	// Clear the moving piece from its origin square
+	pos.clearPiece(from)
+
+	if moveType == Quiet {
+		// if the move is quiet, simple put the piece at the destination square.
+		pos.putPiece(state.Moved.Type, state.Moved.Color, to)
+	} else if moveType == Attack {
+		if flag == AttackEP {
+			// If it's an attack en passant, get the actually capture square
+			// of the pawn being captured, remove it, and put the moving pawn
+			// on the destination square...
+			capSq := uint8(int8(to) - pawnPush(pos.SideToMove))
+			state.Captured = pos.Squares[capSq]
+
+			pos.clearPiece(capSq)
+			pos.putPiece(Pawn, pos.SideToMove, to)
+
+		} else {
+			// Otherwise if the move is a normal attack, remove the captured piece
+			// from the position, and put the moving piece at its destination square...
+			pos.clearPiece(to)
+			pos.putPiece(state.Moved.Type, state.Moved.Color, to)
+		}
+
+		// and reset the fifty-move rule counter.
+		pos.Rule50 = 0
+	} else if moveType == Castle {
+		// If the move is a castle, move the king to the appropriate square...
+		pos.putPiece(state.Moved.Type, state.Moved.Color, to)
+
+		// And move the correct rook.
+		rookFrom, rookTo := CastlingRookSq[to][0], CastlingRookSq[to][1]
+		pos.clearPiece(rookFrom)
+		pos.putPiece(Rook, pos.SideToMove, rookTo)
+
+	}
+
+	if state.Moved.Type == Pawn {
+		// If a pawn is moving, do some extra work.
+
+		// Reset the fifty-move rule counter.
+		pos.Rule50 = 0
+
+		if moveType == Promotion {
+			// If a pawn is promoting, check if it's capturing a piece,
+			// remove the captured piece if needed, and then put the
+			// correct promotion piece type on the to square indicated
+			// by the move flag value.
+			if state.Captured.Type != NoType {
+				pos.clearPiece(to)
+			}
+			pos.putPiece(uint8(flag+1), pos.SideToMove, to)
+		}
+
+		if abs(int16(from)-int16(to)) == 16 {
+			// If the move is a double pawn push, and there is no enemy pawn that's in
+			// a position to capture en passant on the next turn, don't set the position's
+			// en passant square.
+
+			pos.EPSq = uint8(int8(to) - pawnPush(pos.SideToMove))
+			if PawnAttacks[pos.SideToMove][pos.EPSq]&pos.PieceBB[pos.SideToMove^1][Pawn] == 0 {
+				pos.EPSq = NoSq
+			}
+		}
+
+	}
+
+	// Remove the current castling rights.
+	pos.Hash ^= Zobrist.CastlingNumber(pos.CastlingRights)
+
+	// Update the castling rights and the zobrist hash with the new castling rights.
+	pos.CastlingRights = pos.CastlingRights & Spoilers[from] & Spoilers[to]
+	pos.Hash ^= Zobrist.CastlingNumber(pos.CastlingRights)
+
+	// Update the zobrist hash if the en passant square was set
+	pos.Hash ^= Zobrist.EPNumber(pos.EPSq)
+
+	// Save the State object and increment the stack counter
+	// to point to the next empty slot in the position state history.
+	pos.prevStates[pos.StatePly] = state
+	pos.StatePly++
+
+	// Flip the side to move and update the zobrist hash
+	pos.SideToMove ^= 1
+	pos.Hash ^= Zobrist.SideToMoveNumber(pos.SideToMove)
+
+	// Save the current zobrist in the position history array.
+	pos.HistoryPly++
+	pos.History[pos.HistoryPly] = pos.Hash
+
+	// Test if the move was legal or not, and let the caller know.
+	return !sqIsAttacked(pos, pos.SideToMove^1, pos.PieceBB[pos.SideToMove^1][King].Msb())
+}
+
+func (pos *Position) UnmakeMove(move Move) {
+	// Get the State object for this move
+	pos.StatePly--
+	state := pos.prevStates[pos.StatePly]
+
+	// remove the en passant zobrist number if there was one in the position
+	// we're undoing, and remove the castling rights zobrist number.
+	pos.Hash ^= Zobrist.EPNumber(pos.EPSq)
+	pos.Hash ^= Zobrist.CastlingNumber(pos.CastlingRights)
+
+	// Remove the current positions from the position history
+	pos.HistoryPly--
+
+	// Restore the irreversible aspects of the position using the State object.
+	pos.CastlingRights = state.CastlingRights
+	pos.EPSq = state.EPSq
+	pos.Rule50 = state.Rule50
+
+	// Update the zobrist hash with the restored values castling rights
+	// and en passant square.
+	pos.Hash ^= Zobrist.CastlingNumber(pos.CastlingRights)
+	pos.Hash ^= Zobrist.EPNumber(pos.EPSq)
+
+	// Flip the side to move and update the zobrist hash
+	pos.SideToMove ^= 1
+	pos.Hash ^= Zobrist.SideToMoveNumber(pos.SideToMove)
+
+	// Decrement the game ply
+	pos.Ply--
+
+	// Get the data we need from the given move
+	from := move.FromSq()
+	to := move.ToSq()
+	moveType := move.MoveType()
+	flag := move.Flag()
+
+	// Put the moving piece back on it's orgin square
+	pos.putPiece(state.Moved.Type, state.Moved.Color, from)
+
+	if moveType == Quiet {
+		// if the move is quiet, remove the piece from its destination square.
+		pos.clearPiece(to)
+	} else if moveType == Attack {
+		if flag == AttackEP {
+			// If it was an attack en passant, put the pawn back that
+			// was captured, and clear the moving pawn from the destination
+			// square.
+			capSq := uint8(int8(to) - pawnPush(pos.SideToMove))
+			pos.clearPiece(to)
+			pos.putPiece(Pawn, state.Captured.Color, capSq)
+		} else {
+			// Otherwise If the move was a normal attack, put the captured piece
+			// back on the destination square, and remove the attacking piece.
+			pos.clearPiece(to)
+			pos.putPiece(state.Captured.Type, state.Captured.Color, to)
+		}
+	} else if moveType == Castle {
+		// If the move was a castle, clear the king from the destination square...
+		pos.clearPiece(to)
+
+		// and move the castled rook back to the right square.
+		rookFrom, rookTo := CastlingRookSq[to][0], CastlingRookSq[to][1]
+		pos.clearPiece(rookTo)
+		pos.putPiece(Rook, pos.SideToMove, rookFrom)
+	}
+
+	if state.Moved.Type == Pawn {
+		// If a pawn was moving, do some extra work.
+
+		if moveType == Promotion {
+			// If the pawn was promoted, remove the promoted piece, and if
+			// the promotion was a capture, put the captured piece back on
+			// the destination square.
+			pos.clearPiece(to)
+			if state.Captured.Type != NoType {
+				pos.putPiece(state.Captured.Type, state.Captured.Color, to)
+			}
+		}
+	}
+}
+
+// Make a "null"-move for null-move pruning:
+// https://www.chessprogramming.org/Null_Move_Pruning
+//
+func (pos *Position) MakeNullMove() {
+	state := State{
+		CastlingRights: pos.CastlingRights,
+		EPSq:           pos.EPSq,
+		Rule50:         pos.Rule50,
+	}
+
+	// Save the State object and increment the stack counter
+	// to point to the next empty slot in the position state history.
+	pos.prevStates[pos.StatePly] = state
+	pos.StatePly++
+
+	// Clear the en passant square and en passant zobrist number
+	pos.Hash ^= Zobrist.EPNumber(pos.EPSq)
+	pos.EPSq = NoSq
+
+	// Set the fifty move rule counter to 0, since we're
+	// making a null-move.
+	pos.Rule50 = 0
+
+	// Increment the game ply.
+	pos.Ply++
+
+	// Flip the side to move and update the zobrist hash
+	pos.SideToMove ^= 1
+	pos.Hash ^= Zobrist.SideToMoveNumber(pos.SideToMove)
+
+	// Save the current zobrist in the position history array.
+	pos.HistoryPly++
+	pos.History[pos.HistoryPly] = pos.Hash
+
+}
+
+func (pos *Position) UnmakeNullMove() {
+	// Get the State object for the null move
+	pos.StatePly--
+	state := pos.prevStates[pos.StatePly]
+
+	// Restore the irreversible aspects of the position using the State object.
+	pos.CastlingRights = state.CastlingRights
+	pos.EPSq = state.EPSq
+	pos.Rule50 = state.Rule50
+
+	// Decrement the game ply.
+	pos.Ply--
+
+	// Update the zobrist hash with the restored en passant square.
+	pos.Hash ^= Zobrist.EPNumber(pos.EPSq)
+
+	// Flip the side to move and update the zobrist hash
+	pos.SideToMove ^= 1
+	pos.Hash ^= Zobrist.SideToMoveNumber(pos.SideToMove)
+
+	// Remove the current positions from the position history
+	pos.HistoryPly--
+}
+
+// Put the piece given on the given square
+func (pos *Position) putPiece(pieceType, pieceColor, to uint8) {
+	pos.PieceBB[pieceColor][pieceType].SetBit(to)
+	pos.SideBB[pieceColor].SetBit(to)
+	pos.Squares[to].Type = pieceType
+	pos.Squares[to].Color = pieceColor
+	pos.Hash ^= Zobrist.PieceNumber(pieceType, pieceColor, to)
+}
+
+// Clear the piece given from the given square.
+func (pos *Position) clearPiece(from uint8) {
+	piece := &pos.Squares[from]
+	pos.PieceBB[piece.Color][piece.Type].ClearBit(from)
+	pos.SideBB[piece.Color].ClearBit(from)
+
+	pos.Hash ^= Zobrist.PieceNumber(piece.Type, piece.Color, from)
+	piece.Type = NoType
+	piece.Color = NoColor
+}
+
+// Load in a FEN string and use it to setup the position.
+func (pos *Position) LoadFEN(fen string) {
+	// Reset the internal fields of the position
+	pos.PieceBB = [2][6]Bitboard{}
+	pos.SideBB = [2]Bitboard{}
+	pos.Squares = [64]Piece{}
+	pos.CastlingRights = 0
+
+	for square := range pos.Squares {
+		pos.Squares[square] = Piece{Type: NoType, Color: NoColor}
+	}
+
+	// Load in each field of the FEN string.
 	fields := strings.Fields(fen)
 	pieces := fields[0]
 	color := fields[1]
@@ -130,24 +463,15 @@ func (board *Board) LoadFEN(fen string) {
 	halfMove := fields[4]
 	fullMove := fields[5]
 
-	for square := range board.Squares {
-		board.Squares[square] = Piece{Type: NoType, Color: NoColor}
-	}
-
+	// Loop over each square of the board, rank by rank, from left to right,
+	// loading in pieces at squares described by the FEN string.
 	for index, sq := 0, 56; index < len(pieces); index++ {
 		char := pieces[index]
 		switch char {
 		case 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K':
 			piece := CharToPiece[char]
-			board.putPiece(piece.Type, piece.Color, uint8(sq))
-
-			if char == 'K' {
-				board.KingPos[White][King] = uint8(sq)
-			} else if char == 'k' {
-				board.KingPos[Black][King] = uint8(sq)
-			}
-
-			board.Squares[sq] = piece
+			pos.putPiece(piece.Type, piece.Color, uint8(sq))
+			pos.Squares[sq] = piece
 			sq++
 		case '/':
 			sq -= 16
@@ -156,390 +480,120 @@ func (board *Board) LoadFEN(fen string) {
 		}
 	}
 
-	board.ColorToMove = Black
+	// Set the side to move for the position.
+	pos.SideToMove = Black
 	if color == "w" {
-		board.ColorToMove = White
+		pos.SideToMove = White
 	}
 
-	if board.ColorToMove == White {
-		board.Hash ^= Random64[SideToMoveRand64]
-	}
-
-	board.EPSquare = NoEPSquare
+	// Set the en passant square for the position.
+	pos.EPSq = NoSq
 	if ep != "-" {
-		board.EPSquare = CoordinateToPos(ep)
-		if (PawnAttacks[board.ColorToMove^1][board.EPSquare] & board.PieceBB[board.ColorToMove][Pawn]) == 0 {
-			board.EPSquare = NoEPSquare
-		}
-
-		if board.EPSquare != NoEPSquare {
-			board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
+		pos.EPSq = coordinateToPos(ep)
+		if (PawnAttacks[pos.SideToMove^1][pos.EPSq] & pos.PieceBB[pos.SideToMove][Pawn]) == 0 {
+			pos.EPSq = NoSq
 		}
 	}
 
+	// Set the half move counter and game ply for the position.
 	halfMoveCounter, _ := strconv.Atoi(halfMove)
-	board.Rule50 = uint8(halfMoveCounter)
+	pos.Rule50 = uint8(halfMoveCounter)
 
 	gamePly, _ := strconv.Atoi(fullMove)
 	gamePly *= 2
-	if board.ColorToMove == Black {
+	if pos.SideToMove == Black {
 		gamePly--
 	}
-	board.GamePly = uint16(gamePly)
+	pos.Ply = uint16(gamePly)
 
+	// Set the castling rights, for the position.
 	for _, char := range castling {
 		switch char {
 		case 'K':
-			board.CastlingRights.SetBit(E1)
-			board.CastlingRights.SetBit(H1)
-			board.Hash ^= Random64[CastleWKSRand64]
+			pos.CastlingRights |= WhiteKingsideRight
 		case 'Q':
-			board.CastlingRights.SetBit(E1)
-			board.CastlingRights.SetBit(A1)
-			board.Hash ^= Random64[CastleWQSRand64]
+			pos.CastlingRights |= WhiteQueensideRight
 		case 'k':
-			board.CastlingRights.SetBit(E8)
-			board.CastlingRights.SetBit(H8)
-			board.Hash ^= Random64[CastleBKSRand64]
+			pos.CastlingRights |= BlackKingsideRight
 		case 'q':
-			board.CastlingRights.SetBit(E8)
-			board.CastlingRights.SetBit(A8)
-			board.Hash ^= Random64[CastleBQSRand64]
+			pos.CastlingRights |= BlackQueensideRight
 		}
 	}
 
-	board.RepitionPly = 0
-	board.Repitions[board.RepitionPly] = board.Hash
+	// Generate the zobrist hash for the position...
+	pos.Hash = 0
+	pos.Hash = Zobrist.GenHash(pos)
+
+	// and add the hash as the first entry in the position history.
+	pos.HistoryPly = 0
+	pos.History[pos.HistoryPly] = pos.Hash
 }
 
-// Get the random 64-bit number corresponding to the given piece
-// of a certian color and type, on a certian square.
-func getPieceHash(pieceType, pieceColor uint8, sq uint8) uint64 {
-	if pieceColor == White {
-		return Random64[(uint16(pieceType)*2+1)*64+uint16(sq)]
-	}
-	return Random64[(uint16(pieceType)*2)*64+uint16(sq)]
-
-}
-
-// hash the castling rights into, or out of, the current board Zobrist
-// hash. A BoardState object is needed to figure how the castling rights
-// changed, and how they need to be updated.
-func (board *Board) hashCastlingRights(state *BoardState) {
-	if board.CastlingRights != state.CastlingRights {
-		if state.CastlingRights&WhiteKingside == WhiteKingside &&
-			board.CastlingRights&WhiteKingside != WhiteKingside {
-
-			board.Hash ^= Random64[CastleWKSRand64]
-		}
-		if state.CastlingRights&WhiteQueenside == WhiteQueenside &&
-			board.CastlingRights&WhiteQueenside != WhiteQueenside {
-			board.Hash ^= Random64[CastleWQSRand64]
-		}
-		if state.CastlingRights&BlackKingside == BlackKingside &&
-			board.CastlingRights&BlackKingside != BlackKingside {
-			board.Hash ^= Random64[CastleBKSRand64]
-		}
-		if state.CastlingRights&BlackQueenside == BlackQueenside &&
-			board.CastlingRights&BlackQueenside != BlackQueenside {
-			board.Hash ^= Random64[CastleBQSRand64]
-		}
-	}
-}
-
-// Return a pretty string representation of the board. Useful for debugging
-// and command-line interaction purposes.
-func (board Board) String() (str string) {
-	str += "\n"
+// Return a string representation of the board.
+func (pos Position) String() (boardAsString string) {
+	boardAsString += "\n"
 	for rankStartPos := 56; rankStartPos >= 0; rankStartPos -= 8 {
-		str += fmt.Sprintf("%v | ", (rankStartPos/8)+1)
+		boardAsString += fmt.Sprintf("%v | ", (rankStartPos/8)+1)
 		for index := rankStartPos; index < rankStartPos+8; index++ {
-			piece := board.Squares[index]
+			piece := pos.Squares[index]
 			pieceChar := PieceTypeToChar[piece.Type]
 			if piece.Color == White {
 				pieceChar = unicode.ToUpper(pieceChar)
 			}
-			str += fmt.Sprintf("%c ", pieceChar)
+			boardAsString += fmt.Sprintf("%c ", pieceChar)
 		}
-		str += "\n"
+		boardAsString += "\n"
 	}
 
-	str += "   "
+	boardAsString += "   "
 	for fileNo := 0; fileNo < 8; fileNo++ {
-		str += "--"
+		boardAsString += "--"
 	}
 
-	str += "\n    "
+	boardAsString += "\n    "
 	for _, file := range "abcdefgh" {
-		str += fmt.Sprintf("%c ", file)
+		boardAsString += fmt.Sprintf("%c ", file)
 	}
 
-	str += "\n\n"
-	if board.ColorToMove == White {
-		str += "turn: white\n"
+	boardAsString += "\n\n"
+	if pos.SideToMove == White {
+		boardAsString += "turn: white\n"
 	} else {
-		str += "turn: black\n"
+		boardAsString += "turn: black\n"
 	}
 
-	str += "castling rights: "
-	if board.CastlingRights&WhiteKingside == WhiteKingside {
-		str += "K"
+	boardAsString += "castling rights: "
+	if pos.CastlingRights&WhiteKingsideRight != 0 {
+		boardAsString += "K"
 	}
-	if board.CastlingRights&WhiteQueenside == WhiteQueenside {
-		str += "Q"
+	if pos.CastlingRights&WhiteQueensideRight != 0 {
+		boardAsString += "Q"
 	}
-	if board.CastlingRights&BlackKingside == BlackKingside {
-		str += "k"
+	if pos.CastlingRights&BlackKingsideRight != 0 {
+		boardAsString += "k"
 	}
-	if board.CastlingRights&BlackQueenside == BlackQueenside {
-		str += "q"
+	if pos.CastlingRights&BlackQueensideRight != 0 {
+		boardAsString += "q"
 	}
 
-	str += "\nen passant: "
-	if board.EPSquare == NoEPSquare {
-		str += "none"
+	boardAsString += "\nen passant: "
+	if pos.EPSq == NoSq {
+		boardAsString += "none"
 	} else {
-		str += PosToCoordinate(board.EPSquare)
+		boardAsString += posToCoordinate(pos.EPSq)
 	}
 
-	str += fmt.Sprintf("\nzobrist hash: 0x%x\n", board.Hash)
-	str += fmt.Sprintf("\nrule 50: %d\n", board.Rule50)
-	str += fmt.Sprintf("game ply: %d\n", board.GamePly)
-	return str
+	boardAsString += fmt.Sprintf("\nzobrist hash: 0x%x", pos.Hash)
+	boardAsString += fmt.Sprintf("\nrule 50: %d\n", pos.Rule50)
+	boardAsString += fmt.Sprintf("game ply: %d\n", pos.Ply)
+	return boardAsString
 }
 
-func (board *Board) DoMove(move Move, saveState bool) {
-	from, to, movType := move.FromSq(), move.ToSq(), move.MoveType()
-	state := &board.history[board.historyPly]
-
-	if saveState {
-		board.historyPly++
+// Given a color, return the delta for a single pawn push for that
+// color.
+func pawnPush(color uint8) int8 {
+	if color == White {
+		return NorthDelta
 	}
-
-	state.Moved = board.Squares[from]
-	state.Captured = board.Squares[to]
-	state.CastlingRights = board.CastlingRights
-	state.Rule50 = board.Rule50
-	state.EPSquare = board.EPSquare
-
-	if board.EPSquare != NoEPSquare {
-		board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
-	}
-
-	board.EPSquare = NoEPSquare
-
-	board.Rule50++
-	board.GamePly++
-
-	switch movType {
-	case CastleWKS:
-		board.movePiece(E1, G1)
-		board.movePiece(H1, F1)
-	case CastleWQS:
-		board.movePiece(E1, C1)
-		board.movePiece(A1, D1)
-	case CastleBKS:
-		board.movePiece(E8, G8)
-		board.movePiece(H8, F8)
-	case CastleBQS:
-		board.movePiece(E8, C8)
-		board.movePiece(A8, D8)
-	case KnightPromotion:
-		board.removePiece(from)
-		if state.Captured.Type != NoType {
-			board.removePiece(to)
-		}
-		board.putPiece(Knight, board.ColorToMove, to)
-	case BishopPromotion:
-		board.removePiece(from)
-		if state.Captured.Type != NoType {
-			board.removePiece(to)
-		}
-		board.putPiece(Bishop, board.ColorToMove, to)
-	case RookPromotion:
-		board.removePiece(from)
-		if state.Captured.Type != NoType {
-			board.removePiece(to)
-		}
-		board.putPiece(Rook, board.ColorToMove, to)
-	case QueenPromotion:
-		board.removePiece(from)
-		if state.Captured.Type != NoType {
-			board.removePiece(to)
-		}
-		board.putPiece(Queen, board.ColorToMove, to)
-	case AttackEP:
-		capturePos := uint8(int8(to) + EPDelta[board.ColorToMove])
-		state.Captured = board.Squares[capturePos]
-		board.removePiece(capturePos)
-		board.movePiece(from, to)
-		board.Rule50 = 0
-	case Attack:
-		board.removePiece(to)
-		board.movePiece(from, to)
-		board.Rule50 = 0
-	case DoublePawnPush:
-		board.EPSquare = uint8(int8(to) + EPDelta[board.ColorToMove])
-		if (PawnAttacks[board.ColorToMove][board.EPSquare] & board.PieceBB[board.ColorToMove^1][Pawn]) == 0 {
-			board.EPSquare = NoEPSquare
-		}
-		fallthrough
-	case Quiet:
-		board.movePiece(from, to)
-
-		if state.Moved.Type == Pawn {
-			board.Rule50 = 0
-		}
-	}
-
-	board.CastlingRights.ClearBit(from)
-	board.CastlingRights.ClearBit(to)
-	board.hashCastlingRights(state)
-
-	if board.EPSquare != NoEPSquare {
-		board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
-	}
-
-	board.KingPos[board.ColorToMove][state.Moved.Type] = to
-	board.ColorToMove ^= 1
-	board.Hash ^= Random64[SideToMoveRand64]
-
-	board.RepitionPly++
-	board.Repitions[board.RepitionPly] = board.Hash
-}
-
-func (board *Board) UndoMove(move Move) {
-	board.historyPly--
-	state := &board.history[board.historyPly]
-
-	board.hashCastlingRights(state)
-	if board.EPSquare != NoEPSquare {
-		board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
-	}
-
-	board.CastlingRights = state.CastlingRights
-	board.Rule50 = state.Rule50
-	board.EPSquare = state.EPSquare
-
-	board.ColorToMove ^= 1
-	board.Hash ^= Random64[SideToMoveRand64]
-
-	from, to, movType := move.FromSq(), move.ToSq(), move.MoveType()
-
-	board.GamePly--
-
-	switch movType {
-	case CastleWKS:
-		board.movePiece(G1, E1)
-		board.movePiece(F1, H1)
-	case CastleWQS:
-		board.movePiece(C1, E1)
-		board.movePiece(D1, A1)
-	case CastleBKS:
-		board.movePiece(G8, E8)
-		board.movePiece(F8, H8)
-	case CastleBQS:
-		board.movePiece(C8, E8)
-		board.movePiece(D8, A8)
-	case KnightPromotion:
-		fallthrough
-	case BishopPromotion:
-		fallthrough
-	case RookPromotion:
-		fallthrough
-	case QueenPromotion:
-		board.removePiece(to)
-		if state.Captured.Type != NoType {
-			board.putPiece(state.Captured.Type, state.Captured.Color, to)
-		}
-		board.putPiece(Pawn, board.ColorToMove, from)
-	case AttackEP:
-		capturePos := uint8(int8(to) + EPDelta[board.ColorToMove])
-		board.movePiece(to, from)
-		board.putPiece(Pawn, state.Captured.Color, capturePos)
-	case Attack:
-		board.removePiece(to)
-		board.putPiece(state.Captured.Type, state.Captured.Color, to)
-		board.putPiece(state.Moved.Type, board.ColorToMove, from)
-	case DoublePawnPush:
-		fallthrough
-	case Quiet:
-		board.movePiece(to, from)
-	}
-
-	if board.EPSquare != NoEPSquare {
-		board.Hash ^= Random64[EPRand64+uint16(FileOf(board.EPSquare))]
-	}
-
-	board.KingPos[board.ColorToMove][state.Moved.Type] = from
-	board.RepitionPly--
-}
-
-// Move a piece from the given square to the given square.
-// For this function, the move is guaranteed to be quiet.
-func (board *Board) movePiece(from, to uint8) {
-	piece := &board.Squares[from]
-	board.PieceBB[piece.Color][piece.Type].ClearBit(from)
-	board.SideBB[piece.Color].ClearBit(from)
-	board.Hash ^= getPieceHash(piece.Type, piece.Color, from)
-
-	board.PieceBB[piece.Color][piece.Type].SetBit(to)
-	board.SideBB[piece.Color].SetBit(to)
-	board.Hash ^= getPieceHash(piece.Type, piece.Color, to)
-
-	board.Squares[to].Type = piece.Type
-	board.Squares[to].Color = piece.Color
-	piece.Type = NoType
-	piece.Color = NoColor
-}
-
-// Put the piece given on the given square
-func (board *Board) putPiece(pieceType, pieceColor, to uint8) {
-	board.PieceBB[pieceColor][pieceType].SetBit(to)
-	board.SideBB[pieceColor].SetBit(to)
-	board.Squares[to].Type = pieceType
-	board.Squares[to].Color = pieceColor
-	board.Hash ^= getPieceHash(pieceType, pieceColor, to)
-}
-
-// Remove the piece given on the given square.
-func (board *Board) removePiece(from uint8) {
-	piece := &board.Squares[from]
-	board.PieceBB[piece.Color][piece.Type].ClearBit(from)
-	board.SideBB[piece.Color].ClearBit(from)
-	board.Hash ^= getPieceHash(piece.Type, piece.Color, from)
-
-	piece.Type = NoType
-	piece.Color = NoColor
-}
-
-// Test whether or not the king is attacked for the side
-// who moved. Called after board.DoMove.
-func (board *Board) KingIsAttacked(kingColor uint8) bool {
-	return sqIsAttacked(board, kingColor, board.KingPos[kingColor][King])
-}
-
-// Given a board square, return it's file.
-func FileOf(sq uint8) uint8 {
-	return sq % 8
-}
-
-// Given a board square, return it's rank.
-func RankOf(sq uint8) uint8 {
-	return sq / 8
-}
-
-// Convert a string board coordinate to its position
-// number.
-func CoordinateToPos(coordinate string) uint8 {
-	file := coordinate[0] - 'a'
-	rank := int(coordinate[1]-'0') - 1
-	return uint8(rank*8 + int(file))
-}
-
-// Convert a position number to a string board coordinate.
-func PosToCoordinate(pos uint8) string {
-	file := FileOf(pos)
-	rank := RankOf(pos)
-	return string(rune('a'+file)) + string(rune('0'+rank+1))
+	return SouthDelta
 }

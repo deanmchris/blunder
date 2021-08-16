@@ -1,47 +1,46 @@
 package main
 
 import (
-	"blunder/ui"
-	"bufio"
+	"blunder/engine"
+	"flag"
 	"fmt"
+	"log"
 	"os"
-	"strings"
+	"runtime"
+	"runtime/pprof"
 )
 
-const HelpMessage = `
-Options:
-- uci: Begin Blunder's UCI protocol
-- cli: Enter Blunder's command-line interface
-- help: Quit the program
-`
-
-func mainLoop() {
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		programMode, _ := reader.ReadString('\n')
-		programMode = strings.Replace(programMode, "\r\n", "\n", -1)
-
-		//fmt.Printf("HERE: %#v\n", programMode)
-		//fmt.Printf("HERE: %#v\n", strings.Replace(programMode, "\r\n", "\n", -1))
-
-		if programMode == "uci\n" || programMode == "uci" {
-			ui.UCILoop()
-			break
-		} else if programMode == "cli\n" {
-			ui.CmdLoop()
-			break
-		} else if programMode == "quit\n" {
-			break
-		} else if programMode == "help\n" {
-			fmt.Println(HelpMessage)
-		} else {
-			fmt.Printf("\nUnknown command \"%v\"\n", strings.TrimSuffix(programMode, "\n"))
-			fmt.Printf("Enter \"help\" to show available commands\n\n")
-		}
-	}
-
-}
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 func main() {
-	mainLoop()
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	/*var s engine.Search
+	s.Pos.LoadFEN(engine.FENStartPosition)
+	s.Timer.TimeLeft = 600000
+	s.TransTable.Resize(engine.DefaultTTSize)
+
+	start := time.Now()
+	m := s.Search()
+	fmt.Println("Bestmove:", m)
+	elapsed := time.Since(start)
+	fmt.Printf("Time: %vms\n", elapsed.Milliseconds())*/
+
+	defer func() {
+		if r := recover(); r != nil {
+			println(fmt.Sprintf("Internal error: %v", r))
+			buf := make([]byte, 1<<16)
+			stackSize := runtime.Stack(buf, true)
+			println(fmt.Sprintf("%s\n", string(buf[0:stackSize])))
+		}
+	}()
+	engine.UCILoop()
 }

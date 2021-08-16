@@ -3,13 +3,13 @@ Overview
 
 Blunder is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
 straightforward and easy to read, so that others can benefit from the project. Currently my estimate is that Blunder
-is at about ~1830 Elo (in self-play).
+is at about 1900-2000 Elo (in self-play), and Blunder 4.0.0 is rated [1700 on the CCRL Blitz list](http://ccrl.chessdom.com/ccrl/404/cgi/engine_details.cgi?print=Details&each_game=1&eng=Blunder%204.0.0%2064-bit#Blunder_4_0_0_64-bit). Blunder 5.0.0 has yet to
+be tested.
 
 Installation
 -----
 
-Blunder is current being developed in a linux 64-bit enviorment, so that is the executable that is provided. However, 
-compiling Blunder on different machines is fairly simple.
+Compiling Blunder is fairly simple.
 
 All that is needed is to visit [Golang downlaod page](https://golang.org/dl/), and install Golang using the download
 package appropriate for your machine. To make using the Golang compiler easier, make sure that if the installer asks,
@@ -35,36 +35,6 @@ So to use Blunder, it's reccomend you install one of these programs. Popular fre
 Once you have a program downloaded, you'll need to follow that specfic programs guide on how to install a chess engine. When prompted 
 for a command or executable, direct the GUI to the Golang exectuable you built.
 
-In addition to being UCI compatible, Blunder has a simple command line interface. To use it, start the executable, and type in `debug`. 
-But wait 3-5 seconds before entering debug, as Blunder needs a second or two to initalize its internals. After typing in `debug`, you
-should be greeted with an ASCII display of Blunder's current board state, and a prompt to enter a command:
-
-```
-
-8 | r n b q k b n r 
-7 | p p p p p p p p 
-6 | . . . . . . . . 
-5 | . . . . . . . . 
-4 | . . . . . . . . 
-3 | . . . . . . . . 
-2 | P P P P P P P P 
-1 | R N B Q K B N R 
-   ----------------
-    a b c d e f g h 
-
-turn: white
-castling rights: KQkq
-en passant: none
-rule 50: 0
-game ply: 0
-
->> 
-
-```
-
-Type "options" into the prompt
-to see the available commands.
-
 Features
 --------
 
@@ -73,7 +43,6 @@ Features
     - [Magic bitboards for slider move generation](https://www.chessprogramming.org/Magic_Bitboards)
     - [Zobrist hashing]().
     - [Transposition table for perft]().
-    - Basic filtered move generation (not to be confused with STAGED move generation).
 * Search
     - [Negamax search framework](https://www.chessprogramming.org/Negamax)
     - [Alpha-Beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
@@ -82,22 +51,12 @@ Features
     - [Time-control logic supporting classical, rapid, bullet, and ultra-bullet time formats](https://www.chessprogramming.org/Time_Management).
     - [Repition detection](https://www.chessprogramming.org/Repetitions).
     - [Killer moves](https://www.chessprogramming.org/Killer_Move).
+    - [Transposition table](https://www.chessprogramming.org/Transposition_Table).
+    - [Null-move pruning](https://www.chessprogramming.org/Null_Move_Pruning).
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
     - [Tapered evaluation](https://www.chessprogramming.org/Tapered_Eval).
-
- Future Features
- ---------------
- One of the most fun and exciting parts of chess programming is adding new features to your engine, and watching it
- slowly become stronger and better than previous versions. 
- 
- With that said, here is a list of the next few features planned for blunder 4.0.0. Note that these are subject to change:
- 
- * Transposition table
- * Principal variation search
- * King saftey evaluation
- * Pawn structure evaluation
     
  Changelog
  ---------
