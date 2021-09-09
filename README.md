@@ -2,9 +2,7 @@ Overview
 --------
 
 Blunder is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
-straightforward and easy to read, so that others can benefit from the project. Currently my estimate is that Blunder
-is at about 1900-2000 Elo (in self-play), and Blunder 4.0.0 is rated [1700 on the CCRL Blitz list](http://ccrl.chessdom.com/ccrl/404/cgi/engine_details.cgi?print=Details&each_game=1&eng=Blunder%204.0.0%2064-bit#Blunder_4_0_0_64-bit). Blunder 5.0.0 has yet to
-be tested.
+straightforward and easy to read, so that others can benefit from the project. Currently Blunder 5.0.0 is rated at [2038 Elo](http://ccrl.chessdom.com/ccrl/404/cgi/engine_details.cgi?print=Details&each_game=1&eng=Blunder%204.0.0%2064-bit#Blunder_4_0_0_64-bit).
 
 Installation
 -----
@@ -52,6 +50,8 @@ Features
     - [Killer moves](https://www.chessprogramming.org/Killer_Move)
     - [Transposition table](https://www.chessprogramming.org/Transposition_Table)
     - [Null-move pruning](https://www.chessprogramming.org/Null_Move_Pruning)
+    - [Reverse futility pruning](https://www.chessprogramming.org/Reverse_Futility_Pruning)
+    - [History heuristics](https://www.chessprogramming.org/History_Heuristic)
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
