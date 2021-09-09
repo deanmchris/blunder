@@ -57,12 +57,12 @@ func (move Move) Flag() uint8 {
 }
 
 // Get the score of a move.
-func (move Move) Score() uint8 {
-	return uint8(move & 0xffff)
+func (move Move) Score() int16 {
+	return int16(move & 0xffff)
 }
 
 // Add a score to the move for move ordering.
-func (move *Move) AddScore(score uint8) {
+func (move *Move) AddScore(score int16) {
 	(*move) |= Move(score)
 }
 

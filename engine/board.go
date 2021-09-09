@@ -241,7 +241,7 @@ func (pos *Position) MakeMove(move Move) bool {
 			pos.putPiece(uint8(flag+1), pos.SideToMove, to)
 		}
 
-		if abs(int16(from)-int16(to)) == 16 {
+		if abs16(int16(from)-int16(to)) == 16 {
 			// If the move is a double pawn push, and there is no enemy pawn that's in
 			// a position to capture en passant on the next turn, don't set the position's
 			// en passant square.

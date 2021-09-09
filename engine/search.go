@@ -17,17 +17,26 @@ const (
 
 	// The score the best move from the transposition table will
 	// be given.
-	TT_BestMoveScore = 200
+	TT_BestMoveScore = 60
 
 	// Scores for the two killers from each ply. They're ranked below the hash move,
 	// and good captures, but above normal quiet moves.
 	FirstKillerMoveScore  = 10
 	SecondKillerMoveScore = 9
+
+	// A constant for the amount the depth is reduced during a null-move search.
+	NullMoveReduction = 2
+
+	// The depth threshold for static null-move pruning
+	StaticNullMovePruningThreshold = 8
+
+	// MVV/LVA OFFSET
+	MvvLvaOffset = 5000
 )
 
 // An array that maps move scores to attacker and victim piece types
 // for MVV-LVA move ordering: https://www.chessprogramming.org/MVV-LVA.
-var MvvLva [7][6]uint8 = [7][6]uint8{
+var MvvLva [7][6]int16 = [7][6]int16{
 	{16, 15, 14, 13, 12, 11}, // victim Pawn
 	{26, 25, 24, 23, 22, 21}, // victim Knight
 	{36, 35, 34, 33, 32, 31}, // victim Bishop
@@ -45,7 +54,9 @@ type Search struct {
 	TransTable TransTable
 	Timer      TimeManager
 
-	killerMoves    [MaxDepth][2]Move
+	killerMoves  [MaxDepth][2]Move
+	historyTable [64][64]int16
+
 	nodesSearched  uint64
 	selectiveDepth uint8
 	engineColor    uint8
@@ -58,6 +69,7 @@ func (search *Search) Search() Move {
 	bestScore := -Inf
 	bestMove := NullMove
 
+	search.clearHistoryTable()
 	search.Timer.Start()
 
 	for depth := 1; depth <= MaxDepth; depth++ {
@@ -115,22 +127,12 @@ func (search *Search) rootNegamax(depth uint8) (Move, int16) {
 		score := -search.negamax(depth-1, 0, -beta, -alpha, true)
 		search.Pos.UnmakeMove(move)
 
-		// If we have a beta-cutoff (i.e this move gives us a score better than what
-		// our opponet can already guarantee early in the tree), return beta and the move
-		// that caused the cutoff as the best move.
-		if score == beta {
-			alpha = beta
-			bestMove = move
-			break
-		}
-
 		// If the score of this move is better than alpha (i.e better than the score
 		// we can currently guarantee), set alpha to be the score and the best move
 		// to be the move that raised alpha.
 		if score > alpha {
 			alpha = score
 			bestMove = move
-			// do_pvs = true
 		}
 	}
 
@@ -183,6 +185,24 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, do_null bool)
 		return score
 	}
 
+	// Do static null-move pruning/reverse futility pruning:
+	//
+	// https://www.chessprogramming.org/Reverse_Futility_Pruning
+	//
+	//
+	// If our current material score is so good that even if we give ourselves
+	// a big hit materially and subtract a large amount of our material score
+	// (the "score margin") and our material score is still greater than beta,
+	// we assume this node will fail-high and we can prune its branch.
+
+	if depth < StaticNullMovePruningThreshold && !inCheck && abs16(beta-1) < Checkmate {
+		staticScore := evaluatePos(&search.Pos)
+		var scoreMargin int16 = 120 * int16(depth)
+		if staticScore-scoreMargin >= beta {
+			return beta
+		}
+	}
+
 	// Do null-move pruning:
 	//
 	// https://www.chessprogramming.org/Null_Move_Pruning
@@ -195,7 +215,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, do_null bool)
 	if do_null && !inCheck && depth >= 3 {
 		// Do the null move.
 		search.Pos.MakeNullMove()
-		score := -search.negamax(depth-2-1, ply+1, -beta, -beta+1, false)
+		score := -search.negamax(depth-1-NullMoveReduction, ply+1, -beta, -beta+1, false)
 		search.Pos.UnmakeNullMove()
 
 		// If we've run out of time, abort the search.
@@ -206,7 +226,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, do_null bool)
 		// If we get a beta cut-off, and it's not a checkmate score,
 		// we can use the beta cut-off to send the search and avoid
 		// wasting anymore time.
-		if score >= beta && abs(score) < Checkmate {
+		if score >= beta && abs16(score) < Checkmate {
 			return beta
 		}
 	}
@@ -266,7 +286,11 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, do_null bool)
 			ttFlag = ExactFlag
 			ttBestMove = move
 
-			// do_pvs = true
+			// If the move that rasied alpha was quiet move, use the history heuristic table
+			// to score the move.
+			if move.MoveType() != Attack {
+				search.historyTable[move.FromSq()][move.ToSq()] += int16(depth)
+			}
 		}
 	}
 
@@ -378,6 +402,15 @@ func (search *Search) quiescence(alpha, beta int16, negamax_ply uint8, ply uint8
 	return alpha
 }
 
+// Clear the history heuristics table
+func (search *Search) clearHistoryTable() {
+	for sq1 := 0; sq1 < 64; sq1++ {
+		for sq2 := 0; sq2 < 64; sq2++ {
+			search.historyTable[sq1][sq2] = 0
+		}
+	}
+}
+
 // Given a "killer move" (a quiet move that caused a beta cut-off), store the
 // Move in the slot for the given depth.
 func (search *Search) storeKiller(ply uint8, move Move) {
@@ -424,15 +457,21 @@ func (search *Search) scoreMoves(moves *MoveList, ttBestMove Move, ply uint8) {
 		move := &moves.Moves[index]
 
 		if ttBestMove.Equal(*move) {
-			move.AddScore(TT_BestMoveScore)
+			move.AddScore(MvvLvaOffset + TT_BestMoveScore)
 		} else if search.killerMoves[ply][0].Equal(*move) {
-			move.AddScore(FirstKillerMoveScore)
+			move.AddScore(MvvLvaOffset + FirstKillerMoveScore)
 		} else if search.killerMoves[ply][1].Equal(*move) {
-			move.AddScore(SecondKillerMoveScore)
-		} else {
+			move.AddScore(MvvLvaOffset + SecondKillerMoveScore)
+		} else if move.MoveType() != Quiet {
 			captured := &search.Pos.Squares[move.ToSq()]
 			moved := &search.Pos.Squares[move.FromSq()]
-			move.AddScore(MvvLva[captured.Type][moved.Type])
+			move.AddScore(MvvLvaOffset + MvvLva[captured.Type][moved.Type])
+		} else {
+			mscore := search.historyTable[move.FromSq()][move.ToSq()]
+			move.AddScore(mscore)
+			//if mscore >= MvvLvaOffset {
+			//	panic("unbounded history!")
+			//}
 		}
 	}
 }

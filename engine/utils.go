@@ -28,7 +28,7 @@ func RankOf(sq uint8) uint8 {
 }
 
 // Get the absolute value of a number.
-func abs(n int16) int16 {
+func abs16(n int16) int16 {
 	if n < 0 {
 		return -n
 	}

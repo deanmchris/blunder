@@ -7,7 +7,10 @@ import (
 	"time"
 )
 
-const NoValue int64 = 0
+const (
+	NoValue      int64 = 0
+	InfiniteTime int64 = -1
+)
 
 // A struct which holds data for a timer for Blunder's time mangement.
 type TimeManager struct {
@@ -21,6 +24,15 @@ type TimeManager struct {
 
 // Start the timer, setting up the internal state.
 func (tm *TimeManager) Start() {
+	// Reset the flag time's up flag to false for a new search
+	tm.Stop = false
+
+	// If we're given infinite time, we're done calculating the time for the
+	// current move.
+	if tm.TimeLeft == InfiniteTime {
+		return
+	}
+
 	// Calculate the time we can allocate for the search about to start.
 	var timeForMove int64
 
@@ -56,6 +68,14 @@ func (tm *TimeManager) Start() {
 
 // Check if the time we alloted for picking this move has expired.
 func (tm *TimeManager) Check() bool {
+	// If we have infinite time, tm.Stop is set to false unless we've already
+	// been told to stop.
+	if !tm.Stop && tm.TimeLeft == InfiniteTime {
+		tm.Stop = false
+		return tm.Stop
+	}
+
+	// Otherwise figure out if our alloated time for this move is up.
 	if time.Now().After(tm.stopTime) {
 		tm.Stop = true
 	}

@@ -9,13 +9,9 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 5.0.0"
+	EngineName   = "Blunder 6.0.0"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
-
-	// If Blunder's playing a game with no time limit, it shouldn't spend too long searching,
-	// so pretend we have a constant 10 minute time limit.
-	DefaultTime int = 1000000
 
 	Banner = `
 ██████╗░██╗░░░░░██╗░░░██╗███╗░░██╗██████╗░███████╗██████╗░
@@ -113,7 +109,7 @@ func goCommandResponse(search *Search, command string) {
 	}
 
 	// Parse the time left, increment, and moves to go from the command parameters.
-	timeLeft, increment, movesToGo := DefaultTime, 0, 0
+	timeLeft, increment, movesToGo := -1, 0, 0
 	for index, field := range fields {
 		if strings.HasPrefix(field, colorPrefix) {
 			if strings.HasSuffix(field, "time") {
@@ -172,9 +168,9 @@ func UCILoop() {
 		} else if strings.HasPrefix(command, "position") {
 			positionCommandResponse(&search.Pos, command)
 		} else if strings.HasPrefix(command, "go") {
-			goCommandResponse(&search, command)
+			go goCommandResponse(&search, command)
 		} else if strings.HasPrefix(command, "stop") {
-			// TODO: stop the search of the engine
+			search.Timer.Stop = true
 		} else if command == "quit\n" {
 			quitCommandResponse(&search)
 			break
