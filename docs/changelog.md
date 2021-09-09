@@ -1,10 +1,22 @@
 Changelog
 ---------
+* Blunder 6.0.0
 * Blunder 5.0.0
 * Blunder 4.0.0
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 6.0.0
+-------------
+
+Blunder 6.0.0 includes an implementation of reverse futility pruning and history heuristics, both which from self-play contributed 80-100 Elo. Additionally, the UCI stop command has been implemented, as well as some general code cleanups. Blunder 6.0.0's estimated rating is ~2100-2150 Elo.
+
+* Engine
+    - UCI "stop" command
+* Search
+    - [Reverse futility pruning](https://www.chessprogramming.org/Reverse_Futility_Pruning)
+    - [History heuristics](https://www.chessprogramming.org/History_Heuristic)
 
 Blunder 5.0.0
 -------------
@@ -15,7 +27,7 @@ The movitations behind this rewrite were twofold: First, I was dissatisfied with
 
 From the testing I've done, Blunder 5.0.0 is 20-30% faster than Blunder 4.0.0, and perft(6) from the starting position was coming in at around 6-8s (14-18 Mnps), whereas perft(6) from the starting position for Blunder 4.0.0 was generally 10-12s (10-12Mnps). And overall, I'm happy with the refractoring I've done and my code feels cleaner in many of the places that bothered me. So both goals, all things considered, were meet.
 
-Although Blunder 5.0.0 is a rewrite, it did build on Blunder 4.0.0, and two new features were added: a transposition table, and null-move pruning. Additional, the tapered evaluation has been refractored and is stronger. And the speed increase should add some Elo to engine, though I didn't test for a specfic amount. Overall, these changes have added about 200-250 Elo to the engine in self-play, and shows promising result in gaunlet tests from 1800-1900 Elo engines.
+Although Blunder 5.0.0 is a rewrite, it did build on Blunder 4.0.0, and two new features were added: a transposition table, and null-move pruning. Additional, the tapered evaluation has been refractored and is stronger. And the speed increase should add some Elo to engine, though I didn't test for a specfic amount. Overall, these changes have added about 200-300 Elo to the engine in self-play, and puts Blunder at 2038 Elo on the CCRL.
 
 Since Blunder 5.0.0 is a rewrite, a listing of all of the current features are listed below:
 
