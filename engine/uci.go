@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 6.0.0"
+	EngineName   = "Blunder 6.1.0"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
@@ -89,12 +89,12 @@ func setOptionCommandResponse(search *Search, command string) {
 	switch option {
 	case "Hash":
 		size, err := strconv.Atoi(value)
-		if err != nil {
-			search.TransTable.Unitialize()
-			search.TransTable.Resize(uint64(size))
+		if err == nil {
+			search.TT.Unitialize()
+			search.TT.Resize(uint64(size))
 		}
 	case "Clear Hash":
-		search.TransTable.Clear()
+		search.TT.Clear()
 	}
 }
 
@@ -134,7 +134,7 @@ func goCommandResponse(search *Search, command string) {
 }
 
 func quitCommandResponse(search *Search) {
-	search.TransTable.Unitialize()
+	search.TT.Unitialize()
 }
 
 func printCommandResponse() {
@@ -151,7 +151,7 @@ func UCILoop() {
 	fmt.Println("Email:", EngineEmail)
 	fmt.Printf("Hash size: %d MB\n\n", DefaultTTSize)
 
-	search.TransTable.Resize(DefaultTTSize)
+	search.TT.Resize(DefaultTTSize)
 
 	for {
 		command, _ := reader.ReadString('\n')
@@ -164,7 +164,7 @@ func UCILoop() {
 		} else if strings.HasPrefix(command, "setoption") {
 			setOptionCommandResponse(&search, command)
 		} else if strings.HasPrefix(command, "ucinewgame") {
-			search.TransTable.Clear()
+			search.TT.Clear()
 		} else if strings.HasPrefix(command, "position") {
 			positionCommandResponse(&search.Pos, command)
 		} else if strings.HasPrefix(command, "go") {

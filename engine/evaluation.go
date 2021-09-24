@@ -10,8 +10,9 @@ const (
 	TotalPhase  int16 = PawnPhase*16 + KnightPhase*4 + BishopPhase*4 + RookPhase*4 + QueenPhase*2
 
 	// Constants representing a draw or infinite (checkmate) value.
-	Inf  int16 = 10000
-	Draw int16 = -25
+	Inf            int16 = 10000
+	MiddleGameDraw int16 = 25
+	EndGameDraw    int16 = 0
 )
 
 var PhaseValues [6]int16 = [6]int16{

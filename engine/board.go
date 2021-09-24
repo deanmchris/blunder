@@ -589,6 +589,26 @@ func (pos Position) String() (boardAsString string) {
 	return boardAsString
 }
 
+// Determine if the side to move is in check.
+func (pos *Position) InCheck() bool {
+	return sqIsAttacked(
+		pos,
+		pos.SideToMove,
+		pos.PieceBB[pos.SideToMove][King].Msb())
+}
+
+// Determine if the current position should be considered an endgame
+// position for the current side to move.
+func (pos *Position) IsEndgameForSide() bool {
+	pawnMaterial := int16(pos.PieceBB[pos.SideToMove][Pawn].CountBits()) * 100
+	knightMaterial := int16(pos.PieceBB[pos.SideToMove][Knight].CountBits()) * 320
+	bishopMaterial := int16(pos.PieceBB[pos.SideToMove][Bishop].CountBits()) * 330
+	rookMaterial := int16(pos.PieceBB[pos.SideToMove][Rook].CountBits()) * 500
+	queenMaterial := int16(pos.PieceBB[pos.SideToMove][Queen].CountBits()) * 950
+
+	return (pawnMaterial + knightMaterial + bishopMaterial + rookMaterial + queenMaterial) < 1300
+}
+
 // Given a color, return the delta for a single pawn push for that
 // color.
 func pawnPush(color uint8) int8 {

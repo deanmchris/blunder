@@ -7,8 +7,9 @@ const (
 	// Default size of the transposition table, in MB.
 	DefaultTTSize = 64
 
-	// Constant for the size of a transposition table entry, in bytes.
-	TTEntrySize = 14
+	// Constant for the size of a transposition table entry, in bytes,
+	// considering memory alignment.
+	TTEntrySize = 16
 
 	// Constants representing the different flags for a transposition table entry,
 	// which determine what kind of entry it is. If the entry has a score from
@@ -58,7 +59,7 @@ func (tt *TransTable) Probe(hash uint64, ply, depth uint8, alpha, beta int16, be
 	// the position by the size of the table.
 	entry := tt.entries[hash%tt.size]
 
-	score := Invalid
+	adjustedScore := Invalid
 
 	// Since index collisions can occur, test if the hash of the entry at this index
 	// actually matches the hash for the current position.
@@ -73,25 +74,7 @@ func (tt *TransTable) Probe(hash uint64, ply, depth uint8, alpha, beta int16, be
 		// this entry are from a search that is equal or greater than the current
 		// depth of our search.
 		if entry.Depth >= depth {
-			if entry.Flag == ExactFlag {
-				// If we have an exact entry, we can use the saved score.
-				score = entry.Score
-			}
-
-			if entry.Flag == AlphaFlag && entry.Score <= alpha {
-				// If we have an alpha entry, and the entry's score is less than our
-				// current alpha, then we know that our current alpha is the best score
-				// we can get in this node, so we can stop searching and use alpha.
-				score = alpha
-			}
-
-			if entry.Flag == BetaFlag && entry.Score >= beta {
-				// If we have a beta entry, and the entry's score is greater than our
-				// current beta, then we have a beta-cutoff, since while
-				// searching this node previously, we found a value greater than the current
-				// beta. so we can stop searching and use beta.
-				score = beta
-			}
+			score := entry.Score
 
 			// If the score we get from the transposition table is a checkmate score, we need
 			// to do a little extra work. This is because we store checkmates in the table using
@@ -100,18 +83,38 @@ func (tt *TransTable) Probe(hash uint64, ply, depth uint8, alpha, beta int16, be
 			// to store the score as a checkmate-in-3. Then, if we read the checkmate-in-3 from
 			// the table in a node that's 4 plies from the root, we need to return the score as
 			// checkmate-in-7.
-			if score != Invalid && score > Checkmate {
+			if score > Checkmate {
 				score -= int16(ply)
 			}
 
-			if score != Invalid && score < -Checkmate {
+			if score < -Checkmate {
 				score += int16(ply)
+			}
+
+			if entry.Flag == ExactFlag {
+				// If we have an exact entry, we can use the saved score.
+				adjustedScore = score
+			}
+
+			if entry.Flag == AlphaFlag && score <= alpha {
+				// If we have an alpha entry, and the entry's score is less than our
+				// current alpha, then we know that our current alpha is the best score
+				// we can get in this node, so we can stop searching and use alpha.
+				adjustedScore = alpha
+			}
+
+			if entry.Flag == BetaFlag && score >= beta {
+				// If we have a beta entry, and the entry's score is greater than our
+				// current beta, then we have a beta-cutoff, since while
+				// searching this node previously, we found a value greater than the current
+				// beta. so we can stop searching and use beta.
+				adjustedScore = beta
 			}
 		}
 	}
 
 	// Return the score
-	return score
+	return adjustedScore
 }
 
 // Store an entry in the table.
