@@ -6,13 +6,23 @@ import (
 )
 
 const (
-	MaxDepth      = 50
+	// The maximum depth the engine will attempt to reach.
+	MaxDepth = 50
+
+	// A constant representing no move.
 	NullMove Move = 0
 
+	// Constants representing the score for a killer move and
+	// the principal variation move from the transposition table.
 	KillerMoveScore int16 = 10
 	PVMoveScore     int16 = 60
+
+	// A constant for the amount the depth reduction during a null-move search.
+	NullMoveReduction = 3
 )
 
+// An array that maps move scores to attacker and victim piece types
+// for MVV-LVA move ordering: https://www.chessprogramming.org/MVV-LVA.
 var MvvLva [7][6]int16 = [7][6]int16{
 	{16, 15, 14, 13, 12, 11}, // victim Pawn
 	{26, 25, 24, 23, 22, 21}, // victim Knight
@@ -24,29 +34,37 @@ var MvvLva [7][6]int16 = [7][6]int16{
 	{0, 0, 0, 0, 0, 0}, // No piece
 }
 
+// A struct representing a principal variation line.
 type PVLine struct {
 	moves []Move
 }
 
+// Clear the principal variation line.
 func (pvLine *PVLine) Clear() {
 	pvLine.moves = nil
 }
 
+// Update the principal variation line with a new best move,
+// and a new line of best play after the best move.
 func (pvLine *PVLine) Update(move Move, newPVLine PVLine) {
 	pvLine.Clear()
 	pvLine.moves = append(pvLine.moves, move)
 	pvLine.moves = append(pvLine.moves, newPVLine.moves...)
 }
 
+// Get the best move from the principal variation line.
 func (pvLine *PVLine) GetPVMove() Move {
 	return pvLine.moves[0]
 }
 
+// Convert the principal variation line to a string.
 func (pvLine PVLine) String() string {
 	pv := fmt.Sprintf("%s", pvLine.moves)
 	return pv[1 : len(pv)-1]
 }
 
+// A struct that holds state needed during the search phase. The search
+// routines are thus implemented as methods of this struct.
 type Search struct {
 	Pos   Position
 	Timer TimeManager
@@ -57,6 +75,8 @@ type Search struct {
 	killers [MaxDepth][2]Move
 }
 
+// The main search function for Blunder, implemented as an interative
+// deepening loop.
 func (search *Search) Search() Move {
 	search.side = search.Pos.SideToMove
 	var pvLine PVLine
@@ -64,10 +84,13 @@ func (search *Search) Search() Move {
 
 	search.Timer.Start()
 	for depth := 1; depth <= MaxDepth; depth++ {
-
+		// Clear the nodes searched and the last iterations pv line.
+		search.nodes = 0
 		pvLine.Clear()
+
+		// Start a search, and time it for reporting purposes.
 		startTime := time.Now()
-		score := search.negamax(uint8(depth), 0, -Inf, Inf, &pvLine)
+		score := search.negamax(uint8(depth), 0, -Inf, Inf, &pvLine, true)
 		endTime := time.Since(startTime)
 
 		if search.Timer.Stop {
@@ -77,6 +100,7 @@ func (search *Search) Search() Move {
 			break
 		}
 
+		// Save the best move and report search statistics to the GUI
 		bestMove = pvLine.GetPVMove()
 		fmt.Printf(
 			"info depth %d score cp %d time %d nodes %d\n",
@@ -86,104 +110,162 @@ func (search *Search) Search() Move {
 			// pvLine,
 		)
 	}
+
+	// Return the best move found to the GUI.
 	return bestMove
 }
 
-func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLine) int16 {
+// The primary negamax function.
+func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLine, doNull bool) int16 {
+	// Every 2048 nodes, check if our time has expired.
 	if (search.nodes&2047) == 0 && search.Timer.Check() {
 		return 0
 	}
 
+	// Update the number of nodes searched.
 	search.nodes++
 
 	isRoot := ply == 0
 	inCheck := search.Pos.InCheck()
+	var childPVLine PVLine
 
+	// =====================================================================//
+	// CHECK EXTENSION: Extend the search depth by one if we're in check,   //
+	// so that we're less likely to push danger over the search horizon,    //
+	// and we won't enter quiescence search while in check.                 //
+	// =====================================================================//
 	if inCheck {
 		depth++
 	}
 
+	// If we've reached a search depth of zero, enter quiescence
+	// search to stabilize the position before returning a static
+	// score.
 	if depth == 0 {
 		return search.qsearch(alpha, beta, ply)
 	}
 
+	// Don't do any extra work if the current position is a draw. We
+	// can just return a draw value.
 	if !isRoot && (search.Pos.Rule50 >= 100 || search.isDrawByRepition()) {
 		return search.contempt()
 	}
 
+	// Create a variable to store the possible best move we'll get from probing the transposition
+	// table. And the best move we'll get from the search if we don't get a hit.
 	ttBestMove := NullMove
+
+	// Probe the transposition table to see if we have a useable matching entry for the current
+	// position. If we get a hit, return the score and stop searching.
 	score := search.TT.Probe(search.Pos.Hash, ply, depth, alpha, beta, &ttBestMove)
 	if score != Invalid && !isRoot {
 		return score
 	}
 
+	// =====================================================================//
+	// NULL MOVE PRUNING: If our opponet is given a free move, can they     //
+	// improve their position? If we do a quick search after giving our     //
+	// opponet this free move and we still find a move with a score better  //
+	// than beta, our opponet can't improve their position and they         //
+	// wouldn't take this path, so we have a beta cut-off and can prune     //
+	// this branch.                                                         //
+	// =====================================================================//
+
+	if !isRoot && doNull && !inCheck && depth >= NullMoveReduction {
+		search.Pos.MakeNullMove()
+		score := -search.negamax(depth-NullMoveReduction, ply+1, -beta, -beta+1, &childPVLine, false)
+		search.Pos.UnmakeNullMove()
+		childPVLine.Clear()
+
+		if search.Timer.Check() {
+			return 0
+		}
+		if score >= beta && abs16(score) < Checkmate {
+			return beta
+		}
+	}
+
+	// Generate and score the moves for the side to move
+	// in the current position.
 	moves := genMoves(&search.Pos)
 	search.scoreMoves(&moves, ply, ttBestMove)
 
-	var childPVLine PVLine
-	doPVS := false
 	legalMoves := 0
-
 	ttFlag := AlphaFlag
 	ttBestMove = NullMove
 
 	for index := 0; index < int(moves.Count); index++ {
+		// Order the moves to get the best moves first.
 		orderMoves(index, &moves)
 		move := moves.Moves[index]
 
+		// Make the move, and if it was illegal, undo it and skip to the next move.
 		if !search.Pos.MakeMove(move) {
 			search.Pos.UnmakeMove(move)
 			continue
 		}
 
-		var score int16
-		if doPVS {
-			score = -search.negamax(depth-1, ply+1, -alpha-1, -alpha, &childPVLine)
-			if score > alpha && score < beta {
-				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine)
-			}
-		} else {
-			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine)
-		}
-
-		/*if doPVS {
-		}
-		score := -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine)*/
+		score := -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
 		search.Pos.UnmakeMove(move)
 		legalMoves++
 
+		// If we have a beta-cutoff (i.e this move gives us a score better than what
+		// our opponet can already guarantee early in the tree), return beta and the move
+		// that caused the cutoff as the best move.
 		if score >= beta {
-			alpha = beta
+			// Store the killer move for this ply
 			search.storeKiller(ply, move)
-			ttFlag = BetaFlag
-			ttBestMove = move
-			break
+
+			// If we're not out of time, store beta and the move that caused the beta-cutoff
+			// in the transposition table.
+			if !search.Timer.Check() {
+				search.TT.Store(search.Pos.Hash, ply, depth, beta, BetaFlag, move)
+			}
+			return beta
 		}
 
+		// If the score of this move is better than alpha (i.e better than the score
+		// we can currently guarantee), set alpha to be the score and the best move
+		// to be the move that raised alpha.
 		if score > alpha {
 			alpha = score
+
+			// Update the principal variation line.
 			pvLine.Update(move, childPVLine)
 
-			doPVS = true
+			// Set the transposition table flag to exact and record the
+			// best move.
 			ttFlag = ExactFlag
 			ttBestMove = move
 		}
 	}
 
+	// If we don't have any legal moves, it's either checkmate, or a stalemate.
 	if legalMoves == 0 {
 		if inCheck {
+			// If its checkmate, return a checkmate score of negative infinity,
+			// with the current ply added to it. That way, the engine will be
+			// rewarded for finding mate quicker, or avoiding mate longer.
 			return -Inf + int16(ply)
 		}
+		// If it's a draw, return the draw value.
 		return search.contempt()
 	}
 
+	// Store the result of the search for this position only if we haven't run out of time.
 	if !search.Timer.Check() {
 		search.TT.Store(search.Pos.Hash, ply, depth, alpha, ttFlag, ttBestMove)
 	}
 
+	// Return the best score, which is alpha.
 	return alpha
 }
 
+// Onece we reach a depth of zero in the main negamax search, instead of
+// returning a static evaluation right away, continue to search deeper
+// until the position is quiet (i.e there are no winning tatical captures).
+// Doing this is known as quiescence search, and it makes the static evaluation
+// much more accurate.
 func (search *Search) qsearch(alpha, beta int16, ply uint8) int16 {
 	if (search.nodes&2047) == 0 && search.Timer.Check() {
 		return 0
@@ -197,10 +279,15 @@ func (search *Search) qsearch(alpha, beta int16, ply uint8) int16 {
 
 	staticScore := evaluatePos(&search.Pos)
 
+	// If the score is greater than beta, what our opponet can
+	// already guarantee early in the search tree, then we
+	// have a beta-cutoff.
 	if staticScore >= beta {
 		return beta
 	}
 
+	// If the score is greater than alpha, what score we can guarantee
+	// to get, raise alpha.
 	if staticScore > alpha {
 		alpha = staticScore
 	}
@@ -234,6 +321,8 @@ func (search *Search) qsearch(alpha, beta int16, ply uint8) int16 {
 	return alpha
 }
 
+// Given a "killer move" (a quiet move that caused a beta cut-off), store the
+// Move in the slot for the given depth.
 func (search *Search) storeKiller(ply uint8, move Move) {
 	if search.Pos.Squares[move.ToSq()].Type == NoType {
 		if !move.Equal(search.killers[ply][0]) {
@@ -243,6 +332,9 @@ func (search *Search) storeKiller(ply uint8, move Move) {
 	}
 }
 
+// Determine the draw score based on the phase of the game and whose moving,
+// to encourge the engine to strive for a win in the middle-game, but be
+// satisified with a draw in the endgame.
 func (search *Search) contempt() int16 {
 	drawValue := MiddleGameDraw
 	if search.Pos.IsEndgameForSide() {
@@ -255,6 +347,7 @@ func (search *Search) contempt() int16 {
 	return drawValue
 }
 
+// Determine if the current board state is being repeated.
 func (search *Search) isDrawByRepition() bool {
 	var repPly uint16
 	for repPly = 0; repPly < search.Pos.HistoryPly; repPly++ {
@@ -265,6 +358,7 @@ func (search *Search) isDrawByRepition() bool {
 	return false
 }
 
+// Score the moves generated.
 func (search *Search) scoreMoves(moves *MoveList, ply uint8, pvMove Move) {
 	for index := 0; index < int(moves.Count); index++ {
 		move := &moves.Moves[index]
@@ -284,6 +378,8 @@ func (search *Search) scoreMoves(moves *MoveList, ply uint8, pvMove Move) {
 	}
 }
 
+// Order the moves given by finding the best move and putting it
+// at the index given.
 func orderMoves(index int, moves *MoveList) {
 	bestIndex := index
 	bestScore := moves.Moves[bestIndex].Score()
