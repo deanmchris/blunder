@@ -17,7 +17,7 @@ const (
 	KillerMoveScore int16 = 10
 	PVMoveScore     int16 = 60
 
-	// A constant for the amount the depth reduction during a null-move search.
+	// A constant for the depth reduction during a null-move search.
 	NullMoveReduction = 3
 )
 
@@ -90,7 +90,7 @@ func (search *Search) Search() Move {
 
 		// Start a search, and time it for reporting purposes.
 		startTime := time.Now()
-		score := search.negamax(uint8(depth), 0, -Inf, Inf, &pvLine, true)
+		score := search.negamax(uint8(depth), 0, -Inf, Inf, &pvLine)
 		endTime := time.Since(startTime)
 
 		if search.Timer.Stop {
@@ -116,7 +116,7 @@ func (search *Search) Search() Move {
 }
 
 // The primary negamax function.
-func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLine, doNull bool) int16 {
+func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLine) int16 {
 	// Every 2048 nodes, check if our time has expired.
 	if (search.nodes&2047) == 0 && search.Timer.Check() {
 		return 0
@@ -162,29 +162,6 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 		return score
 	}
 
-	// =====================================================================//
-	// NULL MOVE PRUNING: If our opponet is given a free move, can they     //
-	// improve their position? If we do a quick search after giving our     //
-	// opponet this free move and we still find a move with a score better  //
-	// than beta, our opponet can't improve their position and they         //
-	// wouldn't take this path, so we have a beta cut-off and can prune     //
-	// this branch.                                                         //
-	// =====================================================================//
-
-	if !isRoot && doNull && !inCheck && depth >= NullMoveReduction {
-		search.Pos.MakeNullMove()
-		score := -search.negamax(depth-NullMoveReduction, ply+1, -beta, -beta+1, &childPVLine, false)
-		search.Pos.UnmakeNullMove()
-		childPVLine.Clear()
-
-		if search.Timer.Check() {
-			return 0
-		}
-		if score >= beta && abs16(score) < Checkmate {
-			return beta
-		}
-	}
-
 	// Generate and score the moves for the side to move
 	// in the current position.
 	moves := genMoves(&search.Pos)
@@ -205,9 +182,10 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 			continue
 		}
 
-		score := -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
-		search.Pos.UnmakeMove(move)
 		legalMoves++
+
+		score := -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine)
+		search.Pos.UnmakeMove(move)
 
 		// If we have a beta-cutoff (i.e this move gives us a score better than what
 		// our opponet can already guarantee early in the tree), return beta and the move
