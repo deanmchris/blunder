@@ -1,13 +1,15 @@
 package main
 
-import "blunder/engine"
+import (
+	"blunder/engine"
+)
 
 func main() {
 	// "8/p1ppk1p1/2n2p2/8/4B3/2P1KPP1/1P5P/8 w - - 0 1"
 	// 8/1k1K4/4R3/8/8/8/8/8 b - - 80 221
 
 	/*var s engine.Search
-	s.Pos.LoadFEN("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w - - 0 1")
+	s.Pos.LoadFEN(engine.FENKiwiPete)
 	s.Timer.TimeLeft = 300000
 	s.TT.Resize(engine.DefaultTTSize)
 

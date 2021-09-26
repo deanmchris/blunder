@@ -16,10 +16,6 @@ const (
 	// the principal variation move from the transposition table.
 	KillerMoveScore int16 = 10
 	PVMoveScore     int16 = 60
-
-	// A constant representing the upper bound of any score generated
-	// from the history heuristics table.
-	HistoryScoreMax int16 = 32000
 )
 
 // An array that maps move scores to attacker and victim piece types
@@ -92,7 +88,7 @@ func (search *Search) Search() Move {
 
 		// Start a search, and time it for reporting purposes.
 		startTime := time.Now()
-		score := search.negamax(uint8(depth), 0, -Inf, Inf, &pvLine, true)
+		score := search.negamax(uint8(depth), 0, -Inf, Inf, &pvLine, false)
 		endTime := time.Since(startTime)
 
 		if search.Timer.Stop {
@@ -165,6 +161,22 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 	}
 
 	// =====================================================================//
+	// STATIC NULL MOVE PRUNING: If our current material score is so good   //
+	// that even if we give ourselves a big hit materially and subtract a   //
+	// large amount of our material score (the "score margin") and our      //
+	// material score is still greater than beta, we assume this node will  //
+	// fail-high and we can prune its branch.                               //
+	// =====================================================================//
+
+	if !inCheck && abs16(beta) < Checkmate {
+		staticScore := evaluatePos(&search.Pos)
+		var scoreMargin int16 = 120 * int16(depth)
+		if staticScore-scoreMargin >= beta {
+			return beta
+		}
+	}
+
+	// =====================================================================//
 	// NULL MOVE PRUNING: If our opponet is given a free move, can they     //
 	// improve their position? If we do a quick search after giving our     //
 	// opponet this free move and we still find a move with a score better  //
@@ -173,7 +185,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 	// this branch.                                                         //
 	// =====================================================================//
 
-	if !isRoot && doNull && !inCheck && depth >= 3 {
+	if doNull && !inCheck && depth >= 3 {
 		var R uint8 = 3
 		if depth > 6 {
 			R = 4
@@ -370,16 +382,17 @@ func (search *Search) scoreMoves(moves *MoveList, ply uint8, pvMove Move) {
 	for index := 0; index < int(moves.Count); index++ {
 		move := &moves.Moves[index]
 		captured := &search.Pos.Squares[move.ToSq()]
+
 		if pvMove.Equal(*move) {
-			move.AddScore(HistoryScoreMax + PVMoveScore)
+			move.AddScore(PVMoveScore)
 		} else if captured.Type != NoType {
 			moved := &search.Pos.Squares[move.FromSq()]
-			move.AddScore(HistoryScoreMax + MvvLva[captured.Type][moved.Type])
+			move.AddScore(MvvLva[captured.Type][moved.Type])
 		} else {
 			if search.killers[ply][0].Equal(*move) {
-				move.AddScore(HistoryScoreMax + KillerMoveScore)
+				move.AddScore(KillerMoveScore)
 			} else if search.killers[ply][1].Equal(*move) {
-				move.AddScore(HistoryScoreMax + KillerMoveScore)
+				move.AddScore(KillerMoveScore)
 			}
 		}
 	}
