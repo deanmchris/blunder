@@ -151,11 +151,11 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 
 	// Create a variable to store the possible best move we'll get from probing the transposition
 	// table. And the best move we'll get from the search if we don't get a hit.
-	ttBestMove := NullMove
+	ttMove := NullMove
 
 	// Probe the transposition table to see if we have a useable matching entry for the current
 	// position. If we get a hit, return the score and stop searching.
-	score := search.TT.Probe(search.Pos.Hash, ply, depth, alpha, beta, &ttBestMove)
+	score := search.TT.Probe(search.Pos.Hash, ply, depth, alpha, beta, &ttMove)
 	if score != Invalid && !isRoot {
 		return score
 	}
@@ -207,11 +207,10 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 	// Generate and score the moves for the side to move
 	// in the current position.
 	moves := genMoves(&search.Pos)
-	search.scoreMoves(&moves, ply, ttBestMove)
+	search.scoreMoves(&moves, ply, ttMove)
 
 	legalMoves := 0
 	ttFlag := AlphaFlag
-	ttBestMove = NullMove
 
 	for index := 0; index < int(moves.Count); index++ {
 		// Order the moves to get the best moves first.
@@ -232,12 +231,10 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 		// our opponet can already guarantee early in the tree), return beta and the move
 		// that caused the cutoff as the best move.
 		if score >= beta {
-			// Store the killer move for this ply
-			search.storeKiller(ply, move)
-
 			// If we're not out of time, store beta and the move that caused the beta-cutoff
-			// in the transposition table.
+			// in the transposition table, and update the killer moves.
 			if !search.Timer.Check() {
+				search.storeKiller(ply, move)
 				search.TT.Store(search.Pos.Hash, ply, depth, beta, BetaFlag, move)
 			}
 			return beta
@@ -255,7 +252,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 			// Set the transposition table flag to exact and record the
 			// best move.
 			ttFlag = ExactFlag
-			ttBestMove = move
+			ttMove = move
 		}
 	}
 
@@ -272,8 +269,12 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 	}
 
 	// Store the result of the search for this position only if we haven't run out of time.
-	if !search.Timer.Check() {
-		search.TT.Store(search.Pos.Hash, ply, depth, alpha, ttFlag, ttBestMove)
+	if !search.Timer.Stop {
+		bestMove := NullMove
+		if ttFlag == ExactFlag {
+			bestMove = pvLine.GetPVMove()
+		}
+		search.TT.Store(search.Pos.Hash, ply, depth, alpha, ttFlag, bestMove)
 	}
 
 	// Return the best score, which is alpha.
@@ -285,7 +286,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 // until the position is quiet (i.e there are no winning tatical captures).
 // Doing this is known as quiescence search, and it makes the static evaluation
 // much more accurate.
-func (search *Search) qsearch(alpha, beta int16, ply uint8) int16 {
+func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 	if (search.nodes&2047) == 0 && search.Timer.Check() {
 		return 0
 	}
@@ -312,7 +313,7 @@ func (search *Search) qsearch(alpha, beta int16, ply uint8) int16 {
 	}
 
 	moves := genMoves(&search.Pos)
-	search.scoreMoves(&moves, ply, NullMove)
+	search.scoreMoves(&moves, negamaxPly, NullMove)
 
 	for index := 0; index < int(moves.Count); index++ {
 		if moves.Moves[index].MoveType() == Attack {
@@ -324,7 +325,7 @@ func (search *Search) qsearch(alpha, beta int16, ply uint8) int16 {
 				continue
 			}
 
-			score := -search.qsearch(-beta, -alpha, ply)
+			score := -search.qsearch(-beta, -alpha, negamaxPly)
 			search.Pos.UnmakeMove(move)
 
 			if score >= beta {
