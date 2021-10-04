@@ -1,11 +1,24 @@
 Changelog
 ---------
+* Blunder 6.1.0
 * Blunder 6.0.0
 * Blunder 5.0.0
 * Blunder 4.0.0
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 6.1.0
+-------------
+
+Blunder 6.1.0 includes several bugfixes throughout the code, and removes history heuristics. Even with history heuristics removed however, the Elo gained from bugfixes puts Blunder 6.1.0 roughly equal to Blunder 6.0.0's strength. After further testing and bug discovery, Blunder's current Elo is now estimated to be around 2200.
+
+* Engine
+    - Create rudimentary endgame detection.
+* Search
+    - Adjust the scores in the transposition table before checking for a hit.
+    - Fix the UCI "Hash" command to actually resize the hash table with the given size.
+    - Rework the contempt factor used to be more nuanced and accurate.
 
 Blunder 6.0.0
 -------------
