@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 6.1.0"
+	EngineName   = "Blunder 6.2.0"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
@@ -165,6 +165,7 @@ func UCILoop() {
 			setOptionCommandResponse(&search, command)
 		} else if strings.HasPrefix(command, "ucinewgame") {
 			search.TT.Clear()
+			search.ClearHistoryTable()
 		} else if strings.HasPrefix(command, "position") {
 			positionCommandResponse(&search.Pos, command)
 		} else if strings.HasPrefix(command, "go") {

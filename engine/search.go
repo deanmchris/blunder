@@ -16,6 +16,10 @@ const (
 	// the principal variation move from the transposition table.
 	KillerMoveScore int16 = 10
 	PVMoveScore     int16 = 60
+
+	// A constant offset added to the pv move, MVV-LVA moves, and killers
+	// to give room for scoring below the value with the history heurustic.
+	HistoryOffset = 32000
 )
 
 // An array that maps move scores to attacker and victim piece types
@@ -67,9 +71,11 @@ type Search struct {
 	Timer TimeManager
 	TT    TransTable
 
-	side    uint8
-	nodes   uint64
+	side  uint8
+	nodes uint64
+
 	killers [MaxDepth][2]Move
+	history [2][64][64]int16
 }
 
 // The main search function for Blunder, implemented as an interative
@@ -79,6 +85,7 @@ func (search *Search) Search() Move {
 	var pvLine PVLine
 	bestMove := NullMove
 
+	search.ageHistoryTable()
 	search.Timer.Start()
 
 	for depth := 1; depth <= MaxDepth; depth++ {
@@ -232,9 +239,10 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 		// that caused the cutoff as the best move.
 		if score >= beta {
 			// If we're not out of time, store beta and the move that caused the beta-cutoff
-			// in the transposition table, and update the killer moves.
+			// in the transposition table, and update the killer moves, and history heuristic.
 			if !search.Timer.Check() {
 				search.storeKiller(ply, move)
+				search.updateHistoryTable(move, depth)
 				search.TT.Store(search.Pos.Hash, ply, depth, beta, BetaFlag, move)
 			}
 			return beta
@@ -341,6 +349,35 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 	return alpha
 }
 
+// Update the history heuristics table if the move that caused a beta-cutoff is quiet.
+func (search *Search) updateHistoryTable(move Move, depth uint8) {
+	if search.Pos.Squares[move.ToSq()].Type == NoType {
+		search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] += int16(depth) * int16(depth)
+	}
+
+	if search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] > HistoryOffset+KillerMoveScore-1 {
+		search.ageHistoryTable()
+	}
+}
+
+// Age the values in the history table by halving them.
+func (search *Search) ageHistoryTable() {
+	for sq1 := 0; sq1 < 64; sq1++ {
+		for sq2 := 0; sq2 < 64; sq2++ {
+			search.history[search.Pos.SideToMove][sq1][sq2] /= 2
+		}
+	}
+}
+
+// Clear the values in the history table..
+func (search *Search) ClearHistoryTable() {
+	for sq1 := 0; sq1 < 64; sq1++ {
+		for sq2 := 0; sq2 < 64; sq2++ {
+			search.history[search.Pos.SideToMove][sq1][sq2] = 0
+		}
+	}
+}
+
 // Given a "killer move" (a quiet move that caused a beta cut-off), store the
 // Move in the slot for the given depth.
 func (search *Search) storeKiller(ply uint8, move Move) {
@@ -385,15 +422,17 @@ func (search *Search) scoreMoves(moves *MoveList, ply uint8, pvMove Move) {
 		captured := &search.Pos.Squares[move.ToSq()]
 
 		if pvMove.Equal(*move) {
-			move.AddScore(PVMoveScore)
+			move.AddScore(HistoryOffset + PVMoveScore)
 		} else if captured.Type != NoType {
 			moved := &search.Pos.Squares[move.FromSq()]
-			move.AddScore(MvvLva[captured.Type][moved.Type])
+			move.AddScore(HistoryOffset + MvvLva[captured.Type][moved.Type])
 		} else {
 			if search.killers[ply][0].Equal(*move) {
-				move.AddScore(KillerMoveScore)
+				move.AddScore(HistoryOffset + KillerMoveScore)
 			} else if search.killers[ply][1].Equal(*move) {
-				move.AddScore(KillerMoveScore)
+				move.AddScore(HistoryOffset + KillerMoveScore)
+			} else {
+				move.AddScore(search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()])
 			}
 		}
 	}
