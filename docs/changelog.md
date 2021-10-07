@@ -1,5 +1,6 @@
 Changelog
 ---------
+* Blunder 7.x.x
 * Blunder 6.1.0
 * Blunder 6.0.0
 * Blunder 5.0.0
@@ -7,6 +8,17 @@ Changelog
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 7.x.x
+-------------
+* Engine
+    - Decreased the memory footprint of Position objects by removing the array holding position history into a global variable.
+    - XBoard compatibility
+* Search
+    - TODO: Fix the node count. You double count nodes before going into QSearch!
+    - Fixed history heuristics bug
+* Evaluation
+    - Texel tuner
 
 Blunder 6.1.0
 -------------

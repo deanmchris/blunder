@@ -20,6 +20,10 @@ const (
 	// A constant offset added to the pv move, MVV-LVA moves, and killers
 	// to give room for scoring below the value with the history heurustic.
 	HistoryOffset = 32000
+
+	// A constant representing the maximum value a history heuristic score
+	// is allowed to reach.
+	MaxHistoryScore int32 = HistoryOffset + int32(KillerMoveScore) - 1
 )
 
 // An array that maps move scores to attacker and victim piece types
@@ -75,7 +79,7 @@ type Search struct {
 	nodes uint64
 
 	killers [MaxDepth][2]Move
-	history [2][64][64]int16
+	history [2][64][64]int32
 }
 
 // The main search function for Blunder, implemented as an interative
@@ -176,7 +180,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pvLine *PVLin
 	// =====================================================================//
 
 	if !inCheck && abs16(beta) < Checkmate {
-		staticScore := evaluatePos(&search.Pos)
+		staticScore := EvaluatePos(&search.Pos)
 		var scoreMargin int16 = 120 * int16(depth)
 		if staticScore-scoreMargin >= beta {
 			return beta
@@ -305,7 +309,7 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 		return search.contempt()
 	}
 
-	staticScore := evaluatePos(&search.Pos)
+	staticScore := EvaluatePos(&search.Pos)
 
 	// If the score is greater than beta, what our opponet can
 	// already guarantee early in the search tree, then we
@@ -352,10 +356,10 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 // Update the history heuristics table if the move that caused a beta-cutoff is quiet.
 func (search *Search) updateHistoryTable(move Move, depth uint8) {
 	if search.Pos.Squares[move.ToSq()].Type == NoType {
-		search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] += int16(depth) * int16(depth)
+		search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] += int32(depth) * int32(depth)
 	}
 
-	if search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] > HistoryOffset+KillerMoveScore-1 {
+	if search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] >= MaxHistoryScore {
 		search.ageHistoryTable()
 	}
 }
@@ -407,8 +411,8 @@ func (search *Search) contempt() int16 {
 // Determine if the current board state is being repeated.
 func (search *Search) isDrawByRepition() bool {
 	var repPly uint16
-	for repPly = 0; repPly < search.Pos.HistoryPly; repPly++ {
-		if search.Pos.History[repPly] == search.Pos.Hash {
+	for repPly = 0; repPly < HistoryPly; repPly++ {
+		if PositionHistories[repPly] == search.Pos.Hash {
 			return true
 		}
 	}
@@ -432,7 +436,8 @@ func (search *Search) scoreMoves(moves *MoveList, ply uint8, pvMove Move) {
 			} else if search.killers[ply][1].Equal(*move) {
 				move.AddScore(HistoryOffset + KillerMoveScore)
 			} else {
-				move.AddScore(search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()])
+				moveScore := int16(search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()])
+				move.AddScore(moveScore)
 			}
 		}
 	}

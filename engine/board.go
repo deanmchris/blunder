@@ -61,6 +61,14 @@ const (
 	MaxGamePly = 1024
 )
 
+// A global array to store position histories. As this array has
+// a quite large memory footprint, it's implemented as a single global
+// variable, rather than being part of a Position instance.
+var PositionHistories [MaxGamePly]uint64
+
+// A global variable to index into the position histories.
+var HistoryPly uint16
+
 // A 64 element array where each entry, when bitwise ANDed with the
 // castling rights, destorys the correct bit in the castling rights
 // if a move to or from that square would take away castling rights.
@@ -157,9 +165,6 @@ type Position struct {
 
 	prevStates [100]State
 	StatePly   uint8
-
-	History    [MaxGamePly]uint64
-	HistoryPly uint16
 }
 
 func (pos *Position) MakeMove(move Move) bool {
@@ -274,8 +279,8 @@ func (pos *Position) MakeMove(move Move) bool {
 	pos.Hash ^= Zobrist.SideToMoveNumber(pos.SideToMove)
 
 	// Save the current zobrist in the position history array.
-	pos.HistoryPly++
-	pos.History[pos.HistoryPly] = pos.Hash
+	HistoryPly++
+	PositionHistories[HistoryPly] = pos.Hash
 
 	// Test if the move was legal or not, and let the caller know.
 	return !sqIsAttacked(pos, pos.SideToMove^1, pos.PieceBB[pos.SideToMove^1][King].Msb())
@@ -292,7 +297,7 @@ func (pos *Position) UnmakeMove(move Move) {
 	pos.Hash ^= Zobrist.CastlingNumber(pos.CastlingRights)
 
 	// Remove the current positions from the position history
-	pos.HistoryPly--
+	HistoryPly--
 
 	// Restore the irreversible aspects of the position using the State object.
 	pos.CastlingRights = state.CastlingRights
@@ -393,8 +398,8 @@ func (pos *Position) MakeNullMove() {
 	pos.Hash ^= Zobrist.SideToMoveNumber(pos.SideToMove)
 
 	// Save the current zobrist in the position history array.
-	pos.HistoryPly++
-	pos.History[pos.HistoryPly] = pos.Hash
+	HistoryPly++
+	PositionHistories[HistoryPly] = pos.Hash
 
 }
 
@@ -419,7 +424,7 @@ func (pos *Position) UnmakeNullMove() {
 	pos.Hash ^= Zobrist.SideToMoveNumber(pos.SideToMove)
 
 	// Remove the current positions from the position history
-	pos.HistoryPly--
+	HistoryPly--
 }
 
 // Put the piece given on the given square
@@ -525,8 +530,8 @@ func (pos *Position) LoadFEN(fen string) {
 	pos.Hash = Zobrist.GenHash(pos)
 
 	// and add the hash as the first entry in the position history.
-	pos.HistoryPly = 0
-	pos.History[pos.HistoryPly] = pos.Hash
+	HistoryPly = 0
+	PositionHistories[HistoryPly] = pos.Hash
 }
 
 // Return a string representation of the board.
