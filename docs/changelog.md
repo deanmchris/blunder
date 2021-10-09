@@ -16,7 +16,10 @@ Blunder 7.x.x
     - XBoard compatibility
 * Search
     - TODO: Fix the node count. You double count nodes before going into QSearch!
-    - Fixed history heuristics bug
+    - Re-add HH since fixed history heuristics bug
+    - Fixed PV bug
+    - Fixed node counting bug
+    - Show mate score as mate-in-N
 * Evaluation
     - Texel tuner
 
