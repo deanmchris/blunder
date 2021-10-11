@@ -1,8 +1,6 @@
 package main
 
-import (
-	"blunder/engine"
-)
+import "blunder/tuner"
 
 func main() {
 	/*var s engine.Search
@@ -18,6 +16,10 @@ func main() {
 	fmt.Printf("Time: %vms\n", elapsed.Milliseconds())*/
 
 	// engine.UCILoop()
-	// tuner.RunTuner(true)
-	engine.UCILoop()
+	tuner.RunTuner(true)
+	// engine.UCILoop()
+
+	//var pos engine.Position
+	//pos.LoadFEN("r1bqk2r/ppp1bp1p/7p/3pP3/3P4/3Q1N1P/PP3PP1/RN2K2R w KQkq - 0 13")
+	//fmt.Println(engine.EvaluatePos(&pos))
 }
