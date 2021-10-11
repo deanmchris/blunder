@@ -1,11 +1,12 @@
 package main
 
-import "blunder/tuner"
+import (
+	"blunder/engine"
+)
 
 func main() {
 	/*var s engine.Search
-	s.Pos.LoadFEN("rnb1kbnr/pppp1ppp/8/1P2p1q1/8/8/P1PPPPPP/RNBQKBNR w KQkq - 0 2")
-	fmt.Println(s.Pos)
+	s.Pos.LoadFEN("rn1q1rk1/1b2bppp/1pn1p3/p2pP3/3P4/P2BBN1P/1P1N1PP1/R2Q1RK1 b - - 0 1")
 
 	s.Timer.TimeLeft = 300000
 	s.TT.Resize(engine.DefaultTTSize)
@@ -15,8 +16,8 @@ func main() {
 	elapsed := time.Since(start)
 	fmt.Printf("Time: %vms\n", elapsed.Milliseconds())*/
 
-	// engine.UCILoop()
-	tuner.RunTuner(true)
+	engine.UCILoop()
+	// tuner.RunTuner(true)
 	// engine.UCILoop()
 
 	//var pos engine.Position

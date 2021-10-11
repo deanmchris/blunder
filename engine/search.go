@@ -256,29 +256,24 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 		legalMoves++
 
-		/*givesCheck := search.Pos.InCheck()
+		score := int16(0)
 		historyScore := search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()]
 
-		notTactical := !inCheck && !givesCheck
-		uninteresting := (move.MoveType() != Attack && move.MoveType() != Promotion) || historyScore < 50
-
-		score := int16(0)
-		if legalMoves > 1 && depth > 3 && notTactical && uninteresting {
+		if legalMoves > 4 && depth > 3 && historyScore < 50 && !inCheck {
 			newDepth := depth - 2
-			if legalMoves > 4 {
+			if legalMoves > 6 {
 				newDepth--
 			}
 			score = -search.negamax(newDepth, ply+1, -beta, -alpha, &childPVLine, true)
 			if score > alpha {
 				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
-			} else {
-				search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] = 45
 			}
 		} else {
 			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
-		}*/
+		}
 
-		score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
+		// score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
+
 		search.Pos.UnmakeMove(move)
 
 		// If we have a beta-cutoff (i.e this move gives us a score better than what
