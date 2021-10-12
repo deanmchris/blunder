@@ -22,12 +22,37 @@ func genMoves(pos *Position) (moves MoveList) {
 		piecesBB := pos.PieceBB[pos.SideToMove][piece]
 		for piecesBB != 0 {
 			pieceSq := piecesBB.PopBit()
-			genPieceMoves(pos, piece, pieceSq, &moves)
+			genPieceMoves(pos, piece, pieceSq, &moves, FullBB)
 		}
 	}
 
 	// Generate pawn moves.
-	genPawnMoves(pos, &moves)
+	genPawnMoves(pos, &moves, FullBB)
+
+	// Generate castling moves.
+	genCastlingMoves(pos, &moves)
+
+	return moves
+}
+
+// Generate all pseduo-legal captures for a given position.
+func genCaptures(pos *Position) (moves MoveList) {
+	// Go through each piece type, and each piece for that type,
+	// and generate the moves for that piece.
+
+	targets := pos.SideBB[pos.SideToMove^1]
+	var piece uint8
+
+	for piece = Knight; piece < NoType; piece++ {
+		piecesBB := pos.PieceBB[pos.SideToMove][piece]
+		for piecesBB != 0 {
+			pieceSq := piecesBB.PopBit()
+			genPieceMoves(pos, piece, pieceSq, &moves, targets)
+		}
+	}
+
+	// Generate pawn moves.
+	genPawnMoves(pos, &moves, targets)
 
 	// Generate castling moves.
 	genCastlingMoves(pos, &moves)
@@ -36,7 +61,7 @@ func genMoves(pos *Position) (moves MoveList) {
 }
 
 // Generate the moves a single piece,
-func genPieceMoves(pos *Position, piece, sq uint8, moves *MoveList) {
+func genPieceMoves(pos *Position, piece, sq uint8, moves *MoveList, targets Bitboard) {
 	// Get a bitboard representing our side and the enemy side.
 	usBB := pos.SideBB[pos.SideToMove]
 	enemyBB := pos.SideBB[pos.SideToMove^1]
@@ -45,20 +70,20 @@ func genPieceMoves(pos *Position, piece, sq uint8, moves *MoveList) {
 	// generate the moves it has accordingly.
 	switch piece {
 	case Knight:
-		knightMoves := KnightMoves[sq] & ^usBB
+		knightMoves := (KnightMoves[sq] & ^usBB) & targets
 		genMovesFromBB(pos, sq, knightMoves, enemyBB, moves)
 	case King:
-		kingMoves := KingMoves[sq] & ^usBB
+		kingMoves := (KingMoves[sq] & ^usBB) & targets
 		genMovesFromBB(pos, sq, kingMoves, enemyBB, moves)
 	case Bishop:
-		bishopMoves := genBishopMoves(sq, usBB|enemyBB) & ^usBB
+		bishopMoves := (genBishopMoves(sq, usBB|enemyBB) & ^usBB) & targets
 		genMovesFromBB(pos, sq, bishopMoves, enemyBB, moves)
 	case Rook:
-		rookMoves := genRookMoves(sq, usBB|enemyBB) & ^usBB
+		rookMoves := (genRookMoves(sq, usBB|enemyBB) & ^usBB) & targets
 		genMovesFromBB(pos, sq, rookMoves, enemyBB, moves)
 	case Queen:
-		bishopMoves := genBishopMoves(sq, usBB|enemyBB) & ^usBB
-		rookMoves := genRookMoves(sq, usBB|enemyBB) & ^usBB
+		bishopMoves := (genBishopMoves(sq, usBB|enemyBB) & ^usBB) & targets
+		rookMoves := (genRookMoves(sq, usBB|enemyBB) & ^usBB) & targets
 		genMovesFromBB(pos, sq, bishopMoves|rookMoves, enemyBB, moves)
 	}
 }
@@ -82,7 +107,7 @@ func genBishopMoves(sq uint8, blockers Bitboard) Bitboard {
 // complicated and exceptional rules for how they can move.
 // Only generate the moves that align with the specified
 // target squares.
-func genPawnMoves(pos *Position, moves *MoveList) {
+func genPawnMoves(pos *Position, moves *MoveList, targets Bitboard) {
 	usBB := pos.SideBB[pos.SideToMove]
 	enemyBB := pos.SideBB[pos.SideToMove^1]
 	pawnsBB := pos.PieceBB[pos.SideToMove][Pawn]
@@ -98,10 +123,10 @@ func genPawnMoves(pos *Position, moves *MoveList) {
 		}
 
 		// calculate the push move for the pawn...
-		pawnPush := pawnOnePush | pawnTwoPush
+		pawnPush := (pawnOnePush | pawnTwoPush) & targets
 
 		// and the attacks.
-		pawnAttacks := PawnAttacks[pos.SideToMove][from]
+		pawnAttacks := PawnAttacks[pos.SideToMove][from] & (targets | SquareBB[pos.EPSq])
 
 		// Generate pawn push moves
 		for pawnPush != 0 {

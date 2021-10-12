@@ -272,8 +272,6 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
 		}
 
-		// score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
-
 		search.Pos.UnmakeMove(move)
 
 		// If we have a beta-cutoff (i.e this move gives us a score better than what
@@ -366,29 +364,27 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 		alpha = staticScore
 	}
 
-	moves := genMoves(&search.Pos)
+	moves := genCaptures(&search.Pos)
 	search.scoreMoves(&moves, negamaxPly, NullMove)
 
 	for index := 0; index < int(moves.Count); index++ {
-		if moves.Moves[index].MoveType() == Attack {
-			orderMoves(index, &moves)
-			move := moves.Moves[index]
+		orderMoves(index, &moves)
+		move := moves.Moves[index]
 
-			if !search.Pos.MakeMove(move) {
-				search.Pos.UnmakeMove(move)
-				continue
-			}
-
-			score := -search.qsearch(-beta, -alpha, negamaxPly)
+		if !search.Pos.MakeMove(move) {
 			search.Pos.UnmakeMove(move)
+			continue
+		}
 
-			if score >= beta {
-				return beta
-			}
+		score := -search.qsearch(-beta, -alpha, negamaxPly)
+		search.Pos.UnmakeMove(move)
 
-			if score > alpha {
-				alpha = score
-			}
+		if score >= beta {
+			return beta
+		}
+
+		if score > alpha {
+			alpha = score
 		}
 	}
 

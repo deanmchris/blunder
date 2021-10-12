@@ -868,3 +868,23 @@ RESULTS (100K positioons, K = 0.85)
 2
 1
 8
+
+
+Rank Name                          Elo     +/-   Games   Score    Draw 
+   0 Blunder 7.3.0                  48      11    3200   56.8%   16.3% 
+   1 Stash v17.0                    -3      23     800   49.6%   11.1% 
+   2 Napoleon                      -39      21     800   44.4%   27.0% 
+   3 SpaceDog                      -70      23     800   40.0%   13.8% 
+   4 CeeChess_v1.3                 -80      23     800   38.8%   13.5% 
+
+Finished match
+
+
+
+Score of Blunder 7.1.0 vs Blunder 7.0.0: 629 - 425 - 342  [0.573] 1396
+...      Blunder 7.1.0 playing White: 329 - 209 - 160  [0.586] 698
+...      Blunder 7.1.0 playing Black: 300 - 216 - 182  [0.560] 698
+...      White vs Black: 545 - 509 - 342  [0.513] 1396
+Elo difference: 51.1 +/- 15.9, LOS: 100.0 %, DrawRatio: 24.5 %
+SPRT: llr 2.95 (100.2%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match

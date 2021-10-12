@@ -19,7 +19,7 @@ const FullBB Bitboard = 0xffffffffffffffff
 // and each entry contains a bitboard with the bit set high at that square.
 // An extra entry is given so that the invalid square constant NoSq can be
 // indexed into the table without the program crashing.
-var SquareBB [64]Bitboard
+var SquareBB [65]Bitboard
 
 // Set the bit at given square.
 func (bitboard *Bitboard) SetBit(sq uint8) {
@@ -87,7 +87,7 @@ func (bitboard Bitboard) String() (bitboardAsString string) {
 // Initalize the bitboard constants.
 func init() {
 	var sq uint8
-	for sq = 0; sq < 64; sq++ {
+	for sq = 0; sq < 65; sq++ {
 		SquareBB[sq] = 0x8000000000000000 >> sq
 	}
 }

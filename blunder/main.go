@@ -1,8 +1,6 @@
 package main
 
-import (
-	"blunder/engine"
-)
+import "blunder/engine"
 
 func main() {
 	/*var s engine.Search
