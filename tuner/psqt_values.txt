@@ -888,3 +888,21 @@ Score of Blunder 7.1.0 vs Blunder 7.0.0: 629 - 425 - 342  [0.573] 1396
 Elo difference: 51.1 +/- 15.9, LOS: 100.0 %, DrawRatio: 24.5 %
 SPRT: llr 2.95 (100.2%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
+
+
+
+Score of Blunder 7.1.0 vs Blunder 6.1.0: 318 - 105 - 74  [0.714] 497
+...      Blunder 7.1.0 playing White: 163 - 47 - 39  [0.733] 249
+...      Blunder 7.1.0 playing Black: 155 - 58 - 35  [0.696] 248
+...      White vs Black: 221 - 202 - 74  [0.519] 497
+Elo difference: 159.2 +/- 30.6, LOS: 100.0 %, DrawRatio: 14.9 %
+SPRT: llr 2.94 (100.0%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+
+
+Score of Blunder 7.3.0 vs Blunder 7.2.0: 1336 - 1192 - 762  [0.522] 3290
+...      Blunder 7.3.0 playing White: 705 - 568 - 373  [0.542] 1646
+...      Blunder 7.3.0 playing Black: 631 - 624 - 389  [0.502] 1644
+...      White vs Black: 1329 - 1199 - 762  [0.520] 3290
+Elo difference: 15.2 +/- 10.4, LOS: 99.8 %, DrawRatio: 23.2 %
+Finished match

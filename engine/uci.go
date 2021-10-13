@@ -27,8 +27,9 @@ const (
 func uciCommandResponse() {
 	fmt.Printf("\nid name %v\n", EngineName)
 	fmt.Printf("id author %v\n", EngineAuthor)
-	fmt.Printf("\noption name Hash type spin default 32 min 1 max 256\n")
-	fmt.Print("option name ClearHash type button\n\n")
+	fmt.Printf("\noption name Hash type spin default 64 min 1 max 2147483647\n")
+	fmt.Print("option name Clear Hash type button\n")
+	fmt.Print("option name Clear History type button\n\n")
 	fmt.Printf("uciok\n\n")
 }
 
@@ -95,6 +96,8 @@ func setOptionCommandResponse(search *Search, command string) {
 		}
 	case "Clear Hash":
 		search.TT.Clear()
+	case "Clear History":
+		search.ClearHistoryTable()
 	}
 }
 
