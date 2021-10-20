@@ -52,7 +52,6 @@ Features
     - [Bitboards representation](https://www.chessprogramming.org/Bitboards)
     - [Magic bitboards for slider move generation](https://www.chessprogramming.org/Magic_Bitboards)
     - [Zobrist hashing](https://www.chessprogramming.org/Zobrist_Hashing)
-    - [Texel Tuner](https://www.chessprogramming.org/Texel%27s_Tuning_Method)
 * Search
     - [Negamax search framework](https://www.chessprogramming.org/Negamax)
     - [Alpha-Beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
@@ -65,11 +64,14 @@ Features
     - [Null-move pruning](https://www.chessprogramming.org/Null_Move_Pruning)
     - [Reverse futility pruning](https://www.chessprogramming.org/Reverse_Futility_Pruning)
     - [History Heuristics](https://www.chessprogramming.org/History_Heuristic)
+    - [Principal Variation Search](https://www.chessprogramming.org/Principal_Variation_Search)
+    - [Fail-Soft](https://www.ics.uci.edu/~eppstein/180a/990202b.html)
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
     - [Tapered evaluation](https://www.chessprogramming.org/Tapered_Eval)
     - [Mobility](https://www.chessprogramming.org/Mobility)
+    - [Texel Tuner](https://www.chessprogramming.org/Texel%27s_Tuning_Method)
     
  Changelog
  ---------
