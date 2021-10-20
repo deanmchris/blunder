@@ -19,7 +19,7 @@ And some people who I'd like to thank especially:
    I start ranting on about the lastest bug I've encounterd, or sharing in my excitement when I explain to her
    a new feature I just figured out.
  * Marcel Vanthoor (author of [Rustic](https://github.com/mvanthoor/rustic)), for spending time
-   answering my many questions about a whole range of chess programming topics on [Talkchess](http://talkchess.com/forum3/index.php).
+   answering my many questions about a whole range of chess programming topics on [Talkchess](http://talkchess.com/forum3/index.php). I'd also like to than him for the code structure I use to score killer moves and update nodes in the search.
  * Hart Gert Muller ([author of a variety of different chess engines and tools](https://home.hccnet.nl/h.g.muller/chess.html), including the popular Qperft),
    for spending many years guiding new chess programmers and being an active member and moderator of [Talkchess](http://talkchess.com/forum3/index.php).
  * Richard Allbert (a.k.a BlueFeverSoft, author of [VICE](https://www.chessprogramming.org/Vice)), for providing a large amount of excellent resources
