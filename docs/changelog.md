@@ -1,6 +1,6 @@
 Changelog
 ---------
-* Blunder 7.x.x
+* Blunder 7.0.0
 * Blunder 6.1.0
 * Blunder 6.0.0
 * Blunder 5.0.0
@@ -9,19 +9,24 @@ Changelog
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
 
-Blunder 7.x.x
+Blunder 7.0.0
 -------------
+
+Blunder 7.0.0 includes a variety of new features, some strength gaining, some not. Most notably, I've added basic mobility evaluation to blunder, which was made possible by a Texel Tuner implementation, and I've readded history heuristics, and have gotten Principal Variation Search working. On top of these changes, I've also fixed a bug in the way Blunder counts nodes, and I've added several UCI features such as `go depth`, `go nodes`, `Clear History`, and I'm now collecting and reporting a principal variation. Lastly, Blunder has switched from using a fail-hard to a fail-soft negamax implementation. The updates are summarized below.
+
 * Engine
-    - Decreased the memory footprint of Position objects by removing the array holding position history into a global variable.
-    - XBoard compatibility
-* Search
-    - TODO: Fix the node count. You double count nodes before going into QSearch!
-    - Re-add HH since fixed history heuristics bug
-    - Fixed PV bug
+    - UCI features
     - Fixed node counting bug
-    - Show mate score as mate-in-N
+* Search
+    - [History Heuristics](https://www.chessprogramming.org/History_Heuristic)
+    - [Principal Variation Search](https://www.chessprogramming.org/Principal_Variation_Search)
+    - [Fail-Soft](https://www.ics.uci.edu/~eppstein/180a/990202b.html)
+    - [Principal Variation](https://www.chessprogramming.org/Principal_Variation)
 * Evaluation
-    - Texel tuner
+   - [Mobility](https://www.chessprogramming.org/Mobility)
+   - [Texel Tuner](https://www.chessprogramming.org/Texel%27s_Tuning_Method)
+
+These additions show 7.0.0 is a little more than 100 Elo stronger than Blunder 6.0.0 (6.1.0 is not disscussed here as it is a slight, but more stable regression from 6.0.0's strength) in self-play, and combined with gauntlet testing, gives an strength estimate of 2250-2350 Elo.
 
 Blunder 6.1.0
 -------------
