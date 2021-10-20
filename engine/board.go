@@ -614,6 +614,15 @@ func (pos *Position) IsEndgameForSide() bool {
 	return (pawnMaterial + knightMaterial + bishopMaterial + rookMaterial + queenMaterial) < 1300
 }
 
+// Determine if the current position has no majors or miniors left.
+func (pos *Position) NoMajorsOrMiniors() bool {
+	knights := pos.PieceBB[White][Knight].CountBits() + pos.PieceBB[Black][Knight].CountBits()
+	bishops := pos.PieceBB[White][Bishop].CountBits() + pos.PieceBB[Black][Bishop].CountBits()
+	rook := pos.PieceBB[White][Rook].CountBits() + pos.PieceBB[Black][Rook].CountBits()
+	queen := pos.PieceBB[White][Queen].CountBits() + pos.PieceBB[Black][Queen].CountBits()
+	return knights+bishops+rook+queen == 0
+}
+
 // Given a color, return the delta for a single pawn push for that
 // color.
 func pawnPush(color uint8) int8 {

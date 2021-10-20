@@ -67,17 +67,16 @@ func (tm *TimeManager) Start() {
 }
 
 // Check if the time we alloted for picking this move has expired.
-func (tm *TimeManager) Check() bool {
+func (tm *TimeManager) Check() {
 	// If we have infinite time, tm.Stop is set to false unless we've already
 	// been told to stop.
 	if !tm.Stop && tm.TimeLeft == InfiniteTime {
 		tm.Stop = false
-		return tm.Stop
+		return
 	}
 
 	// Otherwise figure out if our alloated time for this move is up.
 	if time.Now().After(tm.stopTime) {
 		tm.Stop = true
 	}
-	return tm.Stop
 }

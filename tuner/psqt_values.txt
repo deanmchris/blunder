@@ -906,3 +906,35 @@ Score of Blunder 7.3.0 vs Blunder 7.2.0: 1336 - 1192 - 762  [0.522] 3290
 ...      White vs Black: 1329 - 1199 - 762  [0.520] 3290
 Elo difference: 15.2 +/- 10.4, LOS: 99.8 %, DrawRatio: 23.2 %
 Finished match
+
+
+Score of Blunder_pvs vs Blunder_no_pvs: 909 - 723 - 368  [0.546] 2000
+...      Blunder_pvs playing White: 458 - 358 - 184  [0.550] 1000
+...      Blunder_pvs playing Black: 451 - 365 - 184  [0.543] 1000
+...      White vs Black: 823 - 809 - 368  [0.503] 2000
+Elo difference: 32.4 +/- 13.8, LOS: 100.0 %, DrawRatio: 18.4 %
+Finished match
+
+Score of Blunder_killers vs Blunder_no_killers: 643 - 422 - 225  [0.586] 1290
+...      Blunder_killers playing White: 318 - 210 - 117  [0.584] 645
+...      Blunder_killers playing Black: 325 - 212 - 108  [0.588] 645
+...      White vs Black: 530 - 535 - 225  [0.498] 1290
+Elo difference: 60.1 +/- 17.4, LOS: 100.0 %, DrawRatio: 17.4 %
+SPRT: llr 2.95 (100.1%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+
+Score of Blunder_nmp vs Blunder_killers: 690 - 465 - 229  [0.581] 1384
+...      Blunder_nmp playing White: 351 - 224 - 117  [0.592] 692
+...      Blunder_nmp playing Black: 339 - 241 - 112  [0.571] 692
+...      White vs Black: 592 - 563 - 229  [0.510] 1384
+Elo difference: 57.0 +/- 16.9, LOS: 100.0 %, DrawRatio: 16.5 %
+SPRT: llr 2.96 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+
+Score of Blunder_snmp vs Blunder_no_snmp: 605 - 387 - 226  [0.589] 1218
+...      Blunder_snmp playing White: 314 - 181 - 115  [0.609] 610
+...      Blunder_snmp playing Black: 291 - 206 - 111  [0.570] 608
+...      White vs Black: 520 - 472 - 226  [0.520] 1218
+Elo difference: 62.9 +/- 17.8, LOS: 100.0 %, DrawRatio: 18.6 %
+SPRT: llr 2.96 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match

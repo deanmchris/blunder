@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 7.0.0"
+	EngineName   = "Blunder_hh"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
@@ -29,7 +29,6 @@ func uciCommandResponse() {
 	fmt.Printf("id author %v\n", EngineAuthor)
 	fmt.Printf("\noption name Hash type spin default 64 min 1 max 2147483647\n")
 	fmt.Print("option name Clear Hash type button\n")
-	fmt.Print("option name Clear History type button\n\n")
 	fmt.Printf("uciok\n\n")
 }
 
@@ -96,8 +95,6 @@ func setOptionCommandResponse(search *Search, command string) {
 		}
 	case "Clear Hash":
 		search.TT.Clear()
-	case "Clear History":
-		search.ClearHistoryTable()
 	}
 }
 
@@ -168,7 +165,6 @@ func UCILoop() {
 			setOptionCommandResponse(&search, command)
 		} else if strings.HasPrefix(command, "ucinewgame") {
 			search.TT.Clear()
-			search.ClearHistoryTable()
 		} else if strings.HasPrefix(command, "position") {
 			positionCommandResponse(&search.Pos, command)
 		} else if strings.HasPrefix(command, "go") {

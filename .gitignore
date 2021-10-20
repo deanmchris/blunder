@@ -1,3 +1,4 @@
 # Ignore blunder binary files
 
 blunder/blunder*
+blunder/log*

@@ -57,18 +57,19 @@ func (move Move) Flag() uint8 {
 }
 
 // Get the score of a move.
-func (move Move) Score() int16 {
-	return int16(move & 0xffff)
+func (move Move) Score() uint16 {
+	return uint16(move & 0xffff)
 }
 
 // Add a score to the move for move ordering.
-func (move *Move) AddScore(score int16) {
+func (move *Move) AddScore(score uint16) {
+	(*move) &= 0xffff0000
 	(*move) |= Move(score)
 }
 
 // Test if two moves are equal.
-func (move Move) Equal(m2 Move) bool {
-	return (move & 0xffff0000) == (m2 & 0xffff0000)
+func (move Move) Equal(m Move) bool {
+	return (move & 0xffff0000) == (m & 0xffff0000)
 }
 
 // A helper function to extract the info from a move represented

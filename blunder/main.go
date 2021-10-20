@@ -4,7 +4,7 @@ import "blunder/engine"
 
 func main() {
 	/*var s engine.Search
-	s.Pos.LoadFEN("rn1q1rk1/1b2bppp/1pn1p3/p2pP3/3P4/P2BBN1P/1P1N1PP1/R2Q1RK1 b - - 0 1")
+	s.Pos.LoadFEN("1r4k1/5p1p/1p3np1/pR6/P1Pr3P/2R2B2/1P4P1/7K w - - 0 1")
 
 	s.Timer.TimeLeft = 300000
 	s.TT.Resize(engine.DefaultTTSize)
@@ -15,10 +15,4 @@ func main() {
 	fmt.Printf("Time: %vms\n", elapsed.Milliseconds())*/
 
 	engine.UCILoop()
-	// tuner.RunTuner(true)
-	// engine.UCILoop()
-
-	//var pos engine.Position
-	//pos.LoadFEN("r1bqk2r/ppp1bp1p/7p/3pP3/3P4/3Q1N1P/PP3PP1/RN2K2R w KQkq - 0 13")
-	//fmt.Println(engine.EvaluatePos(&pos))
 }
