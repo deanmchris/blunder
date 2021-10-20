@@ -86,6 +86,9 @@ type Search struct {
 
 	killers [MaxPly + 1][MaxKillers]Move
 	history [2][64][64]int32
+
+	specifiedDepth uint8
+	specifiedNodes uint64
 }
 
 // The main search function for Blunder, implemented as an interative
@@ -97,7 +100,8 @@ func (search *Search) Search() Move {
 
 	search.Timer.Start()
 
-	for depth := 1; depth <= MaxPly; depth++ {
+	depth := uint8(0)
+	for depth = 1; depth <= MaxPly && depth <= search.specifiedDepth && search.specifiedNodes > 0; depth++ {
 		// Clear the nodes searched and the last iterations pv line.
 		search.nodes = 0
 		pvLine.Clear()
@@ -112,12 +116,6 @@ func (search *Search) Search() Move {
 				bestMove = pvLine.GetPVMove()
 			}
 			break
-		}
-
-		if len(pvLine.moves) == 0 {
-			println(search.Pos.String())
-			println(depth)
-			panic("stop")
 		}
 
 		// Save the best move and report search statistics to the GUI
@@ -164,6 +162,13 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	if ply >= MaxPly {
 		return EvaluatePos(&search.Pos)
+	}
+
+	// If a given node amountt to search was given, make sure we haven't passed it
+	// and if so stop the search.
+	if search.nodes >= search.specifiedNodes {
+		search.Timer.Stop = true
+		return 0
 	}
 
 	// Every 2048 nodes, check if our time has expired.
@@ -387,6 +392,10 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 
 	if (search.nodes & 2047) == 0 {
 		search.Timer.Check()
+	}
+
+	if search.nodes >= search.specifiedNodes {
+		search.Timer.Stop = true
 	}
 
 	if search.Timer.Stop {

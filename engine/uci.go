@@ -3,13 +3,14 @@ package engine
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
 )
 
 const (
-	EngineName   = "Blunder_hh"
+	EngineName   = "Blunder 7.0.0"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
@@ -27,8 +28,9 @@ const (
 func uciCommandResponse() {
 	fmt.Printf("\nid name %v\n", EngineName)
 	fmt.Printf("id author %v\n", EngineAuthor)
-	fmt.Printf("\noption name Hash type spin default 64 min 1 max 2147483647\n")
+	fmt.Printf("\noption name Hash type spin default 64 min 1 max 32000\n")
 	fmt.Print("option name Clear Hash type button\n")
+	fmt.Print("option name Clear History type button\n")
 	fmt.Printf("uciok\n\n")
 }
 
@@ -95,6 +97,8 @@ func setOptionCommandResponse(search *Search, command string) {
 		}
 	case "Clear Hash":
 		search.TT.Clear()
+	case "Clear History":
+		search.ClearHistoryTable()
 	}
 }
 
@@ -110,6 +114,9 @@ func goCommandResponse(search *Search, command string) {
 
 	// Parse the time left, increment, and moves to go from the command parameters.
 	timeLeft, increment, movesToGo := -1, 0, 0
+	specifiedDepth := uint64(MaxPly)
+	specifiedNodes := uint64(math.MaxUint64)
+
 	for index, field := range fields {
 		if strings.HasPrefix(field, colorPrefix) {
 			if strings.HasSuffix(field, "time") {
@@ -119,6 +126,10 @@ func goCommandResponse(search *Search, command string) {
 			}
 		} else if field == "movestogo" {
 			movesToGo, _ = strconv.Atoi(fields[index+1])
+		} else if field == "depth" {
+			specifiedDepth, _ = strconv.ParseUint(fields[index+1], 10, 8)
+		} else if field == "nodes" {
+			specifiedNodes, _ = strconv.ParseUint(fields[index+1], 10, 64)
 		}
 
 	}
@@ -127,6 +138,10 @@ func goCommandResponse(search *Search, command string) {
 	search.Timer.TimeLeft = int64(timeLeft)
 	search.Timer.Increment = int64(increment)
 	search.Timer.MovesToGo = int64(movesToGo)
+
+	// Setup user defined search options if given.
+	search.specifiedDepth = uint8(specifiedDepth)
+	search.specifiedNodes = specifiedNodes
 
 	// Report the best move found by the engine to the GUI.
 	bestMove := search.Search()
@@ -165,6 +180,7 @@ func UCILoop() {
 			setOptionCommandResponse(&search, command)
 		} else if strings.HasPrefix(command, "ucinewgame") {
 			search.TT.Clear()
+			search.ClearHistoryTable()
 		} else if strings.HasPrefix(command, "position") {
 			positionCommandResponse(&search.Pos, command)
 		} else if strings.HasPrefix(command, "go") {
