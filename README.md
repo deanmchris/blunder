@@ -1,8 +1,20 @@
 Overview
 --------
 
-Blunder is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
-straightforward and easy to read, so that others can benefit from the project. Currently Blunder 5.0.0 is rated at [2080 Elo](http://ccrl.chessdom.com/ccrl/404/cgi/engine_details.cgi?match_length=30&each_game=1&print=Details&each_game=1&eng=Blunder%205.0.0%2064-bit#Blunder_5_0_0_64-bit).
+[Blunder](http://ccrl.chessdom.com/ccrl/404/cgi/compare_engines.cgi?family=Blunder&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
+straightforward and easy to read, so that others can benefit from the project.
+
+| Version     | Estimated Rating (Elo) | CCRL Rating (Elo) |
+| ----------- | -----------------------|--------------
+| 1.0.0       | 1400                   | N/A
+| 2.0.0       | 1570                   | N/A
+| 3.0.0       | 1782                   | N/A
+| 4.0.0       | 1832                   | 1734
+| 5.0.0       | 2000                   | 2080
+| 6.0.0       | 2200                   | N/A
+| 6.1.0       | 2200                   | N/A
+| 7.0.0       | 2280                   | ??
+
 
 Installation
 -----
@@ -40,6 +52,7 @@ Features
     - [Bitboards representation](https://www.chessprogramming.org/Bitboards)
     - [Magic bitboards for slider move generation](https://www.chessprogramming.org/Magic_Bitboards)
     - [Zobrist hashing](https://www.chessprogramming.org/Zobrist_Hashing)
+    - [Texel Tuner](https://www.chessprogramming.org/Texel%27s_Tuning_Method)
 * Search
     - [Negamax search framework](https://www.chessprogramming.org/Negamax)
     - [Alpha-Beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
@@ -51,10 +64,12 @@ Features
     - [Transposition table](https://www.chessprogramming.org/Transposition_Table)
     - [Null-move pruning](https://www.chessprogramming.org/Null_Move_Pruning)
     - [Reverse futility pruning](https://www.chessprogramming.org/Reverse_Futility_Pruning)
+    - [History Heuristics](https://www.chessprogramming.org/History_Heuristic)
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
     - [Tapered evaluation](https://www.chessprogramming.org/Tapered_Eval)
+    - [Mobility](https://www.chessprogramming.org/Mobility)
     
  Changelog
  ---------
