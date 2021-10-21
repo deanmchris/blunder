@@ -4,7 +4,7 @@ package engine
 
 // Convert a string board coordinate to its position
 // number.
-func coordinateToPos(coordinate string) uint8 {
+func CoordinateToPos(coordinate string) uint8 {
 	file := coordinate[0] - 'a'
 	rank := int(coordinate[1]-'0') - 1
 	return uint8(rank*8 + int(file))

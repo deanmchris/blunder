@@ -87,8 +87,8 @@ type Search struct {
 	killers [MaxPly + 1][MaxKillers]Move
 	history [2][64][64]int32
 
-	specifiedDepth uint8
-	specifiedNodes uint64
+	SpecifiedDepth uint8
+	SpecifiedNodes uint64
 }
 
 // The main search function for Blunder, implemented as an interative
@@ -101,7 +101,7 @@ func (search *Search) Search() Move {
 	search.Timer.Start()
 
 	depth := uint8(0)
-	for depth = 1; depth <= MaxPly && depth <= search.specifiedDepth && search.specifiedNodes > 0; depth++ {
+	for depth = 1; depth <= MaxPly && depth <= search.SpecifiedDepth && search.SpecifiedNodes > 0; depth++ {
 		// Clear the nodes searched and the last iterations pv line.
 		search.nodes = 0
 		pvLine.Clear()
@@ -166,7 +166,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	// If a given node amountt to search was given, make sure we haven't passed it
 	// and if so stop the search.
-	if search.nodes >= search.specifiedNodes {
+	if search.nodes >= search.SpecifiedNodes {
 		search.Timer.Stop = true
 		return 0
 	}
@@ -232,7 +232,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	if !inCheck && !isPVNode && abs16(beta) < Checkmate {
 		staticScore := EvaluatePos(&search.Pos)
-		var scoreMargin int16 = 120 * int16(depth)
+		scoreMargin := 120 * int16(depth)
 		if staticScore-scoreMargin >= beta {
 			return beta
 		}
@@ -269,7 +269,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	// Generate and score the moves for the side to move
 	// in the current position.
-	moves := genMoves(&search.Pos)
+	moves := GenMoves(&search.Pos)
 	search.scoreMoves(&moves, ttMove, ply)
 
 	// Set up variables to record the number of legal moves and
@@ -394,7 +394,7 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 		search.Timer.Check()
 	}
 
-	if search.nodes >= search.specifiedNodes {
+	if search.nodes >= search.SpecifiedNodes {
 		search.Timer.Stop = true
 	}
 

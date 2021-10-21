@@ -494,7 +494,7 @@ func (pos *Position) LoadFEN(fen string) {
 	// Set the en passant square for the position.
 	pos.EPSq = NoSq
 	if ep != "-" {
-		pos.EPSq = coordinateToPos(ep)
+		pos.EPSq = CoordinateToPos(ep)
 		if (PawnAttacks[pos.SideToMove^1][pos.EPSq] & pos.PieceBB[pos.SideToMove][Pawn]) == 0 {
 			pos.EPSq = NoSq
 		}

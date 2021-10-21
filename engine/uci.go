@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 7.0.0"
+	EngineName   = "Blunder 7.1.0"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
@@ -140,8 +140,8 @@ func goCommandResponse(search *Search, command string) {
 	search.Timer.MovesToGo = int64(movesToGo)
 
 	// Setup user defined search options if given.
-	search.specifiedDepth = uint8(specifiedDepth)
-	search.specifiedNodes = specifiedNodes
+	search.SpecifiedDepth = uint8(specifiedDepth)
+	search.SpecifiedNodes = specifiedNodes
 
 	// Report the best move found by the engine to the GUI.
 	bestMove := search.Search()
