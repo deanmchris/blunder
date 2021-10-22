@@ -310,8 +310,21 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		if legalMoves == 1 {
 			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
 		} else {
-			score = -search.negamax(depth-1, ply+1, -alpha-1, -alpha, &childPVLine, true)
-			if score > alpha && score < beta {
+			tactical := inCheck || move.MoveType() == Attack
+			reduction := int8(0)
+
+			if !isPVNode && legalMoves >= 4 && depth >= 3 && !tactical {
+				reduction = 2
+			}
+
+			score = -search.negamax(depth-1-reduction, ply+1, -alpha-1, -alpha, &childPVLine, true)
+
+			if score > alpha && reduction > 0 {
+				score = -search.negamax(depth-1-reduction, ply+1, -beta, -alpha, &childPVLine, true)
+				if score > alpha {
+					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
+				}
+			} else if score > alpha && score < beta {
 				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
 			}
 		}
