@@ -296,14 +296,14 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		legalMoves++
 
 		// =====================================================================//
-		// PRINCIPAL VARIATION SEARCH: Since our move ordering is good, the     //
+		// LATE MOVE REDUCTION: Since our move ordering is good, the            //
 		// first move is likely to be the best move in the position, which      //
 		// means it's part of the principal variation. So instead of searching  //
-		// every move equally, search the first move with a full window, and    //
-		// to prove cheaply that each subsquenet move isn't part of the         //
-		// principal variation, search with a null-window centered around       //
-		// alpha. If we're wrong though, we need to research the move with a    //
-		// full window to get an accurate score.                                //
+		// every move equally, search the first move with full-depth and full-  //
+		// window, and search every move after with a reduced-depth and null-   //
+		// window to prove it'll fail low cheaply. If it raises alpha however,  //
+		// we have to use a full-window, a full-depth, or both to get an        //
+		// accurate score for the move.                                         //
 		// =====================================================================//
 
 		score := int16(0)
