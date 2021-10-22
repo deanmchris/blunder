@@ -185,7 +185,7 @@ func TestIQ(timeAlloted int64) {
 	fmt.Println("TOTAL CORRECT:", correct)
 	fmt.Printf("FINAL PERCENTAGE SCORE: %f\n", float64(correct)/float64(total))
 	fmt.Printf("FAILED POSITIONS (%d):\n", failed)
-	for pos := range failedPositions {
+	for _, pos := range failedPositions {
 		fmt.Println(pos)
 	}
 }

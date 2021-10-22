@@ -13,7 +13,7 @@ straightforward and easy to read, so that others can benefit from the project.
 | 5.0.0       | 2000                   | 2080              | N/A                 | N/A
 | 6.0.0       | 2200                   | N/A               | N/A                 | N/A
 | 6.1.0       | 2200                   | N/A               | N/A                 | N/A
-| 7.0.0       | 2280                   | ??                | 276                 | 2457.3
+| 7.0.0       | 2280                   | ??                | 279                 | 2477
 
 <sup>1 [Win At Chess](https://www.chessprogramming.org/Win_at_Chess)</sup>
 
