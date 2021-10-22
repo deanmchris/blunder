@@ -13,8 +13,8 @@ import (
 
 // iq.go is a program to measure Blunder's tatical strength, by trying to have it find
 // agreed upon best moves in a variety of positions, under a certian time limit.
-// The positions used can be found in testdata/tatical.epd, along with credit to their
-// creators.
+// The positions used can be found in testdata/tatical.epd and testdata/win_at_chess.epd.
+// All credit goes to the creators.
 
 var TestPositions []TestPosition
 

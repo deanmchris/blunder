@@ -4,17 +4,20 @@ Overview
 [Blunder](http://ccrl.chessdom.com/ccrl/404/cgi/compare_engines.cgi?family=Blunder&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
 straightforward and easy to read, so that others can benefit from the project.
 
-| Version     | Estimated Rating (Elo) | CCRL Rating (Elo) |
-| ----------- | -----------------------|--------------
-| 1.0.0       | 1400                   | N/A
-| 2.0.0       | 1570                   | N/A
-| 3.0.0       | 1782                   | N/A
-| 4.0.0       | 1832                   | 1734
-| 5.0.0       | 2000                   | 2080
-| 6.0.0       | 2200                   | N/A
-| 6.1.0       | 2200                   | N/A
-| 7.0.0       | 2280                   | ??
+| Version     | Estimated Rating (Elo) | CCRL Rating (Elo) | WAC<sup>1</sup>     | IQ6 <sup>2</sup>
+| ----------- | -----------------------|-------------------|---------------------|-----------------
+| 1.0.0       | 1400                   | N/A               | N/A                 | N/A
+| 2.0.0       | 1570                   | N/A               | N/A                 | N/A
+| 3.0.0       | 1782                   | N/A               | N/A                 | N/A
+| 4.0.0       | 1832                   | 1734              | N/A                 | N/A
+| 5.0.0       | 2000                   | 2080              | N/A                 | N/A
+| 6.0.0       | 2200                   | N/A               | N/A                 | N/A
+| 6.1.0       | 2200                   | N/A               | N/A                 | N/A
+| 7.0.0       | 2280                   | ??                | 276                 | 2457.3
 
+<sup>1 [Win At Chess](https://www.chessprogramming.org/Win_at_Chess)</sup>
+
+<sup>2 [IQ6 Test](http://www.talkchess.com/forum3/viewtopic.php?f=7&t=77427&p=895799#p895799)</sup>
 
 Installation
 -----
