@@ -29,8 +29,9 @@ var CharToPieceType map[rune]uint8 = map[rune]uint8{
 // An object representing a test position, and the best move
 // in the position.
 type TestPosition struct {
-	Fen      string
-	BestMove engine.Move
+	Fen            string
+	FirstBestMove  engine.Move
+	SecondBestMove engine.Move
 }
 
 // Convert a move in short algebraic notation, to the long algebraic notation used
@@ -94,7 +95,7 @@ func convertSANToLAN(pos *engine.Position, move string) engine.Move {
 func loadTestPositions() {
 	wd, _ := os.Getwd()
 	parentFolder := filepath.Dir(wd)
-	filePath := filepath.Join(parentFolder, "/testdata/tactical.epd")
+	filePath := filepath.Join(parentFolder, "/testdata/win_at_chess.epd")
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -114,7 +115,13 @@ func loadTestPositions() {
 
 		best := fields[5]
 		pos.LoadFEN(testPos.Fen)
-		testPos.BestMove = convertSANToLAN(&pos, strings.TrimSuffix(best, ";"))
+		if best[len(best)-1] == ';' {
+			testPos.FirstBestMove = convertSANToLAN(&pos, strings.TrimSuffix(best, ";"))
+			testPos.SecondBestMove = engine.NullMove
+		} else {
+			testPos.FirstBestMove = convertSANToLAN(&pos, best)
+			testPos.SecondBestMove = convertSANToLAN(&pos, strings.TrimSuffix(fields[6], ";"))
+		}
 
 		TestPositions = append(TestPositions, testPos)
 	}
@@ -132,29 +139,53 @@ func TestIQ(timeAlloted int64) {
 	search.TT.Resize(engine.DefaultTTSize)
 
 	total := len(TestPositions)
+	failedPositions := []TestPosition{}
+
 	correct := 0
+	failed := 0
 
 	for i, testPos := range TestPositions {
+		if i > 0 && i%10 == 0 {
+			fmt.Printf(
+				"\nPERCENTAGE SCORE: %f (%d of out %d done)\n\n",
+				float64(correct)/float64(i), i, len(TestPositions),
+			)
+		}
+
 		search.Pos.LoadFEN(testPos.Fen)
 		bestMove := search.Search()
 
-		if testPos.BestMove.Equal(engine.NullMove) {
+		if testPos.FirstBestMove.Equal(engine.NullMove) && testPos.SecondBestMove.Equal(engine.NullMove) {
 			panic("Invalid best move for position: " + testPos.Fen)
 		}
 
-		if bestMove.Equal(testPos.BestMove) {
-			fmt.Printf("%s BESTMOVE=%s (CORRECT)\n", testPos.Fen, testPos.BestMove)
+		if bestMove.Equal(testPos.FirstBestMove) {
+			fmt.Printf("%s BESTMOVE=%s (CORRECT)\n", testPos.Fen, testPos.FirstBestMove)
+			correct++
+		} else if bestMove.Equal(testPos.SecondBestMove) {
+			fmt.Printf("%s BESTMOVE=%s (CORRECT)\n", testPos.Fen, testPos.SecondBestMove)
 			correct++
 		} else {
-			fmt.Printf("%s BESTMOVE=%s (FAILED=%s)\n", testPos.Fen, testPos.BestMove, bestMove)
-		}
+			if testPos.SecondBestMove.Equal(engine.NullMove) {
+				fmt.Printf("%s BESTMOVE=%s (FAILED=%s)\n", testPos.Fen, testPos.FirstBestMove, bestMove)
+			} else {
+				fmt.Printf(
+					"%s BESTMOVE=%s OR %s (FAILED=%s)\n",
+					testPos.Fen,
+					testPos.FirstBestMove, testPos.SecondBestMove,
+					bestMove)
+			}
 
-		if i > 0 && i%10 == 0 {
-			fmt.Printf("\nPERCENTAGE SCORE: %f\n\n", float64(correct)/float64(i))
+			failedPositions = append(failedPositions, testPos)
+			failed++
 		}
 	}
 
 	fmt.Println("TOTAL POSITIONS:", total)
 	fmt.Println("TOTAL CORRECT:", correct)
 	fmt.Printf("FINAL PERCENTAGE SCORE: %f\n", float64(correct)/float64(total))
+	fmt.Printf("FAILED POSITIONS (%d):\n", failed)
+	for pos := range failedPositions {
+		fmt.Println(pos)
+	}
 }
