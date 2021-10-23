@@ -167,6 +167,7 @@ func UCILoop() {
 	fmt.Printf("Hash size: %d MB\n\n", DefaultTTSize)
 
 	search.TT.Resize(DefaultTTSize)
+	search.Pos.LoadFEN(FENStartPosition)
 
 	for {
 		command, _ := reader.ReadString('\n')
