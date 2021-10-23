@@ -54,9 +54,6 @@ func genCaptures(pos *Position) (moves MoveList) {
 	// Generate pawn moves.
 	genPawnMoves(pos, &moves, targets)
 
-	// Generate castling moves.
-	genCastlingMoves(pos, &moves)
-
 	return moves
 }
 
