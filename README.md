@@ -24,7 +24,7 @@ Installation
 
 Compiling Blunder is fairly simple.
 
-All that is needed is to visit [Golang downlaod page](https://golang.org/dl/), and install Golang using the download
+All that is needed is to visit [Golang download page](https://golang.org/dl/), and install Golang using the download
 package appropriate for your machine. To make using the Golang compiler easier, make sure that if the installer asks,
 you let it add the Golang compiler command to your path.
 
