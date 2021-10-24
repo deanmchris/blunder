@@ -437,6 +437,10 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 		orderMoves(index, &moves)
 		move := moves.Moves[index]
 
+		if search.Pos.See(move) < 0 {
+			continue
+		}
+
 		if !search.Pos.MakeMove(move) {
 			search.Pos.UnmakeMove(move)
 			continue
