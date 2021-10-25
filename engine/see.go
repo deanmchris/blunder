@@ -1,7 +1,5 @@
 package engine
 
-import "fmt"
-
 // see.go is a simple implementation of a static exchange evaluator.
 
 var PieceValues [7]int16 = [7]int16{
@@ -64,8 +62,6 @@ func (pos *Position) See(move Move) int16 {
 
 		scoresIndex++
 	}
-
-	fmt.Println(scores, scoresIndex)
 
 	for ; scoresIndex > 0; scoresIndex-- {
 		scores[scoresIndex-1] = min16(-scores[scoresIndex], scores[scoresIndex-1])
