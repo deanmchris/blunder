@@ -8,145 +8,109 @@ var PieceValues [7]int16 = [7]int16{
 	300,
 	500,
 	900,
-	0,
+	Inf,
 	0,
 }
 
 // Peform a static exchange evaluation on target square of the move given,
 // and return a score of the move from the perspective of the side to move.
-// Credit to the Stockfish 7 team for the structure of the algorithm below:
-//
-// https://github.com/official-stockfish/Stockfish/blob/dd9cf305816c84c2acfa11cae09a31c4d77cc5a5/src/position.cpp
-//
 func (pos *Position) See(move Move) int16 {
-	fromSq := move.FromSq()
 	toSq := move.ToSq()
-	scores := [32]int16{}
-	sideToMove := pos.Squares[fromSq].Color
+	frSQ := move.FromSq()
+	target := pos.Squares[toSq].Type
+	attacker := pos.Squares[frSQ].Type
 
-	scores[0] = PieceValues[pos.Squares[toSq].Type]
+	gain := [32]int16{}
+	depth := uint8(0)
+	sideToMove := pos.SideToMove ^ 1
+
+	seenBB := Bitboard(0)
 	occupiedBB := pos.SideBB[White] | pos.SideBB[Black]
-	occupiedBB &= ^SquareBB[fromSq]
+	attackerBB := SquareBB[frSQ]
 
-	if move.MoveType() == Castle {
-		return 0
-	}
+	attadef := pos.allAttackers(toSq, occupiedBB)
+	maxXray := occupiedBB & ^(pos.PieceBB[White][Knight] | pos.PieceBB[White][King] |
+		pos.PieceBB[Black][Knight] | pos.PieceBB[Black][King])
 
-	if move.Flag() == AttackEP {
-		capSq := uint8(int8(toSq) - pawnPush(sideToMove))
-		occupiedBB &= ^SquareBB[capSq]
-		scores[0] = PieceValues[pos.Squares[capSq].Type]
-	}
+	gain[depth] = PieceValues[target]
 
-	attackers := allAttackers(pos, toSq, occupiedBB) & occupiedBB
-	sideToMove ^= 1
-	sideToMoveAttackers := attackers & pos.SideBB[sideToMove]
+	for ok := true; ok; ok = attackerBB != 0 {
+		depth++
+		gain[depth] = PieceValues[attacker] - gain[depth-1]
 
-	if sideToMoveAttackers == 0 {
-		return scores[0]
-	}
+		if max(-gain[depth-1], gain[depth]) < 0 {
+			break
+		}
 
-	captured := pos.Squares[fromSq].Type
-	scoresIndex := 1
+		attadef &= ^attackerBB
+		occupiedBB &= ^attackerBB
+		seenBB |= attackerBB
 
-	for {
-		scores[scoresIndex] = -scores[scoresIndex-1] + PieceValues[captured]
-		captured = getLeastValuableAttacker(pos, &attackers, sideToMoveAttackers, toSq)
+		if (attackerBB & maxXray) != 0 {
+			attadef |= pos.considerXrays(toSq, occupiedBB) & ^seenBB
+		}
 
+		attackerBB = pos.minAttacker(attadef, sideToMove, &attacker)
 		sideToMove ^= 1
-		sideToMoveAttackers = attackers & pos.SideBB[sideToMove]
-
-		if sideToMoveAttackers == 0 || captured == King {
-			break
-		}
-
-		scoresIndex++
 	}
 
-	for ; scoresIndex > 0; scoresIndex-- {
-		scores[scoresIndex-1] = min16(-scores[scoresIndex], scores[scoresIndex-1])
+	for depth--; depth > 0; depth-- {
+		gain[depth-1] = -max(-gain[depth-1], gain[depth])
 	}
 
-	return scores[0]
+	return gain[0]
 }
 
-// Calculate a bitboard with all of the attackers for each side of a certian square,
-// including x-ray attacks.
-func allAttackers(pos *Position, sq uint8, occupiedBB Bitboard) (attackers Bitboard) {
-	attackers |= attackersForSide(pos, White, sq, occupiedBB)
-	attackers |= attackersForSide(pos, Black, sq, occupiedBB)
-
-	for {
-		occupiedBB &= ^attackers
-		newAttackers := attackersForSide(pos, White, sq, occupiedBB) & ^attackers
-		newAttackers |= attackersForSide(pos, Black, sq, occupiedBB) & ^attackers
-
-		if newAttackers == 0 {
-			break
+func (pos *Position) minAttacker(attadef Bitboard, color uint8, attacker *uint8) Bitboard {
+	for *attacker = Pawn; *attacker <= King; *attacker++ {
+		subset := attadef & pos.PieceBB[color][*attacker]
+		if subset != 0 {
+			return subset & -subset
 		}
-
-		attackers |= newAttackers
 	}
-
-	return attackers
+	return 0
 }
 
-func attackersForSide(pos *Position, attackerColor, sq uint8, occupiedBB Bitboard) (attackers Bitboard) {
-	enemyBishops := pos.PieceBB[attackerColor][Bishop]
-	enemyRooks := pos.PieceBB[attackerColor][Rook]
-	enemyQueens := pos.PieceBB[attackerColor][Queen]
-	enemyKnights := pos.PieceBB[attackerColor][Knight]
-	enemyKing := pos.PieceBB[attackerColor][King]
-	enemyPawns := pos.PieceBB[attackerColor][Pawn]
+func (pos *Position) considerXrays(sq uint8, occupiedBB Bitboard) (attackers Bitboard) {
+	attackingBishops := pos.PieceBB[White][Bishop] | pos.PieceBB[Black][Bishop]
+	attackingRooks := pos.PieceBB[White][Rook] | pos.PieceBB[Black][Rook]
+	attackingQueens := pos.PieceBB[White][Queen] | pos.PieceBB[Black][Queen]
 
 	intercardinalRays := genBishopMoves(sq, occupiedBB)
 	cardinalRaysRays := genRookMoves(sq, occupiedBB)
 
-	attackers |= intercardinalRays & (enemyBishops | enemyQueens)
-	attackers |= cardinalRaysRays & (enemyRooks | enemyQueens)
-	attackers |= KnightMoves[sq] & enemyKnights
-	attackers |= KingMoves[sq] & enemyKing
-	attackers |= PawnAttacks[attackerColor^1][sq] & enemyPawns
+	attackers |= intercardinalRays & (attackingBishops | attackingQueens)
+	attackers |= cardinalRaysRays & (attackingRooks | attackingQueens)
 	return attackers
 }
 
-// Get the last valuable attacker from a bitboard of attackers.
-func getLeastValuableAttacker(pos *Position, allAttackers *Bitboard, sideToMoveAttackers Bitboard, toSq uint8) uint8 {
-	lowestValue := Inf
-	pieceType := NoType
-	pieceSq := uint8(NoSq)
-
-	for sideToMoveAttackers != 0 {
-		sq := sideToMoveAttackers.PopBit()
-		currPieceType := pos.Squares[sq].Type
-		value := PieceValues[currPieceType]
-
-		if value < lowestValue {
-			if currPieceType == Bishop || currPieceType == Rook || currPieceType == Queen {
-				lineBetween := Between[sq][toSq] & ^SquareBB[sq]
-				if (lineBetween & *allAttackers) != 0 {
-					// Even if we've found the least valuable attacker, we need to make sure it isn't
-					// blocked by another piece it's xraying through. If it is, we have to choose
-					// another piece instead.
-					continue
-				}
-			}
-
-			lowestValue = value
-			pieceType = currPieceType
-			pieceSq = sq
-		}
-	}
-
-	// Remove the least valuable attacker from the attacker bitboard.
-	*allAttackers &= ^SquareBB[pieceSq]
-
-	return pieceType
+func (pos *Position) allAttackers(sq uint8, occupiedBB Bitboard) (attackers Bitboard) {
+	attackers |= pos.attackersForSide(White, sq, occupiedBB)
+	attackers |= pos.attackersForSide(Black, sq, occupiedBB)
+	return attackers
 }
 
-// Get the minimum between two numbers.
-func min16(a, b int16) int16 {
-	if a < b {
+func (pos *Position) attackersForSide(attackerColor, sq uint8, occupiedBB Bitboard) (attackers Bitboard) {
+	attackingBishops := pos.PieceBB[attackerColor][Bishop]
+	attackingRooks := pos.PieceBB[attackerColor][Rook]
+	attackingQueens := pos.PieceBB[attackerColor][Queen]
+	attackingKnights := pos.PieceBB[attackerColor][Knight]
+	attackingKing := pos.PieceBB[attackerColor][King]
+	attackingPawns := pos.PieceBB[attackerColor][Pawn]
+
+	intercardinalRays := genBishopMoves(sq, occupiedBB)
+	cardinalRaysRays := genRookMoves(sq, occupiedBB)
+
+	attackers |= intercardinalRays & (attackingBishops | attackingQueens)
+	attackers |= cardinalRaysRays & (attackingRooks | attackingQueens)
+	attackers |= KnightMoves[sq] & attackingKnights
+	attackers |= KingMoves[sq] & attackingKing
+	attackers |= PawnAttacks[attackerColor^1][sq] & attackingPawns
+	return attackers
+}
+
+func max(a, b int16) int16 {
+	if a > b {
 		return a
 	}
 	return b

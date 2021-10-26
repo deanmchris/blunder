@@ -437,6 +437,7 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 		orderMoves(index, &moves)
 		move := moves.Moves[index]
 
+		// Prune moves based on the static exchange evaluation being negative.
 		if search.Pos.See(move) < 0 {
 			continue
 		}
