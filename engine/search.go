@@ -32,6 +32,8 @@ const (
 	MaxHistoryScore int32 = int32(MvvLvaOffset) - int32((MaxKillers+1)*KillerMoveScore)
 )
 
+var FutilityMargins = [4]int16{0, 200, 300, 500}
+
 // An array that maps move scores to attacker and victim piece types
 // for MVV-LVA move ordering: https://www.chessprogramming.org/MVV-LVA.
 var MvvLva [7][6]uint16 = [7][6]uint16{
@@ -186,6 +188,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	isRoot := ply == 0
 	isPVNode := beta-alpha != 1
 	inCheck := search.Pos.InCheck()
+	canFutilityPrune := false
 	var childPVLine PVLine
 
 	// =====================================================================//
@@ -267,6 +270,21 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		}
 	}
 
+	// =====================================================================//
+	// FUTILITY PRUNING: If we're close to the horizon, and even with a     //
+	// large margin the static evaluation can't be raised above alpha,      //
+	// we're probably in a fail-low node, and many moves can be probably    //
+	// be pruned. So set a flag so we don't waste time searching moves that //
+	// suck and probably don't even have a chance of raise alpha.           //
+	// =====================================================================//
+
+	if depth <= 3 && !isPVNode && !inCheck && alpha < Checkmate {
+		staticScore := EvaluatePos(&search.Pos)
+		if staticScore+FutilityMargins[depth] <= alpha {
+			canFutilityPrune = true
+		}
+	}
+
 	// Generate and score the moves for the side to move
 	// in the current position.
 	moves := GenMoves(&search.Pos)
@@ -294,6 +312,14 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		}
 
 		legalMoves++
+
+		if canFutilityPrune && legalMoves > 1 {
+			tactical := search.Pos.InCheck() || move.MoveType() == Attack || move.MoveType() == Promotion
+			if !tactical {
+				search.Pos.UnmakeMove(move)
+				continue
+			}
+		}
 
 		// =====================================================================//
 		// LATE MOVE REDUCTION: Since our move ordering is good, the            //
