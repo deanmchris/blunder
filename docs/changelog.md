@@ -1,5 +1,6 @@
 Changelog
 ---------
+* Blunder 7.1.0
 * Blunder 7.0.0
 * Blunder 6.1.0
 * Blunder 6.0.0
@@ -8,6 +9,30 @@ Changelog
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 7.1.0
+-------------
+
+The release of this version includes late-move reductions, basic futility pruning, as well as a static-exchange evaluation routine, as well as a little refractoring and bug-fixing here and there. 
+
+* Search
+    - [Late-move reductions](https://www.chessprogramming.org/Late_Move_Reductions)
+    - [Futility pruning](https://www.chessprogramming.org/Futility_Pruning)
+    - [Static-exchange evaluation](https://www.chessprogramming.org/Static_Exchange_Evaluation)
+
+The addition of these features seem promising and show a little over a 100 point Elo gain in self-play (tc=inf/10+0.1):
+
+```
+Score of Blunder 7.1.0 vs Blunder 7.0.0: 347 - 146 - 133  [0.661] 626
+...      Blunder 7.1.0 playing White: 174 - 66 - 74  [0.672] 314
+...      Blunder 7.1.0 playing Black: 173 - 80 - 59  [0.649] 312
+...      White vs Black: 254 - 239 - 133  [0.512] 626
+Elo difference: 115.6 +/- 25.1, LOS: 100.0 %, DrawRatio: 21.2 %
+SPRT: llr 2.96 (100.5%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
+
+The Elo gains for each feature can be seen in the commit history. Going forward this will be the place where I try to document Elo gains (if any) from new features.
 
 Blunder 7.0.0
 -------------

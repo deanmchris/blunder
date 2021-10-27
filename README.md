@@ -13,7 +13,8 @@ straightforward and easy to read, so that others can benefit from the project.
 | 5.0.0       | 2000                   | 2080              | N/A                 | N/A
 | 6.0.0       | 2200                   | N/A               | N/A                 | N/A
 | 6.1.0       | 2200                   | N/A               | N/A                 | N/A
-| 7.0.0       | 2300                   | ??                | 279                 | 2477
+| 7.0.0       | 2280                   | N/A               | 279                 | 2477
+| 7.1.0       | 2395                   | N/A               | N/A                 | N/A
 
 <sup>1 [Win At Chess](https://www.chessprogramming.org/Win_at_Chess)</sup>
 
@@ -69,6 +70,9 @@ Features
     - [History Heuristics](https://www.chessprogramming.org/History_Heuristic)
     - [Principal Variation Search](https://www.chessprogramming.org/Principal_Variation_Search)
     - [Fail-Soft](https://www.ics.uci.edu/~eppstein/180a/990202b.html)
+    - [Late-move reductions](https://www.chessprogramming.org/Late_Move_Reductions)
+    - [Futility pruning](https://www.chessprogramming.org/Futility_Pruning)
+    - [Static-exchange evaluation](https://www.chessprogramming.org/Static_Exchange_Evaluation)
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
