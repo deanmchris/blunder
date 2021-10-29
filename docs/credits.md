@@ -19,13 +19,13 @@ And some people who I'd like to thank especially:
    I start ranting on about the lastest bug I've encounterd, or sharing in my excitement when I explain to her
    a new feature I just figured out.
  * Marcel Vanthoor (author of [Rustic](https://github.com/mvanthoor/rustic)), for spending time
-   answering my many questions about a whole range of chess programming topics on [Talkchess](http://talkchess.com/forum3/index.php). I'd also like to than him for the code structure I use to score killer moves and update nodes in the search.
- * Hart Gert Muller ([author of a variety of different chess engines and tools](https://home.hccnet.nl/h.g.muller/chess.html), including the popular Qperft),
+   answering my many questions about a whole range of chess programming topics on [Talkchess](http://talkchess.com/forum3/index.php). I'd also like to thank him for the code structure I use to score killer moves and update nodes in the search.
+ * Harm-Geert Müller ([author of a variety of different chess engines and tools](https://home.hccnet.nl/h.g.muller/chess.html), including the popular Qperft),
    for spending many years guiding new chess programmers and being an active member and moderator of [Talkchess](http://talkchess.com/forum3/index.php).
  * Richard Allbert (a.k.a BlueFeverSoft, author of [VICE](https://www.chessprogramming.org/Vice)), for providing a large amount of excellent resources
-   releating to all parts of writing a chess engine in the form of a YouTube tutorial series. Many of his videos were and have been helpful in inspiring
+   relating to all parts of writing a chess engine in the form of a YouTube tutorial series. Many of his videos were and have been helpful in inspiring
    the design of Blunder.
-  * Jonatan Pettersson (author of [Medicore Chess](http://mediocrechess.blogspot.com/)), for his blog documentating his development of Medicore Chess, which was
+  * Jonatan Pettersson (author of [Medicore Chess](http://mediocrechess.blogspot.com/)), for his blog documenting his development of Medicore Chess, which was
     an incredibly useful resource for discovering new approaches and ideas to solving different problems.
   * Rhys Rustad Elliott (author of [ShallowBlue](https://github.com/GunshipPenguin/shallow-blue/tree/master/src)), for his work [explaing magic bitboards](), which 
     was key in helping me figure out how magic bitboards worked and were constructed. His engine was, and still is, very useful in testing against Blunder.

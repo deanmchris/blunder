@@ -81,9 +81,9 @@ Blunder 5.0.0
 
 Blunder 5.0.0 is a complete rewrite of the engine. Many basic design ideas and principles were kept, and some areas were just ported over, but the majority of the code-base was rewritten, and the layout of the project was completely changed.
 
-The movitations behind this rewrite were twofold: First, I was dissatisfied with Blunder's speed and wanted to take another crack at creating an engine that was simply faster. Second, I didn't like how Blunder was designed in several places, and I quickly realized these "several places" constitued large chunks of the code-base. So Blunder 5.0.0 was the result.
+The motivations behind this rewrite were twofold: First, I was dissatisfied with Blunder's speed and wanted to take another crack at creating an engine that was simply faster. Second, I didn't like how Blunder was designed in several places, and I quickly realized these "several places" constitued large chunks of the code-base. So Blunder 5.0.0 was the result.
 
-From the testing I've done, Blunder 5.0.0 is 20-30% faster than Blunder 4.0.0, and perft(6) from the starting position was coming in at around 6-8s (14-18 Mnps), whereas perft(6) from the starting position for Blunder 4.0.0 was generally 10-12s (10-12Mnps). And overall, I'm happy with the refractoring I've done and my code feels cleaner in many of the places that bothered me. So both goals, all things considered, were meet.
+From the testing I've done, Blunder 5.0.0 is 20-30% faster than Blunder 4.0.0, and perft(6) from the starting position was coming in at around 6-8s (14-18 Mnps), whereas perft(6) from the starting position for Blunder 4.0.0 was generally 10-12s (10-12Mnps). And overall, I'm happy with the refractoring I've done and my code feels cleaner in many of the places that bothered me. So both goals, all things considered, were met.
 
 Although Blunder 5.0.0 is a rewrite, it did build on Blunder 4.0.0, and two new features were added: a transposition table, and null-move pruning. Additional, the tapered evaluation has been refractored and is stronger. And the speed increase should add some Elo to engine, though I didn't test for a specfic amount. Overall, these changes have added about 200-300 Elo to the engine in self-play, and puts Blunder at 2038 Elo on the CCRL.
 
