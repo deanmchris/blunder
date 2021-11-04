@@ -246,7 +246,7 @@ func (pos *Position) MakeMove(move Move) bool {
 			pos.putPiece(uint8(flag+1), pos.SideToMove, to)
 		}
 
-		if abs16(int16(from)-int16(to)) == 16 {
+		if Abs16(int16(from)-int16(to)) == 16 {
 			// If the move is a double pawn push, and there is no enemy pawn that's in
 			// a position to capture en passant on the next turn, don't set the position's
 			// en passant square.
@@ -534,6 +534,96 @@ func (pos *Position) LoadFEN(fen string) {
 	PositionHistories[HistoryPly] = pos.Hash
 }
 
+// Generate the FEN string represention of the current board.
+func (pos Position) GenFEN() string {
+	positionStr := strings.Builder{}
+
+	for rankStartPos := 56; rankStartPos >= 0; rankStartPos -= 8 {
+		emptySquares := 0
+		for sq := rankStartPos; sq < rankStartPos+8; sq++ {
+			piece := pos.Squares[sq]
+			if piece.Type == NoType {
+				emptySquares++
+			} else {
+				// If we have some consecutive empty squares, add then to the FEN
+				// string board, and reset the empty squares counter.
+				if emptySquares > 0 {
+					positionStr.WriteString(strconv.Itoa(emptySquares))
+					emptySquares = 0
+				}
+
+				piece := pos.Squares[sq]
+				pieceChar := PieceTypeToChar[piece.Type]
+				if piece.Color == White {
+					pieceChar = unicode.ToUpper(pieceChar)
+				}
+
+				// In FEN strings pawns are represented with p's not i's
+				if pieceChar == 'i' {
+					pieceChar = 'p'
+				} else if pieceChar == 'I' {
+					pieceChar = 'P'
+				}
+
+				positionStr.WriteRune(pieceChar)
+			}
+		}
+
+		if emptySquares > 0 {
+			positionStr.WriteString(strconv.Itoa(emptySquares))
+			emptySquares = 0
+		}
+
+		positionStr.WriteString("/")
+
+	}
+
+	sideToMove := ""
+	castlingRights := ""
+	epSquare := ""
+
+	if pos.SideToMove == White {
+		sideToMove = "w"
+	} else {
+		sideToMove = "b"
+	}
+
+	if pos.CastlingRights&WhiteKingsideRight != 0 {
+		castlingRights += "K"
+	}
+	if pos.CastlingRights&WhiteQueensideRight != 0 {
+		castlingRights += "Q"
+	}
+	if pos.CastlingRights&BlackKingsideRight != 0 {
+		castlingRights += "k"
+	}
+	if pos.CastlingRights&BlackQueensideRight != 0 {
+		castlingRights += "q"
+	}
+
+	if castlingRights == "" {
+		castlingRights = "-"
+	}
+
+	if pos.EPSq == NoSq {
+		epSquare = "-"
+	} else {
+		epSquare = posToCoordinate(pos.EPSq)
+	}
+
+	fullMoveCount := pos.Ply / 2
+	if pos.Ply%2 != 0 {
+		fullMoveCount = pos.Ply/2 + 1
+	}
+
+	return fmt.Sprintf(
+		"%s %s %s %s %d %d",
+		strings.TrimSuffix(positionStr.String(), "/"),
+		sideToMove, castlingRights, epSquare,
+		pos.Rule50, fullMoveCount,
+	)
+}
+
 // Return a string representation of the board.
 func (pos Position) String() (boardAsString string) {
 	boardAsString += "\n"
@@ -614,6 +704,87 @@ func (pos *Position) IsEndgameForSide() bool {
 	return (pawnMaterial + knightMaterial + bishopMaterial + rookMaterial + queenMaterial) < 1300
 }
 
+// Evaluate if an endgame is drawn.
+func (pos *Position) EndgameIsDrawn() bool {
+	whiteKnights := pos.PieceBB[White][Knight].CountBits()
+	whiteBishops := pos.PieceBB[White][Bishop].CountBits()
+
+	blackKnights := pos.PieceBB[Black][Knight].CountBits()
+	blackBishops := pos.PieceBB[Black][Bishop].CountBits()
+
+	pawns := pos.PieceBB[White][Pawn].CountBits() + pos.PieceBB[Black][Pawn].CountBits()
+	knights := whiteKnights + blackKnights
+	bishops := whiteBishops + blackBishops
+	rooks := pos.PieceBB[White][Rook].CountBits() + pos.PieceBB[Black][Rook].CountBits()
+	queens := pos.PieceBB[White][Queen].CountBits() + pos.PieceBB[Black][Queen].CountBits()
+
+	majors := rooks + queens
+	miniors := knights + bishops
+
+	if pawns+majors+miniors == 0 {
+		// KvK => draw
+		return true
+	} else if majors+pawns == 0 {
+		if miniors == 1 {
+			// K & minior v K & minior => draw
+			return true
+		} else if miniors == 2 && whiteKnights == 1 && blackKnights == 1 {
+			// KNvKN => draw
+			return true
+		} else if miniors == 2 && whiteBishops == 1 && blackBishops == 1 {
+			// KBvKB => draw when only when bishops are the same color
+			whiteBishopSq := pos.PieceBB[White][Bishop].Msb()
+			blackBishopSq := pos.PieceBB[Black][Bishop].Msb()
+			return sqIsDark(whiteBishopSq) == sqIsDark(blackBishopSq)
+		}
+	}
+	return false
+}
+
+// Determine if a move is pseduo-legally valid.
+func (pos *Position) MoveIsPseduoLegal(move Move) bool {
+	fromSq, toSq := move.FromSq(), move.ToSq()
+	moved := pos.Squares[fromSq]
+	captured := pos.Squares[toSq]
+
+	toBB := SquareBB[toSq]
+	allBB := pos.SideBB[White] | pos.SideBB[Black]
+	sideToMove := pos.SideToMove
+
+	if moved.Color != sideToMove ||
+		captured.Type == King ||
+		captured.Color == sideToMove {
+		return false
+	}
+
+	if moved.Type == Pawn {
+		if fromSq > 55 || fromSq < 8 {
+			return false
+		}
+
+		// Credit to the Stockfish team for the idea behind this section of code to
+		// verify pseduo-legal pawn moves.
+		if ((PawnAttacks[sideToMove][fromSq] & toBB & allBB) == 0) &&
+			!((fromSq+uint8(pawnPush(sideToMove)) == toSq) && (captured.Type == NoType)) &&
+			!((fromSq+uint8(pawnPush(sideToMove)*2) == toSq) &&
+				captured.Type == NoType &&
+				pos.Squares[toSq-uint8(pawnPush(sideToMove))].Type == NoType &&
+				canDoublePush(fromSq, sideToMove)) {
+			return false
+		}
+	} else {
+		if (moved.Type == Knight && ((KnightMoves[fromSq] & toBB) == 0)) &&
+			(moved.Type == Bishop && ((genBishopMoves(fromSq, allBB) & toBB) == 0)) &&
+			(moved.Type == Rook && ((genRookMoves(fromSq, allBB) & toBB) == 0)) &&
+			(moved.Type == Queen && (((genBishopMoves(fromSq, allBB) | genRookMoves(fromSq, allBB)) & toBB) == 0)) &&
+			(moved.Type == King && ((KingMoves[fromSq] & toBB) == 0)) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Determine if the current position has no majors or miniors left.
 func (pos *Position) NoMajorsOrMiniors() bool {
 	knights := pos.PieceBB[White][Knight].CountBits() + pos.PieceBB[Black][Knight].CountBits()
@@ -630,4 +801,13 @@ func pawnPush(color uint8) int8 {
 		return NorthDelta
 	}
 	return SouthDelta
+}
+
+// Determine if it's legal for a pawn to double push,
+// given it's color and origin square.
+func canDoublePush(fromSq uint8, color uint8) bool {
+	if color == White {
+		return RankOf(fromSq) == Rank2
+	}
+	return RankOf(fromSq) == Rank6
 }

@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"unicode"
 )
 
 // iq.go is a program to measure Blunder's tatical strength, by trying to have it find
@@ -18,77 +17,12 @@ import (
 
 var TestPositions []TestPosition
 
-var CharToPieceType map[rune]uint8 = map[rune]uint8{
-	'N': engine.Knight,
-	'B': engine.Bishop,
-	'R': engine.Rook,
-	'Q': engine.Queen,
-	'K': engine.King,
-}
-
 // An object representing a test position, and the best move
 // in the position.
 type TestPosition struct {
 	Fen            string
 	FirstBestMove  engine.Move
 	SecondBestMove engine.Move
-}
-
-// Convert a move in short algebraic notation, to the long algebraic notation used
-// by the UCI protocol.
-func convertSANToLAN(pos *engine.Position, move string) engine.Move {
-	coords := ""
-	pieceType := engine.Pawn
-
-	for _, char := range move {
-		switch char {
-		case 'N', 'B', 'R', 'Q', 'K':
-			pieceType = CharToPieceType[char]
-		case '1', '2', '3', '4', '5', '6', '7', '8':
-			coords += string(char)
-		case 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h':
-			coords += string(char)
-		}
-	}
-
-	moves := engine.GenMoves(pos)
-	matchingMove := engine.NullMove
-
-	for _, move := range moves.Moves {
-		if len(coords) == 2 {
-			moved := pos.Squares[move.FromSq()].Type
-			toSq := engine.CoordinateToPos(coords)
-			if toSq == move.ToSq() && pieceType == moved {
-				matchingMove = move
-				break
-			}
-		} else if len(coords) == 3 {
-			toSq := engine.CoordinateToPos(coords[1:])
-			fileOrRank := coords[0]
-			moveCoords := move.String()
-
-			if unicode.IsLetter(rune(fileOrRank)) {
-				if toSq == move.ToSq() && fileOrRank == moveCoords[0] {
-					matchingMove = move
-					break
-				}
-			} else {
-				if toSq == move.ToSq() && fileOrRank == moveCoords[1] {
-					matchingMove = move
-					break
-				}
-			}
-		} else if len(coords) == 4 {
-			toSq := engine.CoordinateToPos(coords[0:2])
-			fromSq := engine.CoordinateToPos(coords[2:4])
-			if toSq == move.ToSq() && fromSq == move.FromSq() {
-				matchingMove = move
-				break
-			}
-		}
-	}
-
-	return matchingMove
 }
 
 // Load the test positions from the file in testdata
@@ -116,11 +50,11 @@ func loadTestPositions() {
 		best := fields[5]
 		pos.LoadFEN(testPos.Fen)
 		if best[len(best)-1] == ';' {
-			testPos.FirstBestMove = convertSANToLAN(&pos, strings.TrimSuffix(best, ";"))
+			testPos.FirstBestMove = engine.ConvertSANToLAN(&pos, strings.TrimSuffix(best, ";"))
 			testPos.SecondBestMove = engine.NullMove
 		} else {
-			testPos.FirstBestMove = convertSANToLAN(&pos, best)
-			testPos.SecondBestMove = convertSANToLAN(&pos, strings.TrimSuffix(fields[6], ";"))
+			testPos.FirstBestMove = engine.ConvertSANToLAN(&pos, best)
+			testPos.SecondBestMove = engine.ConvertSANToLAN(&pos, strings.TrimSuffix(fields[6], ";"))
 		}
 
 		TestPositions = append(TestPositions, testPos)

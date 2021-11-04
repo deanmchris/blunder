@@ -205,12 +205,12 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// score.
 	if depth <= 0 {
 		search.nodes--
-		return search.qsearch(alpha, beta, ply)
+		return search.Qsearch(alpha, beta, ply)
 	}
 
 	// Don't do any extra work if the current position is a draw. We
 	// can just return a draw value.
-	if !isRoot && (search.Pos.Rule50 >= 100 || search.isDrawByRepition()) {
+	if !isRoot && (search.Pos.Rule50 >= 100 || search.isDrawByRepition() || search.Pos.EndgameIsDrawn()) {
 		return search.contempt()
 	}
 
@@ -233,7 +233,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// fail-high and we can prune its branch.                               //
 	// =====================================================================//
 
-	if !inCheck && !isPVNode && abs16(beta) < Checkmate {
+	if !inCheck && !isPVNode && Abs16(beta) < Checkmate {
 		staticScore := EvaluatePos(&search.Pos)
 		scoreMargin := 120 * int16(depth)
 		if staticScore-scoreMargin >= beta {
@@ -265,7 +265,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			return 0
 		}
 
-		if score >= beta && abs16(score) < Checkmate {
+		if score >= beta && Abs16(score) < Checkmate {
 			return beta
 		}
 	}
@@ -426,7 +426,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 // a special form of negamax until the position is quiet (i.e there are no
 // winning tatical captures). Doing this is known as quiescence search, and
 // it makes the static evaluation much more accurate.
-func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
+func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 	search.nodes++
 
 	if (search.nodes & 2047) == 0 {
@@ -473,7 +473,7 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 			continue
 		}
 
-		score := -search.qsearch(-beta, -alpha, negamaxPly)
+		score := -search.Qsearch(-beta, -alpha, negamaxPly)
 		search.Pos.UnmakeMove(move)
 
 		if score > bestScore {

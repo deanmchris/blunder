@@ -32,7 +32,7 @@ type Position struct {
 }
 
 // A global variable to hold the positions loaded from the training file.
-var Positions = loadPositions(362500)
+var Positions = loadPositions(0)
 
 // A global variable to hold the parallel computations of the MSE function.
 var Answers = make(chan float64)
@@ -240,7 +240,7 @@ func tune() {
 			} else {
 				Weights[weightIdx] -= 2
 
-				if weightIdx > 768 && Weights[weightIdx] < 0 {
+				if weightIdx >= 768 && Weights[weightIdx] <= 0 {
 					Weights[weightIdx] += 1
 					continue
 				}
