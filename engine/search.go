@@ -30,6 +30,13 @@ const (
 	// A constant representing the maximum value a history heuristic score
 	// is allowed to reach.
 	MaxHistoryScore int32 = int32(MvvLvaOffset) - int32((MaxKillers+1)*KillerMoveScore)
+
+	StaticNullMovePruningBaseMargin int16 = 120
+	FirstNullMoveReduction          int8  = 2
+	SecondNullMoveReduction         int8  = 3
+	LateMoveReduction               int8  = 2
+	LMRLegalMovesLimit              int   = 4
+	LMRDepthLimit                   int8  = 3
 )
 
 var FutilityMargins = [4]int16{0, 200, 300, 500}
@@ -235,7 +242,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	if !inCheck && !isPVNode && Abs16(beta) < Checkmate {
 		staticScore := EvaluatePos(&search.Pos)
-		scoreMargin := 120 * int16(depth)
+		scoreMargin := StaticNullMovePruningBaseMargin * int16(depth)
 		if staticScore-scoreMargin >= beta {
 			return beta
 		}
@@ -251,9 +258,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if doNull && !inCheck && !isPVNode && depth >= 3 && !search.Pos.NoMajorsOrMiniors() {
-		var R int8 = 2
+		R := FirstNullMoveReduction
 		if depth > 6 {
-			R = 3
+			R = SecondNullMoveReduction
 		}
 
 		search.Pos.MakeNullMove()
@@ -275,7 +282,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// large margin the static evaluation can't be raised above alpha,      //
 	// we're probably in a fail-low node, and many moves can be probably    //
 	// be pruned. So set a flag so we don't waste time searching moves that //
-	// suck and probably don't even have a chance of raise alpha.           //
+	// suck and probably don't even have a chance of raising alpha.         //
 	// =====================================================================//
 
 	if depth <= 3 && !isPVNode && !inCheck && alpha < Checkmate {
@@ -339,8 +346,8 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			tactical := inCheck || move.MoveType() == Attack
 			reduction := int8(0)
 
-			if !isPVNode && legalMoves >= 4 && depth >= 3 && !tactical {
-				reduction = 2
+			if !isPVNode && legalMoves >= LMRLegalMovesLimit && depth >= LMRDepthLimit && !tactical {
+				reduction = LateMoveReduction
 			}
 
 			score = -search.negamax(depth-1-reduction, ply+1, -alpha-1, -alpha, &childPVLine, true)

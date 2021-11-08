@@ -12,15 +12,17 @@ import (
 )
 
 const (
-	DataFile   = "/home/algerbrex/quiet-labeled.epd"
+	DataFile   = "/home/algerbrex/E12.41-1M-D12-Resolved.book"
 	NumCores   = 4
-	NumWeights = 774
+	NumWeights = 786
+	KPrecision = 10
 
+	ErrPrecision float64 = 0.0000000001
 	Draw         float64 = 0.5
 	WhiteWin     float64 = 1.0
 	BlackWin     float64 = 0.0
-	NumPositions float64 = 362500.0
-	K            float64 = 1.62
+	NumPositions float64 = 400000.0
+	K            float64 = 1.24
 )
 
 // A struct object to hold data concering a position loaded from the training file.
@@ -66,12 +68,10 @@ func loadWeights() (weights []int16) {
 	copy(weights[640:704], engine.PSQT_EG[engine.Queen][:])
 	copy(weights[704:768], engine.PSQT_EG[engine.King][:])
 
-	weights[768] = engine.KnightMobility
-	weights[769] = engine.BishopMobility
-	weights[770] = engine.RookMobilityMG
-	weights[771] = engine.RookMobilityEG
-	weights[772] = engine.QueenMobilityMG
-	weights[773] = engine.QueenMobilityEG
+	copy(weights[768:773], engine.PieceValueMG[:])
+	copy(weights[773:778], engine.PieceValueEG[:])
+	copy(weights[778:782], engine.PieceMobilityMG[:])
+	copy(weights[782:786], engine.PieceMobilityEG[:])
 
 	return weights
 }
@@ -93,13 +93,13 @@ func loadPositions(start int) (positions []Position) {
 		line := scanner.Text()
 		fields := strings.Fields(line)
 
-		fen := fields[0] + " " + fields[1] + " - - 0 1"
-		result := fields[5]
+		fen := fmt.Sprintf("%s %s %s %s %s %s", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5])
+		result := fields[6]
 
 		outcome := Draw
-		if result == "\"1-0\";" {
+		if result == "[1.0]" {
 			outcome = WhiteWin
-		} else if result == "\"0-1\";" {
+		} else if result == "[0.0]" {
 			outcome = BlackWin
 		}
 
@@ -127,12 +127,10 @@ func mapWeightsToParameters() {
 	copy(engine.PSQT_EG[engine.Queen][:], Weights[640:704])
 	copy(engine.PSQT_EG[engine.King][:], Weights[704:768])
 
-	engine.KnightMobility = Weights[768]
-	engine.BishopMobility = Weights[769]
-	engine.RookMobilityMG = Weights[770]
-	engine.RookMobilityEG = Weights[771]
-	engine.QueenMobilityMG = Weights[772]
-	engine.QueenMobilityEG = Weights[773]
+	copy(engine.PieceValueMG[:], Weights[768:773])
+	copy(engine.PieceValueEG[:], Weights[773:778])
+	copy(engine.PieceMobilityMG[:], Weights[778:782])
+	copy(engine.PieceMobilityEG[:], Weights[782:786])
 }
 
 // Evaluate the position from the training set file.
@@ -182,34 +180,31 @@ func meanSquaredError(K float64) float64 {
 }
 
 func findK() float64 {
-	improved := true
-	bestK := 0.5
-	bestError := meanSquaredError(bestK)
+	start, end, step := float64(0), float64(10), float64(1)
+	err := float64(0)
 
-	for iteration := 1; improved; iteration++ {
-		improved = false
-		fmt.Println("Iteration:", iteration)
-		fmt.Println("Best error:", bestError)
-		fmt.Println("Best K:", bestK)
-		fmt.Println()
+	curr := start
+	best := meanSquaredError(start)
 
-		bestK += 0.01
-		newError := meanSquaredError(bestK)
-
-		if newError < bestError {
-			bestError = newError
-			improved = true
-		} else {
-			bestK -= 0.02
-			newError = meanSquaredError(bestK)
-			if newError < bestError {
-				bestError = newError
-				improved = true
+	for i := 0; i < KPrecision; i++ {
+		curr = start - step
+		for curr < end {
+			curr = curr + step
+			err = meanSquaredError(curr)
+			if err <= best {
+				best = err
+				start = curr
 			}
 		}
+
+		fmt.Printf("Best K of %f on iteration %d\n", start, i)
+
+		end = start + step
+		start = start - step
+		step = step / 10.0
 	}
 
-	return bestK
+	return start
 }
 
 func tune() {
@@ -224,17 +219,10 @@ func tune() {
 				continue
 			}
 
-			// fmt.Println("Best error:", bestError)
-			// fmt.Printf("Tuning parameter number %d...\n", weightIdx)
-
 			Weights[weightIdx] += 1
 			newError := meanSquaredError(K)
 
 			if newError < bestError {
-				//fmt.Printf(
-				//	"Improved parameter number %d from %d to %d\n",
-				//	weight_idx, Weights[weight_idx]-1, Weights[weight_idx],
-				//)
 				bestError = newError
 				improved = true
 			} else {
@@ -247,10 +235,6 @@ func tune() {
 
 				newError = meanSquaredError(K)
 				if newError < bestError {
-					//fmt.Printf(
-					//	"Improved parameter number %d from %d to %d\n",
-					//	weight_idx, Weights[weight_idx]+1, Weights[weight_idx],
-					//)
 					bestError = newError
 					improved = true
 				} else {
@@ -260,7 +244,7 @@ func tune() {
 		}
 
 		fmt.Printf("Iteration %d complete...\n", iteration)
-		fmt.Printf("Best error: %f\n", bestError)
+		fmt.Printf("Best error: %.15f\n", bestError)
 
 		if iteration%10 == 0 {
 			printParameters()
@@ -296,18 +280,15 @@ func printParameters() {
 	prettyPrintPSQT(engine.PSQT_EG[engine.Queen])
 	prettyPrintPSQT(engine.PSQT_EG[engine.King])
 
-	fmt.Println(engine.KnightMobility)
-	fmt.Println(engine.BishopMobility)
-	fmt.Println(engine.RookMobilityMG)
-	fmt.Println(engine.RookMobilityEG)
-	fmt.Println(engine.QueenMobilityMG)
-	fmt.Println(engine.QueenMobilityEG)
+	fmt.Println(engine.PieceValueMG)
+	fmt.Println(engine.PieceValueEG)
+	fmt.Println(engine.PieceMobilityMG)
+	fmt.Println(engine.PieceMobilityEG)
 }
 
 func RunTuner(verbose bool) {
 	// K := findK()
 	// fmt.Println("Best K is:", K)
-	// setIgnoredWeights(0, 768)
 
 	tune()
 	mapWeightsToParameters()

@@ -7,10 +7,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
+    "path/filepath"
 )
 
 const (
-	EngineName   = "Blunder 7.1.0 alpha"
+	EngineName   = "Blunder 7.2.0"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
@@ -24,18 +25,25 @@ const (
 	`
 )
 
+type UCIInterface struct {
+	Search        Search
+	OpeningBook   map[uint64]PolyglotEntry
+	OptionUseBook bool
+}
+
 // Respond to the command "uci"
-func uciCommandResponse() {
+func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Printf("\nid name %v\n", EngineName)
 	fmt.Printf("id author %v\n", EngineAuthor)
 	fmt.Printf("\noption name Hash type spin default 64 min 1 max 32000\n")
 	fmt.Print("option name Clear Hash type button\n")
 	fmt.Print("option name Clear History type button\n")
+	fmt.Print("option name OwnBook type check default false\n")
 	fmt.Printf("uciok\n\n")
 }
 
 // Respond to the command "position"
-func positionCommandResponse(pos *Position, command string) {
+func (inter *UCIInterface) positionCommandResponse(command string) {
 	// Load in the fen string describing the position,
 	// or load in the starting position.
 	args := strings.TrimPrefix(command, "position ")
@@ -52,23 +60,23 @@ func positionCommandResponse(pos *Position, command string) {
 
 	// Set the board to the appropriate position and make
 	// the moves that have occured if any to update the position.
-	pos.LoadFEN(fenString)
+	inter.Search.Pos.LoadFEN(fenString)
 	if strings.HasPrefix(args, "moves") {
 		args = strings.TrimPrefix(args, "moves ")
 		for _, moveAsString := range strings.Fields(args) {
-			move := moveFromCoord(pos, moveAsString)
-			pos.MakeMove(move)
+			move := MoveFromCoord(&inter.Search.Pos, moveAsString)
+			inter.Search.Pos.MakeMove(move)
 
 			// Decrementing the history counter here makes
 			// sure that no state is saved on the position's
 			// history stack since this move will never be undone.
-			pos.StatePly--
+			inter.Search.Pos.StatePly--
 		}
 	}
 }
 
 // Respond to the command "setoption"
-func setOptionCommandResponse(search *Search, command string) {
+func (inter *UCIInterface) setOptionCommandResponse(command string) {
 	fields := strings.Fields(command)
 	var option, value string
 	parsingWhat := ""
@@ -87,28 +95,43 @@ func setOptionCommandResponse(search *Search, command string) {
 
 	option = strings.TrimSuffix(option, " ")
 	value = strings.TrimSuffix(value, " ")
-
 	switch option {
 	case "Hash":
 		size, err := strconv.Atoi(value)
 		if err == nil {
-			search.TT.Unitialize()
-			search.TT.Resize(uint64(size))
+			inter.Search.TT.Unitialize()
+			inter.Search.TT.Resize(uint64(size))
 		}
 	case "Clear Hash":
-		search.TT.Clear()
+		inter.Search.TT.Clear()
 	case "Clear History":
-		search.ClearHistoryTable()
+		inter.Search.ClearHistoryTable()
+	case "OwnBook":
+		if value == "true" {
+			inter.OptionUseBook = true
+		} else if value == "false" {
+			inter.OptionUseBook = false
+		}
 	}
 }
 
 // Respond to the command "go"
-func goCommandResponse(search *Search, command string) {
+func (inter *UCIInterface) goCommandResponse(command string) {
+    if inter.OptionUseBook {
+        if entry, ok := inter.OpeningBook[GenPolyglotHash(&inter.Search.Pos)]; ok {
+            move := MoveFromCoord(&inter.Search.Pos, entry.Move)
+            if inter.Search.Pos.MoveIsPseduoLegal(move) {
+                fmt.Printf("bestmove %v\n", move) 
+                return
+            }
+	    }
+    }
+        
 	command = strings.TrimPrefix(command, "go ")
 	fields := strings.Fields(command)
 
 	colorPrefix := "b"
-	if search.Pos.SideToMove == White {
+	if inter.Search.Pos.SideToMove == White {
 		colorPrefix = "w"
 	}
 
@@ -135,30 +158,29 @@ func goCommandResponse(search *Search, command string) {
 	}
 
 	// Setup the timer with the go command time control information.
-	search.Timer.TimeLeft = int64(timeLeft)
-	search.Timer.Increment = int64(increment)
-	search.Timer.MovesToGo = int64(movesToGo)
+	inter.Search.Timer.TimeLeft = int64(timeLeft)
+	inter.Search.Timer.Increment = int64(increment)
+	inter.Search.Timer.MovesToGo = int64(movesToGo)
 
 	// Setup user defined search options if given.
-	search.SpecifiedDepth = uint8(specifiedDepth)
-	search.SpecifiedNodes = specifiedNodes
+	inter.Search.SpecifiedDepth = uint8(specifiedDepth)
+	inter.Search.SpecifiedNodes = specifiedNodes
 
 	// Report the best move found by the engine to the GUI.
-	bestMove := search.Search()
+	bestMove := inter.Search.Search()
 	fmt.Printf("bestmove %v\n", bestMove)
 }
 
-func quitCommandResponse(search *Search) {
-	search.TT.Unitialize()
+func (inter *UCIInterface) quitCommandResponse() {
+	inter.Search.TT.Unitialize()
 }
 
-func printCommandResponse() {
+func (inter *UCIInterface) printCommandResponse() {
 	// print internal engine info
 }
 
-func UCILoop() {
+func (inter *UCIInterface) UCILoop() {
 	reader := bufio.NewReader(os.Stdin)
-	var search Search
 
 	fmt.Println(Banner)
 	fmt.Println("Author:", EngineAuthor)
@@ -166,33 +188,38 @@ func UCILoop() {
 	fmt.Println("Email:", EngineEmail)
 	fmt.Printf("Hash size: %d MB\n\n", DefaultTTSize)
 
-	search.TT.Resize(DefaultTTSize)
-	search.Pos.LoadFEN(FENStartPosition)
+	inter.Search.TT.Resize(DefaultTTSize)
+	inter.Search.Pos.LoadFEN(FENStartPosition) 
+    inter.OpeningBook = make(map[uint64]PolyglotEntry)
+    
+    wd, _ := os.Getwd()
+    parentFolder := filepath.Dir(wd)
+    inter.OpeningBook, _ = LoadPolyglotFile(filepath.Join(parentFolder, "/book/book.bin"))
 
 	for {
 		command, _ := reader.ReadString('\n')
 		command = strings.Replace(command, "\r\n", "\n", -1)
 
 		if command == "uci\n" {
-			uciCommandResponse()
+			inter.uciCommandResponse()
 		} else if command == "isready\n" {
 			fmt.Printf("readyok\n")
 		} else if strings.HasPrefix(command, "setoption") {
-			setOptionCommandResponse(&search, command)
+			inter.setOptionCommandResponse(command)
 		} else if strings.HasPrefix(command, "ucinewgame") {
-			search.TT.Clear()
-			search.ClearHistoryTable()
+			inter.Search.TT.Clear()
+			inter.Search.ClearHistoryTable()
 		} else if strings.HasPrefix(command, "position") {
-			positionCommandResponse(&search.Pos, command)
+			inter.positionCommandResponse(command)
 		} else if strings.HasPrefix(command, "go") {
-			go goCommandResponse(&search, command)
+			go inter.goCommandResponse(command)
 		} else if strings.HasPrefix(command, "stop") {
-			search.Timer.Stop = true
+			inter.Search.Timer.Stop = true
 		} else if command == "quit\n" {
-			quitCommandResponse(&search)
+			inter.quitCommandResponse()
 			break
 		} else if command == "print\n" {
-			printCommandResponse()
+			inter.printCommandResponse()
 		}
 	}
 }

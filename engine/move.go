@@ -94,7 +94,7 @@ func (move Move) String() string {
 }
 
 // Convert a move in UCI format into a Move
-func moveFromCoord(pos *Position, move string) Move {
+func MoveFromCoord(pos *Position, move string) Move {
 	from := CoordinateToPos(move[0:2])
 	to := CoordinateToPos(move[2:4])
 	moved := pos.Squares[from].Type

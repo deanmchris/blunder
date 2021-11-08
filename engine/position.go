@@ -741,6 +741,50 @@ func (pos *Position) EndgameIsDrawn() bool {
 	return false
 }
 
+// Determine if a move is pseduo-legally valid.
+func (pos *Position) MoveIsPseduoLegal(move Move) bool {
+	fromSq, toSq := move.FromSq(), move.ToSq()
+	moved := pos.Squares[fromSq]
+	captured := pos.Squares[toSq]
+
+	toBB := SquareBB[toSq]
+	allBB := pos.SideBB[White] | pos.SideBB[Black]
+	sideToMove := pos.SideToMove
+
+	if moved.Color != sideToMove ||
+		captured.Type == King ||
+		captured.Color == sideToMove {
+		return false
+	}
+
+	if moved.Type == Pawn {
+		if fromSq > 55 || fromSq < 8 {
+			return false
+		}
+
+		// Credit to the Stockfish team for the idea behind this section of code to
+		// verify pseduo-legal pawn moves.
+		if ((PawnAttacks[sideToMove][fromSq] & toBB & allBB) == 0) &&
+			!((fromSq+uint8(pawnPush(sideToMove)) == toSq) && (captured.Type == NoType)) &&
+			!((fromSq+uint8(pawnPush(sideToMove)*2) == toSq) &&
+				captured.Type == NoType &&
+				pos.Squares[toSq-uint8(pawnPush(sideToMove))].Type == NoType &&
+				canDoublePush(fromSq, sideToMove)) {
+			return false
+		}
+	} else {
+		if (moved.Type == Knight && ((KnightMoves[fromSq] & toBB) == 0)) &&
+			(moved.Type == Bishop && ((genBishopMoves(fromSq, allBB) & toBB) == 0)) &&
+			(moved.Type == Rook && ((genRookMoves(fromSq, allBB) & toBB) == 0)) &&
+			(moved.Type == Queen && (((genBishopMoves(fromSq, allBB) | genRookMoves(fromSq, allBB)) & toBB) == 0)) &&
+			(moved.Type == King && ((KingMoves[fromSq] & toBB) == 0)) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Determine if the current position has no majors or miniors left.
 func (pos *Position) NoMajorsOrMiniors() bool {
 	knights := pos.PieceBB[White][Knight].CountBits() + pos.PieceBB[Black][Knight].CountBits()
@@ -757,4 +801,13 @@ func pawnPush(color uint8) int8 {
 		return NorthDelta
 	}
 	return SouthDelta
+}
+
+// Determine if it's legal for a pawn to double push,
+// given it's color and origin square.
+func canDoublePush(fromSq uint8, color uint8) bool {
+	if color == White {
+		return RankOf(fromSq) == Rank2
+	}
+	return RankOf(fromSq) == Rank6
 }
