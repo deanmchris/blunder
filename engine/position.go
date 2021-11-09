@@ -773,10 +773,10 @@ func (pos *Position) MoveIsPseduoLegal(move Move) bool {
 			return false
 		}
 	} else {
-		if (moved.Type == Knight && ((KnightMoves[fromSq] & toBB) == 0)) &&
-			(moved.Type == Bishop && ((genBishopMoves(fromSq, allBB) & toBB) == 0)) &&
-			(moved.Type == Rook && ((genRookMoves(fromSq, allBB) & toBB) == 0)) &&
-			(moved.Type == Queen && (((genBishopMoves(fromSq, allBB) | genRookMoves(fromSq, allBB)) & toBB) == 0)) &&
+		if (moved.Type == Knight && ((KnightMoves[fromSq] & toBB) == 0)) ||
+			(moved.Type == Bishop && ((genBishopMoves(fromSq, allBB) & toBB) == 0)) ||
+			(moved.Type == Rook && ((genRookMoves(fromSq, allBB) & toBB) == 0)) ||
+			(moved.Type == Queen && (((genBishopMoves(fromSq, allBB) | genRookMoves(fromSq, allBB)) & toBB) == 0)) ||
 			(moved.Type == King && ((KingMoves[fromSq] & toBB) == 0)) {
 			return false
 		}

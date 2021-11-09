@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
-    "path/filepath"
 )
 
 const (
@@ -117,16 +117,16 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 
 // Respond to the command "go"
 func (inter *UCIInterface) goCommandResponse(command string) {
-    if inter.OptionUseBook {
-        if entry, ok := inter.OpeningBook[GenPolyglotHash(&inter.Search.Pos)]; ok {
-            move := MoveFromCoord(&inter.Search.Pos, entry.Move)
-            if inter.Search.Pos.MoveIsPseduoLegal(move) {
-                fmt.Printf("bestmove %v\n", move) 
-                return
-            }
-	    }
-    }
-        
+	if inter.OptionUseBook {
+		if entry, ok := inter.OpeningBook[GenPolyglotHash(&inter.Search.Pos)]; ok {
+			move := MoveFromCoord(&inter.Search.Pos, entry.Move)
+			if inter.Search.Pos.MoveIsPseduoLegal(move) {
+				fmt.Printf("bestmove %v\n", move)
+				return
+			}
+		}
+	}
+
 	command = strings.TrimPrefix(command, "go ")
 	fields := strings.Fields(command)
 
@@ -189,12 +189,12 @@ func (inter *UCIInterface) UCILoop() {
 	fmt.Printf("Hash size: %d MB\n\n", DefaultTTSize)
 
 	inter.Search.TT.Resize(DefaultTTSize)
-	inter.Search.Pos.LoadFEN(FENStartPosition) 
-    inter.OpeningBook = make(map[uint64]PolyglotEntry)
-    
-    wd, _ := os.Getwd()
-    parentFolder := filepath.Dir(wd)
-    inter.OpeningBook, _ = LoadPolyglotFile(filepath.Join(parentFolder, "/book/book.bin"))
+	inter.Search.Pos.LoadFEN(FENStartPosition)
+	inter.OpeningBook = make(map[uint64]PolyglotEntry)
+
+	wd, _ := os.Getwd()
+	parentFolder := filepath.Dir(wd)
+	inter.OpeningBook, _ = LoadPolyglotFile(filepath.Join(parentFolder, "/book/book.bin"))
 
 	for {
 		command, _ := reader.ReadString('\n')

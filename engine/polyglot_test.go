@@ -29,7 +29,7 @@ func TestPolyglotHashing(t *testing.T) {
 
 	for _, polyglotPos := range PolyglotTestPositions {
 		pos.LoadFEN(polyglotPos.Fen)
-		hash := GenPolyGlotHash(&pos)
+		hash := GenPolyglotHash(&pos)
 		if hash != polyglotPos.Hash {
 			t.Error(
 				fmt.Sprintf(

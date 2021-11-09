@@ -12,17 +12,16 @@ import (
 )
 
 const (
-	DataFile   = "/home/algerbrex/E12.41-1M-D12-Resolved.book"
+	DataFile   = "/home/algerbrex/quiet-labeled.epd"
 	NumCores   = 4
 	NumWeights = 786
 	KPrecision = 10
 
-	ErrPrecision float64 = 0.0000000001
 	Draw         float64 = 0.5
 	WhiteWin     float64 = 1.0
 	BlackWin     float64 = 0.0
 	NumPositions float64 = 400000.0
-	K            float64 = 1.24
+	K            float64 = 1.65
 )
 
 // A struct object to hold data concering a position loaded from the training file.
@@ -34,7 +33,7 @@ type Position struct {
 }
 
 // A global variable to hold the positions loaded from the training file.
-var Positions = loadPositions(0)
+var Positions = loadPositions()
 
 // A global variable to hold the parallel computations of the MSE function.
 var Answers = make(chan float64)
@@ -77,7 +76,7 @@ func loadWeights() (weights []int16) {
 }
 
 // Load the given number of positions from the training set file.
-func loadPositions(start int) (positions []Position) {
+func loadPositions() (positions []Position) {
 	file, err := os.Open(DataFile)
 	if err != nil {
 		panic(err)
@@ -85,21 +84,17 @@ func loadPositions(start int) (positions []Position) {
 	reader := bufio.NewReader(file)
 	scanner := bufio.NewScanner(reader)
 
-	for positionCount := 0; scanner.Scan() && positionCount < start+int(NumPositions); positionCount++ {
-		if positionCount < start {
-			continue
-		}
-
+	for positionCount := 0; scanner.Scan() && positionCount < int(NumPositions); positionCount++ {
 		line := scanner.Text()
 		fields := strings.Fields(line)
 
-		fen := fmt.Sprintf("%s %s %s %s %s %s", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5])
-		result := fields[6]
+		fen := fields[0] + " " + fields[1] + " - - 0 1"
+		result := fields[5]
 
 		outcome := Draw
-		if result == "[1.0]" {
+		if result == "\"1-0\";" {
 			outcome = WhiteWin
-		} else if result == "[0.0]" {
+		} else if result == "\"0-1\";" {
 			outcome = BlackWin
 		}
 
