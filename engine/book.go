@@ -54,13 +54,13 @@ type PolyglotEntry struct {
 // Parse a polyglot file and create a map of PolyglotEntry's
 // from it. Each zobrist hash for an entry maps to the moves
 // and weight of the entry.
-func LoadPolyglotFile(path string) (map[uint64]PolyglotEntry, error) {
+func LoadPolyglotFile(path string) (map[uint64][]PolyglotEntry, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	reader := bufio.NewReader(file)
-	entries := make(map[uint64]PolyglotEntry)
+	entries := make(map[uint64][]PolyglotEntry)
 
 	for {
 		var entryBytes [EntryByteLength]byte
@@ -115,7 +115,7 @@ func LoadPolyglotFile(path string) (map[uint64]PolyglotEntry, error) {
 		bytesBuffer.Reset()
 		bytesBuffer.Write(entryBytes[12:16])
 		binary.Read(bytesBuffer, binary.BigEndian, &learn)
-		entries[entry.Hash] = entry
+		entries[entry.Hash] = append(entries[entry.Hash], entry)
 	}
 	return entries, nil
 }

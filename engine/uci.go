@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"math"
+	"math/rand"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -23,12 +24,17 @@ const (
 ██████╦╝███████╗╚██████╔╝██║░╚███║██████╔╝███████╗██║░░██║
 ╚═════╝░╚══════╝░╚═════╝░╚═╝░░╚══╝╚═════╝░╚══════╝╚═╝░░╚═╝
 	`
+
+	DefaultBookMoveDelay = 2
 )
 
 type UCIInterface struct {
-	Search        Search
-	OpeningBook   map[uint64]PolyglotEntry
-	OptionUseBook bool
+	Search      Search
+	OpeningBook map[uint64][]PolyglotEntry
+
+	OptionUseBook       bool
+	OptionBookPath      string
+	OptionBookMoveDelay int
 }
 
 // Respond to the command "uci"
@@ -38,7 +44,9 @@ func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Printf("\noption name Hash type spin default 64 min 1 max 32000\n")
 	fmt.Print("option name Clear Hash type button\n")
 	fmt.Print("option name Clear History type button\n")
-	fmt.Print("option name OwnBook type check default false\n")
+	fmt.Print("option name UseBook type check default false\n")
+	fmt.Print("option name BookPath type string default\n")
+	fmt.Print("option name BookMoveDelay type spin default 2 min 0 max 10\n")
 	fmt.Printf("uciok\n\n")
 }
 
@@ -95,6 +103,7 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 
 	option = strings.TrimSuffix(option, " ")
 	value = strings.TrimSuffix(value, " ")
+
 	switch option {
 	case "Hash":
 		size, err := strconv.Atoi(value)
@@ -106,11 +115,25 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 		inter.Search.TT.Clear()
 	case "Clear History":
 		inter.Search.ClearHistoryTable()
-	case "OwnBook":
+	case "UseBook":
 		if value == "true" {
 			inter.OptionUseBook = true
 		} else if value == "false" {
 			inter.OptionUseBook = false
+		}
+	case "BookPath":
+		var err error
+		inter.OpeningBook, err = LoadPolyglotFile(value)
+
+		if err == nil {
+			fmt.Println("Opening book loaded...")
+		} else {
+			fmt.Println("Failed to load opening book...")
+		}
+	case "BookMoveDelay":
+		size, err := strconv.Atoi(value)
+		if err == nil {
+			inter.OptionBookMoveDelay = size
 		}
 	}
 }
@@ -118,9 +141,15 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 // Respond to the command "go"
 func (inter *UCIInterface) goCommandResponse(command string) {
 	if inter.OptionUseBook {
-		if entry, ok := inter.OpeningBook[GenPolyglotHash(&inter.Search.Pos)]; ok {
+		if entries, ok := inter.OpeningBook[GenPolyglotHash(&inter.Search.Pos)]; ok {
+
+			// To allow opening variety, randomly select a move from an entry matching
+			// the current position.
+			entry := entries[rand.Intn(len(entries))]
 			move := MoveFromCoord(&inter.Search.Pos, entry.Move)
+
 			if inter.Search.Pos.MoveIsPseduoLegal(move) {
+				time.Sleep(time.Duration(inter.OptionBookMoveDelay) * time.Second)
 				fmt.Printf("bestmove %v\n", move)
 				return
 			}
@@ -180,6 +209,7 @@ func (inter *UCIInterface) printCommandResponse() {
 }
 
 func (inter *UCIInterface) UCILoop() {
+	rand.Seed(time.Now().Unix())
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println(Banner)
@@ -190,11 +220,8 @@ func (inter *UCIInterface) UCILoop() {
 
 	inter.Search.TT.Resize(DefaultTTSize)
 	inter.Search.Pos.LoadFEN(FENStartPosition)
-	inter.OpeningBook = make(map[uint64]PolyglotEntry)
-
-	wd, _ := os.Getwd()
-	parentFolder := filepath.Dir(wd)
-	inter.OpeningBook, _ = LoadPolyglotFile(filepath.Join(parentFolder, "/book/book.bin"))
+	inter.OpeningBook = make(map[uint64][]PolyglotEntry)
+	inter.OptionBookMoveDelay = DefaultBookMoveDelay
 
 	for {
 		command, _ := reader.ReadString('\n')

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	DataFile   = "/home/algerbrex/quiet-labeled.epd"
+	DataFile   = ""
 	NumCores   = 4
 	NumWeights = 786
 	KPrecision = 10
