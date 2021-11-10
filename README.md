@@ -23,15 +23,20 @@ straightforward and easy to read, so that others can benefit from the project.
 Installation
 -----
 
-Compiling Blunder is fairly simple.
+Builds for Windows, Linux, and MacOS are included with each release of Blunder. However, if you
+prefer to build Blunder from scratch the steps to do so are outlined below.
 
-All that is needed is to visit [Golang download page](https://golang.org/dl/), and install Golang using the download
+Visit [Golang download page](https://golang.org/dl/), and install Golang using the download
 package appropriate for your machine. To make using the Golang compiler easier, make sure that if the installer asks,
 you let it add the Golang compiler command to your path.
 
 Your installation should be up and running in about 5-7 minutes, and from there, you need to open up a terminal/powershell/
 command line, navigate to `blunder/blunder`, and run `go build`. This will create an executable for your computer, which you
 should then able to run.
+
+Alternatively, if the `make` build automation tool is installed on your computer (it comes standard on most Linux systems),
+simply download this repository's zip file, unzip it, navigate to the primary folder, and run `make` from the command line.
+An executable for WIndows, Linux, and MacOS will be built and placed inside of the primary directory.
 
 Usage
 -----
@@ -99,7 +104,7 @@ Features
  the Stockfish Developers.
  ```
  
- These credits will be updated from time to time as a remember or encounter more people who have helped me
+ These credits will be updated from time to time as I remember or encounter more people who have helped me
  in Blunder's development.
 
  License
