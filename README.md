@@ -2,7 +2,7 @@ Overview
 --------
 
 [Blunder](http://ccrl.chessdom.com/ccrl/404/cgi/compare_engines.cgi?family=Blunder&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
-straightforward and easy to read, so that others can benefit from the project.
+be straightforward and easy to read, so that others can benefit from the project.
 
 | Version     | Estimated Rating (Elo) | CCRL Rating (Elo) | WAC<sup>1</sup>     | IQ6 <sup>2</sup>
 | ----------- | -----------------------|-------------------|---------------------|-----------------
