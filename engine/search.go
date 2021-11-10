@@ -47,7 +47,7 @@ var MvvLva [7][6]uint16 = [7][6]uint16{
 	{15, 14, 13, 12, 11, 10}, // victim Pawn
 	{25, 24, 23, 22, 21, 20}, // victim Knight
 	{35, 34, 33, 32, 31, 30}, // victim Bishop
-	{45, 44, 43, 42, 41, 40}, // vitcim Rook
+	{45, 44, 43, 42, 41, 40}, // victim Rook
 	{55, 54, 53, 52, 51, 50}, // victim Queen
 
 	{0, 0, 0, 0, 0, 0}, // victim King
