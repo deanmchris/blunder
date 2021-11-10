@@ -1,5 +1,6 @@
 Changelog
 ---------
+* Blunder 7.2.0
 * Blunder 7.1.0
 * Blunder 7.0.0
 * Blunder 6.1.0
@@ -9,6 +10,16 @@ Changelog
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 7.2.0
+-------------
+
+This release is not a notable strength improvement over 7.1.0. However, 7.2.0 does introduce a polyglot opening book loader as the primary new feature. Several UCI options are provided to make usage of the loader. Addtionally, various places in the codebase have been refactored and cleaned-up, and the evaluation for Blunder has been retuned and restructured to allow for more granularity. Lastly, a makefile is now included so Blunder can be more easily compiled across platforms.
+
+* Engine
+    - Polyglot opening book loader
+* Evaluation
+   - Refactored & retuned
 
 Blunder 7.1.0
 -------------
