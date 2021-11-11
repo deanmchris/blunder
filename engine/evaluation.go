@@ -13,7 +13,29 @@ const (
 	Inf            int16 = 10000
 	MiddleGameDraw int16 = 25
 	EndGameDraw    int16 = 0
+
+	// Constants representing indexes into a table of pawn shield
+	// bitboards, kingside and queenside.
+	Queenside = 0
+	Kingside  = 1
 )
+
+type Eval struct {
+	MGScores [2]int16
+	EGScores [2]int16
+
+	KingZones        [2]Bitboard
+	KingSafteyPoints [2]uint8
+}
+
+var SemiOpenFilePenalty uint8 = 4
+var MissingPawnInShieldPenalty uint8 = 2
+var PieceAttackValue [4]uint8 = [4]uint8{2, 2, 3, 5}
+var KingSafteyScore [30]int16 = [30]int16{
+	0, 0, 1, 3, 6, 10, 14, 19, 25, 32,
+	40, 48, 57, 67, 78, 90, 102, 115, 129, 144,
+	160, 176, 193, 211, 230, 250, 270, 291, 313, 336,
+}
 
 var PieceValueMG [5]int16 = [5]int16{89, 309, 339, 458, 940}
 var PieceValueEG [5]int16 = [5]int16{130, 270, 289, 501, 929}
@@ -211,62 +233,75 @@ var FlipSq [2][64]int = [2][64]int{
 // Evaluate a position and give a score, from the perspective of the side to move (
 // more positive if it's good for the side to move, otherwise more negative).
 func EvaluatePos(pos *Position) int16 {
-	var mgScores, egScores [2]int16
+	var eval Eval
 	phase := TotalPhase
 
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
+	eval.KingZones[White] = KingZones[White][pos.PieceBB[White][King].Msb()]
+	eval.KingZones[Black] = KingZones[Black][pos.PieceBB[Black][King].Msb()]
+
 	for allBB != 0 {
 		sq := allBB.PopBit()
 		piece := pos.Squares[sq]
 
 		switch piece.Type {
 		case Pawn:
-			evalPawn(pos, piece.Color, sq, &mgScores, &egScores)
+			evalPawn(pos, piece.Color, sq, &eval)
 		case Knight:
-			evalKnight(pos, piece.Color, sq, &mgScores, &egScores)
+			evalKnight(pos, piece.Color, sq, &eval)
 		case Bishop:
-			evalBishop(pos, piece.Color, sq, &mgScores, &egScores)
+			evalBishop(pos, piece.Color, sq, &eval)
 		case Rook:
-			evalRook(pos, piece.Color, sq, &mgScores, &egScores)
+			evalRook(pos, piece.Color, sq, &eval)
 		case Queen:
-			evalQueen(pos, piece.Color, sq, &mgScores, &egScores)
+			evalQueen(pos, piece.Color, sq, &eval)
 		case King:
-			evalKing(pos, piece.Color, sq, &mgScores, &egScores)
+			evalKing(pos, piece.Color, sq, &eval)
 		}
 
 		phase -= PhaseValues[piece.Type]
 	}
 
-	mgScore := mgScores[pos.SideToMove] - mgScores[pos.SideToMove^1]
-	egScore := egScores[pos.SideToMove] - egScores[pos.SideToMove^1]
+	mgScore := eval.MGScores[pos.SideToMove] - eval.MGScores[pos.SideToMove^1]
+	egScore := eval.EGScores[pos.SideToMove] - eval.EGScores[pos.SideToMove^1]
 
 	phase = (phase*256 + (TotalPhase / 2)) / TotalPhase
-	return int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
+	score := int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
+
+	score -= evalKingSaftey(pos, pos.SideToMove, &eval)
+	score += evalKingSaftey(pos, pos.SideToMove^1, &eval)
+
+	return score
+}
+
+// Evaluate the score of a pawn.
+func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Pawn] + PSQT_MG[Pawn][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Pawn] + PSQT_EG[Pawn][FlipSq[color][sq]]
 }
 
 // Evaluate the score of a knight.
-func evalPawn(pos *Position, color, sq uint8, mgScores, egScores *[2]int16) {
-	mgScores[color] += PieceValueMG[Pawn] + PSQT_MG[Pawn][FlipSq[color][sq]]
-	egScores[color] += PieceValueEG[Pawn] + PSQT_EG[Pawn][FlipSq[color][sq]]
-}
-
-// Evaluate the score of a knight.
-func evalKnight(pos *Position, color, sq uint8, mgScores, egScores *[2]int16) {
-	mgScores[color] += PieceValueMG[Knight] + PSQT_MG[Knight][FlipSq[color][sq]]
-	egScores[color] += PieceValueEG[Knight] + PSQT_EG[Knight][FlipSq[color][sq]]
+func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Knight] + PSQT_MG[Knight][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Knight] + PSQT_EG[Knight][FlipSq[color][sq]]
 
 	usBB := pos.SideBB[color]
 	moves := KnightMoves[sq] & ^usBB
 	mobility := int16(moves.CountBits())
 
-	mgScores[color] += (mobility - 4) * PieceMobilityMG[Knight-1]
-	egScores[color] += (mobility - 4) * PieceMobilityEG[Knight-1]
+	eval.MGScores[color] += (mobility - 4) * PieceMobilityMG[Knight-1]
+	eval.EGScores[color] += (mobility - 4) * PieceMobilityEG[Knight-1]
+
+	kingZoneAttacks := moves & eval.KingZones[color^1]
+	if kingZoneAttacks != 0 {
+		eval.KingSafteyPoints[color] += uint8(kingZoneAttacks.CountBits()) * PieceAttackValue[Knight-1]
+	}
 }
 
 // Evaluate the score of a bishop.
-func evalBishop(pos *Position, color, sq uint8, mgScores, egScores *[2]int16) {
-	mgScores[color] += PieceValueMG[Bishop] + PSQT_MG[Bishop][FlipSq[color][sq]]
-	egScores[color] += PieceValueEG[Bishop] + PSQT_EG[Bishop][FlipSq[color][sq]]
+func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Bishop] + PSQT_MG[Bishop][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Bishop] + PSQT_EG[Bishop][FlipSq[color][sq]]
 
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
@@ -274,14 +309,19 @@ func evalBishop(pos *Position, color, sq uint8, mgScores, egScores *[2]int16) {
 	moves := genBishopMoves(sq, allBB) & ^usBB
 	mobility := int16(moves.CountBits())
 
-	mgScores[color] += (mobility - 7) * PieceMobilityMG[Bishop-1]
-	egScores[color] += (mobility - 7) * PieceMobilityEG[Bishop-1]
+	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Bishop-1]
+	eval.EGScores[color] += (mobility - 7) * PieceMobilityEG[Bishop-1]
+
+	kingZoneAttacks := moves & eval.KingZones[color^1]
+	if kingZoneAttacks != 0 {
+		eval.KingSafteyPoints[color] += uint8(kingZoneAttacks.CountBits()) * PieceAttackValue[Bishop-1]
+	}
 }
 
 // Evaluate the score of a rook.
-func evalRook(pos *Position, color, sq uint8, mgScores, egScores *[2]int16) {
-	mgScores[color] += PieceValueMG[Rook] + PSQT_MG[Rook][FlipSq[color][sq]]
-	egScores[color] += PieceValueEG[Rook] + PSQT_EG[Rook][FlipSq[color][sq]]
+func evalRook(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Rook] + PSQT_MG[Rook][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Rook] + PSQT_EG[Rook][FlipSq[color][sq]]
 
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
@@ -289,14 +329,19 @@ func evalRook(pos *Position, color, sq uint8, mgScores, egScores *[2]int16) {
 	moves := genRookMoves(sq, allBB) & ^usBB
 	mobility := int16(moves.CountBits())
 
-	mgScores[color] += (mobility - 7) * PieceMobilityMG[Rook-1]
-	egScores[color] += (mobility - 7) * PieceMobilityEG[Rook-1]
+	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Rook-1]
+	eval.EGScores[color] += (mobility - 7) * PieceMobilityEG[Rook-1]
+
+	kingZoneAttacks := moves & eval.KingZones[color^1]
+	if kingZoneAttacks != 0 {
+		eval.KingSafteyPoints[color] += uint8(kingZoneAttacks.CountBits()) * PieceAttackValue[Rook-1]
+	}
 }
 
 // Evaluate the score of a queen.
-func evalQueen(pos *Position, color, sq uint8, mgScores, egScores *[2]int16) {
-	mgScores[color] += PieceValueMG[Queen] + PSQT_MG[Queen][FlipSq[color][sq]]
-	egScores[color] += PieceValueEG[Queen] + PSQT_EG[Queen][FlipSq[color][sq]]
+func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Queen] + PSQT_MG[Queen][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Queen] + PSQT_EG[Queen][FlipSq[color][sq]]
 
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
@@ -304,12 +349,57 @@ func evalQueen(pos *Position, color, sq uint8, mgScores, egScores *[2]int16) {
 	moves := (genBishopMoves(sq, allBB) | genRookMoves(sq, allBB)) & ^usBB
 	mobility := int16(moves.CountBits())
 
-	mgScores[color] += (mobility - 14) * PieceMobilityMG[Queen-1]
-	egScores[color] += (mobility - 14) * PieceMobilityEG[Queen-1]
+	eval.MGScores[color] += (mobility - 14) * PieceMobilityMG[Queen-1]
+	eval.EGScores[color] += (mobility - 14) * PieceMobilityEG[Queen-1]
+
+	kingZoneAttacks := moves & eval.KingZones[color^1]
+	if kingZoneAttacks != 0 {
+		eval.KingSafteyPoints[color] += uint8(kingZoneAttacks.CountBits()) * PieceAttackValue[Queen-1]
+	}
 }
 
-// Evaluate the score of a queen.
-func evalKing(pos *Position, color, sq uint8, mgScores, egScores *[2]int16) {
-	mgScores[color] += PSQT_MG[King][FlipSq[color][sq]]
-	egScores[color] += PSQT_EG[King][FlipSq[color][sq]]
+// Evaluate the score of a king.
+func evalKing(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PSQT_MG[King][FlipSq[color][sq]]
+	eval.EGScores[color] += PSQT_EG[King][FlipSq[color][sq]]
+}
+
+func evalKingSaftey(pos *Position, color uint8, eval *Eval) int16 {
+	kingSq := pos.PieceBB[color][King].Msb()
+	kingFile := MaskFile[FileOf(kingSq)]
+	ourPawns := pos.PieceBB[color][Pawn]
+
+	// Evaluate semi-open files adjacent to the king
+	fileToLeft := ((kingFile & ClearFile[FileA]) << 1)
+	fileToRight := ((kingFile & ClearFile[FileH]) >> 1)
+
+	if fileToLeft != 0 && fileToLeft&ourPawns == 0 {
+		eval.KingSafteyPoints[color^1] += SemiOpenFilePenalty
+	}
+
+	if fileToRight != 0 && fileToRight&ourPawns == 0 {
+		eval.KingSafteyPoints[color^1] += SemiOpenFilePenalty
+	}
+
+	// Now evaluate the pawn shield
+	castlingSide := Queenside
+	if FileOf(kingSq) > FileE {
+		castlingSide = Kingside
+	}
+
+	missingPawns := uint8(3 - (PawnShields[color][castlingSide] & ourPawns).CountBits())
+	eval.KingSafteyPoints[color^1] += missingPawns * MissingPawnInShieldPenalty
+
+	// Finally take all the king saftey points collected for the enemy,
+	// and see what kind of penatly we should get by indexing the
+	// non-linear king-saftey table.
+	points := min(eval.KingSafteyPoints[color^1], uint8(len(KingSafteyScore)-1))
+	return KingSafteyScore[points]
+}
+
+func min(a, b uint8) uint8 {
+	if a < b {
+		return a
+	}
+	return b
 }

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 7.2.0"
+	EngineName   = "Blunder 7.3.0"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
@@ -247,6 +247,8 @@ func (inter *UCIInterface) UCILoop() {
 			break
 		} else if command == "print\n" {
 			inter.printCommandResponse()
+		} else if command == "eval\n" {
+			fmt.Println(EvaluatePos(&inter.Search.Pos), "cp")
 		}
 	}
 }

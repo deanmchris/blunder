@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	DataFile   = ""
+	DataFile   = "/home/algerbrex/quiet-labeled.epd"
 	NumCores   = 4
-	NumWeights = 786
+	NumWeights = 816
 	KPrecision = 10
 
 	Draw         float64 = 0.5
@@ -71,6 +71,7 @@ func loadWeights() (weights []int16) {
 	copy(weights[773:778], engine.PieceValueEG[:])
 	copy(weights[778:782], engine.PieceMobilityMG[:])
 	copy(weights[782:786], engine.PieceMobilityEG[:])
+	copy(weights[786:816], engine.KingSafteyScore[:])
 
 	return weights
 }
@@ -126,6 +127,7 @@ func mapWeightsToParameters() {
 	copy(engine.PieceValueEG[:], Weights[773:778])
 	copy(engine.PieceMobilityMG[:], Weights[778:782])
 	copy(engine.PieceMobilityEG[:], Weights[782:786])
+	copy(engine.KingSafteyScore[:], Weights[786:816])
 }
 
 // Evaluate the position from the training set file.
@@ -279,6 +281,8 @@ func printParameters() {
 	fmt.Println(engine.PieceValueEG)
 	fmt.Println(engine.PieceMobilityMG)
 	fmt.Println(engine.PieceMobilityEG)
+
+	fmt.Println(engine.KingSafteyScore)
 }
 
 func RunTuner(verbose bool) {

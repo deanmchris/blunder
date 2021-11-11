@@ -232,6 +232,12 @@ var MaskFile [8]Bitboard = [8]Bitboard{
 	0x101010101010101,
 }
 
+var KingZones [2][64]Bitboard
+var PawnShields [2][2]Bitboard = [2][2]Bitboard{
+	{0xe000, 0x700},
+	{0xe0000000000000, 0x7000000000000},
+}
+
 // Generate a blocker mask for rooks.
 func GenRookMasks(sq uint8) Bitboard {
 	slider := SquareBB[sq]
@@ -431,5 +437,12 @@ func init() {
 			Between[sq1][sq2] = Lines[sq1][sq2] & ((FullBB >> sq1) ^ (FullBB >> sq2))
 			Between[sq1][sq2] = Between[sq1][sq2] | SquareBB[sq1] | SquareBB[sq2]
 		}
+	}
+
+	// Intial tables used in the evaluation.
+	for sq := 0; sq < 64; sq++ {
+		kingZone := KingMoves[sq]
+		KingZones[White][sq] = kingZone | (kingZone >> 8)
+		KingZones[Black][sq] = kingZone | (kingZone << 8)
 	}
 }
