@@ -288,6 +288,7 @@ func printParameters() {
 func RunTuner(verbose bool) {
 	// K := findK()
 	// fmt.Println("Best K is:", K)
+	setIgnoredWeights(0, 786)
 
 	tune()
 	mapWeightsToParameters()

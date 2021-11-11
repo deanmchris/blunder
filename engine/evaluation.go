@@ -25,6 +25,7 @@ type Eval struct {
 	EGScores [2]int16
 
 	KingZones        [2]Bitboard
+	KingAttackers    [2]uint8
 	KingSafteyPoints [2]uint8
 }
 
@@ -295,6 +296,7 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 	kingZoneAttacks := moves & eval.KingZones[color^1]
 	if kingZoneAttacks != 0 {
 		eval.KingSafteyPoints[color] += uint8(kingZoneAttacks.CountBits()) * PieceAttackValue[Knight-1]
+		eval.KingAttackers[color]++
 	}
 }
 
@@ -315,6 +317,7 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 	kingZoneAttacks := moves & eval.KingZones[color^1]
 	if kingZoneAttacks != 0 {
 		eval.KingSafteyPoints[color] += uint8(kingZoneAttacks.CountBits()) * PieceAttackValue[Bishop-1]
+		eval.KingAttackers[color]++
 	}
 }
 
@@ -335,6 +338,7 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 	kingZoneAttacks := moves & eval.KingZones[color^1]
 	if kingZoneAttacks != 0 {
 		eval.KingSafteyPoints[color] += uint8(kingZoneAttacks.CountBits()) * PieceAttackValue[Rook-1]
+		eval.KingAttackers[color]++
 	}
 }
 
@@ -355,6 +359,7 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 	kingZoneAttacks := moves & eval.KingZones[color^1]
 	if kingZoneAttacks != 0 {
 		eval.KingSafteyPoints[color] += uint8(kingZoneAttacks.CountBits()) * PieceAttackValue[Queen-1]
+		eval.KingAttackers[color]++
 	}
 }
 
@@ -394,7 +399,16 @@ func evalKingSaftey(pos *Position, color uint8, eval *Eval) int16 {
 	// and see what kind of penatly we should get by indexing the
 	// non-linear king-saftey table.
 	points := min(eval.KingSafteyPoints[color^1], uint8(len(KingSafteyScore)-1))
-	return KingSafteyScore[points]
+	safetyScore := KingSafteyScore[points]
+
+	// Be careful about when we apply a king safety score. Don't consider
+	// king safety if the attacker has less than two attacking pieces, or
+	// the attacking side has no queen. This should help to prevent
+	// unsound attacks.
+	if eval.KingAttackers[color^1] < 2 || pos.PieceBB[color^1][Queen].CountBits() == 0 {
+		return 0
+	}
+	return safetyScore
 }
 
 func min(a, b uint8) uint8 {
