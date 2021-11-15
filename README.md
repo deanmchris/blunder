@@ -68,7 +68,7 @@ Features
     - [MVV-LVA move ordering](https://www.chessprogramming.org/MVV-LVA)
     - [Quiescence search](https://www.chessprogramming.org/Quiescence_Search)
     - [Time-control logic supporting classical, rapid, bullet, and ultra-bullet time formats](https://www.chessprogramming.org/Time_Management).
-    - [Repition detection](https://www.chessprogramming.org/Repetitions)
+    - [Repetition detection](https://www.chessprogramming.org/Repetitions)
     - [Killer moves](https://www.chessprogramming.org/Killer_Move)
     - [Transposition table](https://www.chessprogramming.org/Transposition_Table)
     - [Null-move pruning](https://www.chessprogramming.org/Null_Move_Pruning)
