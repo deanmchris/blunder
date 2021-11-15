@@ -47,6 +47,8 @@ func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Print("option name UseBook type check default false\n")
 	fmt.Print("option name BookPath type string default\n")
 	fmt.Print("option name BookMoveDelay type spin default 2 min 0 max 10\n")
+	fmt.Print("option name MiddleGameContempt type spin default 25 min 0 max 100\n")
+	fmt.Print("option name EndGameContempt type spin default 0 min 0 max 100\n")
 	fmt.Printf("uciok\n\n")
 }
 
@@ -134,6 +136,16 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 		size, err := strconv.Atoi(value)
 		if err == nil {
 			inter.OptionBookMoveDelay = size
+		}
+	case "MiddleGameContempt":
+		contempt, err := strconv.Atoi(value)
+		if err == nil {
+			MiddleGameDraw = int16(contempt)
+		}
+	case "EndGameContempt":
+		contempt, err := strconv.Atoi(value)
+		if err == nil {
+			EndGameDraw = int16(contempt)
 		}
 	}
 }

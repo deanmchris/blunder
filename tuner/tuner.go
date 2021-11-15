@@ -12,16 +12,16 @@ import (
 )
 
 const (
-	DataFile   = "/home/algerbrex/quiet-labeled.epd"
+	DataFile   = ""
 	NumCores   = 4
-	NumWeights = 816
+	NumWeights = 786
 	KPrecision = 10
 
 	Draw         float64 = 0.5
 	WhiteWin     float64 = 1.0
 	BlackWin     float64 = 0.0
 	NumPositions float64 = 400000.0
-	K            float64 = 1.65
+	K            float64 = 1.62
 )
 
 // A struct object to hold data concering a position loaded from the training file.
@@ -71,7 +71,6 @@ func loadWeights() (weights []int16) {
 	copy(weights[773:778], engine.PieceValueEG[:])
 	copy(weights[778:782], engine.PieceMobilityMG[:])
 	copy(weights[782:786], engine.PieceMobilityEG[:])
-	copy(weights[786:816], engine.KingSafteyScore[:])
 
 	return weights
 }
@@ -127,7 +126,6 @@ func mapWeightsToParameters() {
 	copy(engine.PieceValueEG[:], Weights[773:778])
 	copy(engine.PieceMobilityMG[:], Weights[778:782])
 	copy(engine.PieceMobilityEG[:], Weights[782:786])
-	copy(engine.KingSafteyScore[:], Weights[786:816])
 }
 
 // Evaluate the position from the training set file.
@@ -281,14 +279,11 @@ func printParameters() {
 	fmt.Println(engine.PieceValueEG)
 	fmt.Println(engine.PieceMobilityMG)
 	fmt.Println(engine.PieceMobilityEG)
-
-	fmt.Println(engine.KingSafteyScore)
 }
 
 func RunTuner(verbose bool) {
 	// K := findK()
 	// fmt.Println("Best K is:", K)
-	setIgnoredWeights(0, 786)
 
 	tune()
 	mapWeightsToParameters()

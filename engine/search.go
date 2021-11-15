@@ -56,30 +56,30 @@ var MvvLva [7][6]uint16 = [7][6]uint16{
 
 // A struct representing a principal variation line.
 type PVLine struct {
-	moves []Move
+	Moves []Move
 }
 
 // Clear the principal variation line.
 func (pvLine *PVLine) Clear() {
-	pvLine.moves = nil
+	pvLine.Moves = nil
 }
 
 // Update the principal variation line with a new best move,
 // and a new line of best play after the best move.
 func (pvLine *PVLine) Update(move Move, newPVLine PVLine) {
 	pvLine.Clear()
-	pvLine.moves = append(pvLine.moves, move)
-	pvLine.moves = append(pvLine.moves, newPVLine.moves...)
+	pvLine.Moves = append(pvLine.Moves, move)
+	pvLine.Moves = append(pvLine.Moves, newPVLine.Moves...)
 }
 
 // Get the best move from the principal variation line.
 func (pvLine *PVLine) GetPVMove() Move {
-	return pvLine.moves[0]
+	return pvLine.Moves[0]
 }
 
 // Convert the principal variation line to a string.
 func (pvLine PVLine) String() string {
-	pv := fmt.Sprintf("%s", pvLine.moves)
+	pv := fmt.Sprintf("%s", pvLine.Moves)
 	return pv[1 : len(pv)-1]
 }
 
@@ -212,7 +212,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// score.
 	if depth <= 0 {
 		search.nodes--
-		return search.Qsearch(alpha, beta, ply)
+		return search.Qsearch(alpha, beta, 0, ply, pvLine)
 	}
 
 	// Don't do any extra work if the current position is a draw. We
@@ -433,7 +433,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 // a special form of negamax until the position is quiet (i.e there are no
 // winning tatical captures). Doing this is known as quiescence search, and
 // it makes the static evaluation much more accurate.
-func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8) int16 {
+func (search *Search) Qsearch(alpha, beta int16, ply, negamaxPly uint8, pvLine *PVLine) int16 {
 	search.nodes++
 
 	if (search.nodes & 2047) == 0 {
@@ -448,12 +448,13 @@ func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 		return 0
 	}
 
+	inCheck := search.Pos.InCheck()
 	bestScore := EvaluatePos(&search.Pos)
 
 	// If the score is greater than beta, what our opponet can
 	// already guarantee early in the search tree, then we
 	// have a beta-cutoff.
-	if bestScore >= beta {
+	if bestScore >= beta && !inCheck {
 		return bestScore
 	}
 
@@ -463,8 +464,16 @@ func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 		alpha = bestScore
 	}
 
-	moves := genCaptures(&search.Pos)
+	var moves MoveList
+	if inCheck {
+		moves = GenMoves(&search.Pos)
+	} else {
+		moves = genCaptures(&search.Pos)
+	}
+
 	search.scoreMoves(&moves, NullMove, negamaxPly)
+	var legalMoves int
+	var childPVLine PVLine
 
 	for index := 0; index < int(moves.Count); index++ {
 		orderMoves(index, &moves)
@@ -480,7 +489,8 @@ func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 			continue
 		}
 
-		score := -search.Qsearch(-beta, -alpha, negamaxPly)
+		legalMoves++
+		score := -search.Qsearch(-beta, -alpha, ply+1, negamaxPly, &childPVLine)
 		search.Pos.UnmakeMove(move)
 
 		if score > bestScore {
@@ -493,7 +503,14 @@ func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8) int16 {
 
 		if score > alpha {
 			alpha = score
+			pvLine.Update(move, childPVLine)
 		}
+
+		childPVLine.Clear()
+	}
+
+	if inCheck && legalMoves == 0 {
+		return -Inf + int16(negamaxPly) + int16(ply)
 	}
 
 	return bestScore

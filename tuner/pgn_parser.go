@@ -4,8 +4,6 @@ import (
 	"blunder/engine"
 	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -34,11 +32,7 @@ type PGN struct {
 // Parse a file of PGNs. The file name is assumed to be the name of a
 // file in the blunder/tuner directory.
 func parsePGNs(filename string) (pgns []PGN) {
-	wd, _ := os.Getwd()
-	parentFolder := filepath.Dir(wd)
-	filePath := filepath.Join(parentFolder, filename)
-
-	buf, err := ioutil.ReadFile(filePath)
+	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}

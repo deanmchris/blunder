@@ -3,12 +3,8 @@ package main
 import "blunder/engine"
 
 func main() {
-	// tuner.RunTuner(true)
-
 	var inter engine.UCIInterface
 	inter.UCILoop()
-
-	/*var pos engine.Position
-	pos.LoadFEN("r1bqr1k1/1ppnpp1p/p2p1npQ/6N1/3PP3/2N5/PPP2PPP/R3KB1R w KQ - 3 10")
-	fmt.Println(engine.EvaluatePos(&pos))*/
+	// remove KSE, add PV lines and checks to qsearch, cleaned-up code,
+	// Remove king safety code; add PV & checks to qsearch; add UCI options; tweak & clean up code;
 }

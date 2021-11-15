@@ -678,6 +678,7 @@ func (pos Position) String() (boardAsString string) {
 		boardAsString += posToCoordinate(pos.EPSq)
 	}
 
+	boardAsString += fmt.Sprintf("\nfen: %s", pos.GenFEN())
 	boardAsString += fmt.Sprintf("\nzobrist hash: 0x%x", pos.Hash)
 	boardAsString += fmt.Sprintf("\nrule 50: %d\n", pos.Rule50)
 	boardAsString += fmt.Sprintf("game ply: %d\n", pos.Ply)

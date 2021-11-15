@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -22,11 +21,7 @@ var OutcomeToResult []string = []string{
 // Given an infile containg the PGNs, extract quiet positions from the files,
 // and write them to the given outfile.
 func GenTrainingData(infile, outfile string) {
-	wd, _ := os.Getwd()
-	parentFolder := filepath.Dir(wd)
-	outfilePath := filepath.Join(parentFolder, outfile)
-	file, err := os.OpenFile(outfilePath, os.O_APPEND|os.O_WRONLY, 0644)
-
+	file, err := os.OpenFile(outfile, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -49,30 +44,17 @@ func GenTrainingData(infile, outfile string) {
 			search.Pos.MakeMove(move)
 			search.Pos.StatePly--
 
-			// Skip positions with check.
-			if search.Pos.InCheck() {
-				continue
-			}
-
-			// Skip the opening phase.
-			if moveNum < 15 {
-				continue
-			}
-
 			// Skip the last few moves.
-			if (len(pgn.Moves)-1)-moveNum <= 5 {
+			if (len(pgn.Moves)-1)-moveNum <= 12 {
 				continue
 			}
 
-			eval := engine.EvaluatePos(&search.Pos)
-			qeval := search.Qsearch(-engine.Inf, engine.Inf, 0)
+			// Ensure the position is quiet by doing a qsearch and using the resulting
+			// PV line to construct the final position.
+			var pvLine engine.PVLine
+			search.Qsearch(-engine.Inf, engine.Inf, 0, 0, &pvLine)
 
-			// Skip non-quiet positions.
-			if engine.Abs16(engine.Abs16(eval)-engine.Abs16(qeval)) > 30 {
-				continue
-			}
-
-			fields := strings.Fields(search.Pos.GenFEN())
+			fields := strings.Fields(getPVPosition(&pvLine, &search.Pos))
 			result := OutcomeToResult[pgn.Outcome]
 
 			fens = append(fens, fmt.Sprintf("%s %s %s %s c9 \"%s\"\n", fields[0], fields[1], fields[2], fields[3], result))
@@ -102,4 +84,18 @@ func GenTrainingData(infile, outfile string) {
 	fmt.Printf("%d positions succesfully extracted!\n", numPositions)
 	fmt.Printf("%d duplicate positions were skipped!\n", duplicates)
 	file.Close()
+}
+
+func getPVPosition(pvLine *engine.PVLine, pos *engine.Position) (fen string) {
+	for _, move := range pvLine.Moves {
+		pos.MakeMove(move)
+	}
+
+	fen = pos.GenFEN()
+
+	for i := len(pvLine.Moves) - 1; i >= 0; i-- {
+		pos.UnmakeMove(pvLine.Moves[i])
+	}
+
+	return
 }
