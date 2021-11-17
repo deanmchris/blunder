@@ -41,6 +41,24 @@ const (
 
 var FutilityMargins = [4]int16{0, 200, 300, 500}
 
+type Reduction struct {
+	MoveLimit int
+	Reduction int8
+}
+
+var LateMoveReductions = [10]Reduction{
+	{4, 2},
+	{8, 3},
+	{12, 4},
+	{16, 5},
+	{20, 6},
+	{24, 7},
+	{28, 8},
+	{32, 9},
+	{34, 10},
+	{100, 12},
+}
+
 // An array that maps move scores to attacker and victim piece types
 // for MVV-LVA move ordering: https://www.chessprogramming.org/MVV-LVA.
 var MvvLva [7][6]uint16 = [7][6]uint16{
@@ -108,7 +126,7 @@ func (search *Search) Search() Move {
 	var pvLine PVLine
 	bestMove := NullMove
 
-	search.ClearHistoryTable()
+	search.ageHistoryTable()
 	search.Timer.Start()
 
 	search.totalNodes = 0
@@ -328,6 +346,25 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 		legalMoves++
 
+		// Late-move pruning
+		/*if depth <= 3 && ply >= 4 && legalMoves >= 8 {
+			tactical := inCheck || search.Pos.InCheck() || move.MoveType() == Attack || move.MoveType() == Promotion
+			history := search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()]
+
+			if !tactical && history < 50 {
+				search.Pos.UnmakeMove(move)
+				continue
+			}
+		}*/
+
+		// =====================================================================//
+		// FUTILITY PRUNING: If we're close to the horizon, and even with a     //
+		// large margin the static evaluation can't be raised above alpha,      //
+		// we're probably in a fail-low node, and many moves can be probably    //
+		// be pruned. So set a flag so we don't waste time searching moves that //
+		// suck and probably don't even have a chance of raising alpha.         //
+		// =====================================================================//
+
 		if canFutilityPrune && legalMoves > 1 {
 			tactical := search.Pos.InCheck() || move.MoveType() == Attack || move.MoveType() == Promotion
 			if !tactical {
@@ -355,7 +392,12 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			reduction := int8(0)
 
 			if !isPVNode && legalMoves >= LMRLegalMovesLimit && depth >= LMRDepthLimit && !tactical {
-				reduction = LateMoveReduction
+				for _, red := range LateMoveReductions {
+					if red.MoveLimit >= legalMoves {
+						reduction = red.Reduction
+						break
+					}
+				}
 			}
 
 			score = -search.negamax(depth-1-reduction, ply+1, -alpha-1, -alpha, &childPVLine, true)
@@ -388,6 +430,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 			// Store the possible killer.
 			search.storeKiller(ply, move)
+
+			// Update the history table.
+			search.updateHistoryTable(move, depth)
 
 			// Break he move loop, since we have a beta cutoff.
 			break
