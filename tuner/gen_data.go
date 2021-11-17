@@ -52,7 +52,7 @@ func GenTrainingData(infile, outfile string) {
 			// Ensure the position is quiet by doing a qsearch and using the resulting
 			// PV line to construct the final position.
 			var pvLine engine.PVLine
-			search.Qsearch(-engine.Inf, engine.Inf, 0, 0, &pvLine)
+			search.Qsearch(-engine.Inf, engine.Inf, 0, &pvLine)
 
 			fields := strings.Fields(getPVPosition(&pvLine, &search.Pos))
 			result := OutcomeToResult[pgn.Outcome]

@@ -33,7 +33,7 @@ type Position struct {
 }
 
 // A global variable to hold the positions loaded from the training file.
-var Positions = loadPositions()
+var Positions []Position
 
 // A global variable to hold the parallel computations of the MSE function.
 var Answers = make(chan float64)
@@ -285,6 +285,7 @@ func RunTuner(verbose bool) {
 	// K := findK()
 	// fmt.Println("Best K is:", K)
 
+	Positions = loadPositions()
 	tune()
 	mapWeightsToParameters()
 

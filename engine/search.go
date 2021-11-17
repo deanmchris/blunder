@@ -90,8 +90,9 @@ type Search struct {
 	Timer TimeManager
 	TT    TransTable
 
-	side  uint8
-	nodes uint64
+	side       uint8
+	nodes      uint64
+	totalNodes uint64
 
 	killers [MaxPly + 1][MaxKillers]Move
 	history [2][64][64]int32
@@ -107,9 +108,12 @@ func (search *Search) Search() Move {
 	var pvLine PVLine
 	bestMove := NullMove
 
+	search.ClearHistoryTable()
 	search.Timer.Start()
 
+	search.totalNodes = 0
 	depth := uint8(0)
+
 	for depth = 1; depth <= MaxPly && depth <= search.SpecifiedDepth && search.SpecifiedNodes > 0; depth++ {
 		// Clear the nodes searched and the last iterations pv line.
 		search.nodes = 0
@@ -133,6 +137,10 @@ func (search *Search) Search() Move {
 		// Get the nodes per second
 		nps := uint64(float64(search.nodes) / float64(endTime.Seconds()))
 
+		// Collect the amount of nodes searched for this iteration.
+		search.totalNodes += search.nodes
+
+		// Send search statistics to the GUI.
 		fmt.Printf(
 			"info depth %d score %s nodes %d nps %d time %d pv %s\n",
 			depth, getMateOrCPScore(score),
@@ -173,9 +181,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		return EvaluatePos(&search.Pos)
 	}
 
-	// If a given node amountt to search was given, make sure we haven't passed it
+	// If a given node amount to search was given, make sure we haven't passed it
 	// and if so stop the search.
-	if search.nodes >= search.SpecifiedNodes {
+	if search.totalNodes+search.nodes >= search.SpecifiedNodes {
 		search.Timer.Stop = true
 		return 0
 	}
@@ -212,7 +220,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// score.
 	if depth <= 0 {
 		search.nodes--
-		return search.Qsearch(alpha, beta, 0, ply, pvLine)
+		return search.Qsearch(alpha, beta, ply, pvLine)
 	}
 
 	// Don't do any extra work if the current position is a draw. We
@@ -240,7 +248,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// fail-high and we can prune its branch.                               //
 	// =====================================================================//
 
-	if !inCheck && !isPVNode && Abs16(beta) < Checkmate {
+	if !inCheck && !isPVNode && abs16(beta) < Checkmate {
 		staticScore := EvaluatePos(&search.Pos)
 		scoreMargin := StaticNullMovePruningBaseMargin * int16(depth)
 		if staticScore-scoreMargin >= beta {
@@ -272,7 +280,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			return 0
 		}
 
-		if score >= beta && Abs16(score) < Checkmate {
+		if score >= beta && abs16(score) < Checkmate {
 			return beta
 		}
 	}
@@ -433,14 +441,14 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 // a special form of negamax until the position is quiet (i.e there are no
 // winning tatical captures). Doing this is known as quiescence search, and
 // it makes the static evaluation much more accurate.
-func (search *Search) Qsearch(alpha, beta int16, ply, negamaxPly uint8, pvLine *PVLine) int16 {
+func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8, pvLine *PVLine) int16 {
 	search.nodes++
 
 	if (search.nodes & 2047) == 0 {
 		search.Timer.Check()
 	}
 
-	if search.nodes >= search.SpecifiedNodes {
+	if search.totalNodes+search.nodes >= search.SpecifiedNodes {
 		search.Timer.Stop = true
 	}
 
@@ -448,13 +456,12 @@ func (search *Search) Qsearch(alpha, beta int16, ply, negamaxPly uint8, pvLine *
 		return 0
 	}
 
-	inCheck := search.Pos.InCheck()
 	bestScore := EvaluatePos(&search.Pos)
 
 	// If the score is greater than beta, what our opponet can
 	// already guarantee early in the search tree, then we
 	// have a beta-cutoff.
-	if bestScore >= beta && !inCheck {
+	if bestScore >= beta {
 		return bestScore
 	}
 
@@ -464,15 +471,8 @@ func (search *Search) Qsearch(alpha, beta int16, ply, negamaxPly uint8, pvLine *
 		alpha = bestScore
 	}
 
-	var moves MoveList
-	if inCheck {
-		moves = GenMoves(&search.Pos)
-	} else {
-		moves = genCaptures(&search.Pos)
-	}
-
+	moves := genCaptures(&search.Pos)
 	search.scoreMoves(&moves, NullMove, negamaxPly)
-	var legalMoves int
 	var childPVLine PVLine
 
 	for index := 0; index < int(moves.Count); index++ {
@@ -489,8 +489,7 @@ func (search *Search) Qsearch(alpha, beta int16, ply, negamaxPly uint8, pvLine *
 			continue
 		}
 
-		legalMoves++
-		score := -search.Qsearch(-beta, -alpha, ply+1, negamaxPly, &childPVLine)
+		score := -search.Qsearch(-beta, -alpha, negamaxPly, &childPVLine)
 		search.Pos.UnmakeMove(move)
 
 		if score > bestScore {
@@ -507,10 +506,6 @@ func (search *Search) Qsearch(alpha, beta int16, ply, negamaxPly uint8, pvLine *
 		}
 
 		childPVLine.Clear()
-	}
-
-	if inCheck && legalMoves == 0 {
-		return -Inf + int16(negamaxPly) + int16(ply)
 	}
 
 	return bestScore
