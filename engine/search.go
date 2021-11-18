@@ -34,7 +34,6 @@ const (
 	StaticNullMovePruningBaseMargin int16 = 120
 	FirstNullMoveReduction          int8  = 2
 	SecondNullMoveReduction         int8  = 3
-	LateMoveReduction               int8  = 2
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
 )
@@ -345,17 +344,6 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		}
 
 		legalMoves++
-
-		// Late-move pruning
-		/*if depth <= 3 && ply >= 4 && legalMoves >= 8 {
-			tactical := inCheck || search.Pos.InCheck() || move.MoveType() == Attack || move.MoveType() == Promotion
-			history := search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()]
-
-			if !tactical && history < 50 {
-				search.Pos.UnmakeMove(move)
-				continue
-			}
-		}*/
 
 		// =====================================================================//
 		// FUTILITY PRUNING: If we're close to the horizon, and even with a     //

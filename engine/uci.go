@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 7.3.0"
+	EngineName   = "Blunder 7.3.1"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 

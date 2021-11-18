@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	DataFile   = ""
+	DataFile   = "/home/algerbrex/random.epd"
 	NumCores   = 4
-	NumWeights = 786
+	NumWeights = 792
 	KPrecision = 10
 
 	Draw         float64 = 0.5
@@ -72,6 +72,13 @@ func loadWeights() (weights []int16) {
 	copy(weights[778:782], engine.PieceMobilityMG[:])
 	copy(weights[782:786], engine.PieceMobilityEG[:])
 
+	weights[786] = engine.IsolatedPawnPenatlyMG
+	weights[787] = engine.IsolatedPawnPenatlyEG
+	weights[788] = engine.DoubledPawnPenatlyMG
+	weights[789] = engine.DoubledPawnPenaltyEG
+	weights[790] = engine.PawnShieldBonusZone1
+	weights[791] = engine.PawnShieldBonusZone2
+
 	return weights
 }
 
@@ -126,6 +133,13 @@ func mapWeightsToParameters() {
 	copy(engine.PieceValueEG[:], Weights[773:778])
 	copy(engine.PieceMobilityMG[:], Weights[778:782])
 	copy(engine.PieceMobilityEG[:], Weights[782:786])
+
+	engine.IsolatedPawnPenatlyMG = Weights[786]
+	engine.IsolatedPawnPenatlyEG = Weights[787]
+	engine.DoubledPawnPenatlyMG = Weights[788]
+	engine.DoubledPawnPenaltyEG = Weights[789]
+	engine.PawnShieldBonusZone1 = Weights[790]
+	engine.PawnShieldBonusZone2 = Weights[791]
 }
 
 // Evaluate the position from the training set file.
@@ -249,8 +263,9 @@ func tune() {
 	fmt.Println("Done tuning!")
 }
 
-func prettyPrintPSQT(psqt [64]int16) {
+func prettyPrintPSQT(msg string, psqt [64]int16) {
 	fmt.Print("\n")
+	fmt.Println(msg)
 	for sq := 0; sq < 64; sq++ {
 		if sq%8 == 0 {
 			fmt.Println()
@@ -261,30 +276,36 @@ func prettyPrintPSQT(psqt [64]int16) {
 }
 
 func printParameters() {
-	prettyPrintPSQT(engine.PSQT_MG[engine.Pawn])
-	prettyPrintPSQT(engine.PSQT_MG[engine.Knight])
-	prettyPrintPSQT(engine.PSQT_MG[engine.Bishop])
-	prettyPrintPSQT(engine.PSQT_MG[engine.Rook])
-	prettyPrintPSQT(engine.PSQT_MG[engine.Queen])
-	prettyPrintPSQT(engine.PSQT_MG[engine.King])
+	prettyPrintPSQT("MG Pawn PSQT:", engine.PSQT_MG[engine.Pawn])
+	prettyPrintPSQT("MG Knight PSQT:", engine.PSQT_MG[engine.Knight])
+	prettyPrintPSQT("MG Bishop PSQT:", engine.PSQT_MG[engine.Bishop])
+	prettyPrintPSQT("MG Rook PSQT:", engine.PSQT_MG[engine.Rook])
+	prettyPrintPSQT("MG Queen PSQT:", engine.PSQT_MG[engine.Queen])
+	prettyPrintPSQT("MG King PSQT:", engine.PSQT_MG[engine.King])
 
-	prettyPrintPSQT(engine.PSQT_EG[engine.Pawn])
-	prettyPrintPSQT(engine.PSQT_EG[engine.Knight])
-	prettyPrintPSQT(engine.PSQT_EG[engine.Bishop])
-	prettyPrintPSQT(engine.PSQT_EG[engine.Rook])
-	prettyPrintPSQT(engine.PSQT_EG[engine.Queen])
-	prettyPrintPSQT(engine.PSQT_EG[engine.King])
+	prettyPrintPSQT("EG Pawn PSQT:", engine.PSQT_EG[engine.Pawn])
+	prettyPrintPSQT("EG Knight PSQT:", engine.PSQT_EG[engine.Knight])
+	prettyPrintPSQT("EG Bishop PSQT:", engine.PSQT_EG[engine.Bishop])
+	prettyPrintPSQT("EG Rook PSQT:", engine.PSQT_EG[engine.Rook])
+	prettyPrintPSQT("EG Queen PSQT:", engine.PSQT_EG[engine.Queen])
+	prettyPrintPSQT("EG King PSQT:", engine.PSQT_EG[engine.King])
 
-	fmt.Println(engine.PieceValueMG)
-	fmt.Println(engine.PieceValueEG)
-	fmt.Println(engine.PieceMobilityMG)
-	fmt.Println(engine.PieceMobilityEG)
+	fmt.Println("\nMG Piece Values (PKBRQ):", engine.PieceValueMG)
+	fmt.Println("EG Piece Values (PKBRQ):", engine.PieceValueEG)
+	fmt.Println("MG Mobility Values (PKBRQ):", engine.PieceMobilityMG)
+	fmt.Println("EG Mobility Values (PKBRQ):", engine.PieceMobilityEG)
+
+	fmt.Println("MG Isolated Pawn Penatly:", engine.IsolatedPawnPenatlyMG)
+	fmt.Println("EG Isolated Pawn Penatly:", engine.IsolatedPawnPenatlyEG)
+	fmt.Println("MG Doubled Pawn Penatly:", engine.DoubledPawnPenatlyMG)
+	fmt.Println("EG Doubled Pawn Penatly:", engine.DoubledPawnPenaltyEG)
+	fmt.Println("Pawn Shield Bonus Zone 1:", engine.PawnShieldBonusZone1)
+	fmt.Println("Pawn Shield Bonus Zone 2:", engine.PawnShieldBonusZone2)
+	fmt.Println()
+
 }
 
 func RunTuner(verbose bool) {
-	// K := findK()
-	// fmt.Println("Best K is:", K)
-
 	Positions = loadPositions()
 	tune()
 	mapWeightsToParameters()

@@ -11,6 +11,11 @@ const (
 
 	// A constant infinite (checkmate) value.
 	Inf int16 = 10000
+
+	// Constants representing indexes into a table of pawn shield
+	// bitboards, kingside and queenside.
+	Queenside = 0
+	Kingside  = 1
 )
 
 // Variables representing values for draws in the middle and
@@ -19,9 +24,17 @@ var MiddleGameDraw int16 = 25
 var EndGameDraw int16 = 0
 
 type Eval struct {
-	MGScores [2]int16
-	EGScores [2]int16
+	MGScores     [2]int16
+	EGScores     [2]int16
+	CastlingSide [2]int16
 }
+
+var IsolatedPawnPenatlyMG int16 = 10
+var IsolatedPawnPenatlyEG int16 = 2
+var DoubledPawnPenatlyMG int16 = 3
+var DoubledPawnPenaltyEG int16 = 10
+var PawnShieldBonusZone1 int16 = 4
+var PawnShieldBonusZone2 int16 = 2
 
 var PieceValueMG [5]int16 = [5]int16{89, 309, 339, 458, 940}
 var PieceValueEG [5]int16 = [5]int16{130, 270, 289, 501, 929}
@@ -36,10 +49,17 @@ var PhaseValues [6]int16 = [6]int16{
 	QueenPhase,
 }
 
-// Endgame and middlegame piece square tables, with piece values builtin.
-//
-// https://www.chessprogramming.org/Piece-Square_Tables
-//
+var IsolatedPawnMasks [8]Bitboard
+var DoubledPawnMasks [2][64]Bitboard
+var Zone1PawnShields [2][2]Bitboard = [2][2]Bitboard{
+	{0xe000, 0x700},
+	{0xe0000000000000, 0x7000000000000},
+}
+var Zone2PawnShields [2][2]Bitboard = [2][2]Bitboard{
+	{0xe00000, 0x70000},
+	{0xe00000000000, 0x70000000000},
+}
+
 var PSQT_MG [6][64]int16 = [6][64]int16{
 
 	// Piece-square table for pawns
@@ -223,6 +243,18 @@ func EvaluatePos(pos *Position) int16 {
 	phase := TotalPhase
 
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
+
+	eval.CastlingSide[White] = Queenside
+	eval.CastlingSide[Black] = Queenside
+
+	if FileOf(pos.PieceBB[White][King].Msb()) > FileE {
+		eval.CastlingSide[White] = Kingside
+	}
+
+	if FileOf(pos.PieceBB[Black][King].Msb()) > FileE {
+		eval.CastlingSide[Black] = Kingside
+	}
+
 	for allBB != 0 {
 		sq := allBB.PopBit()
 		piece := pos.Squares[sq]
@@ -252,10 +284,33 @@ func EvaluatePos(pos *Position) int16 {
 	return int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
 }
 
-// Evaluate the score of a knight.
+// Evaluate the score of a pawn.
 func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Pawn] + PSQT_MG[Pawn][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Pawn] + PSQT_EG[Pawn][FlipSq[color][sq]]
+
+	usPawns := pos.PieceBB[color][Pawn]
+	file := FileOf(sq)
+
+	// Evaluate isolated pawns.
+	if IsolatedPawnMasks[file]&usPawns == 0 {
+		eval.MGScores[color] -= IsolatedPawnPenatlyMG
+		eval.EGScores[color] -= IsolatedPawnPenatlyEG
+	}
+
+	// Evaluate doubled pawns.
+	if DoubledPawnMasks[color][sq]&usPawns != 0 {
+		eval.MGScores[color] -= DoubledPawnPenatlyMG
+		eval.EGScores[color] -= DoubledPawnPenaltyEG
+	}
+
+	// Evalue pawns part of the the pawn shield.
+	castlingSide := eval.CastlingSide[color]
+	if SquareBB[sq]&Zone1PawnShields[color][castlingSide] != 0 {
+		eval.MGScores[color] += PawnShieldBonusZone1
+	} else if SquareBB[sq]&Zone2PawnShields[color][castlingSide] != 0 {
+		eval.MGScores[color] += PawnShieldBonusZone2
+	}
 }
 
 // Evaluate the score of a knight.
@@ -316,8 +371,35 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 	eval.EGScores[color] += (mobility - 14) * PieceMobilityEG[Queen-1]
 }
 
-// Evaluate the score of a queen.
+// Evaluate the score of a king.
 func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PSQT_MG[King][FlipSq[color][sq]]
 	eval.EGScores[color] += PSQT_EG[King][FlipSq[color][sq]]
+}
+
+func init() {
+	for sq := 0; sq < 64; sq++ {
+		// Create isolated pawn masks.
+		file := FileOf(uint8(sq))
+		fileBB := MaskFile[file]
+
+		mask := (fileBB & ClearFile[FileA]) << 1
+		mask |= (fileBB & ClearFile[FileH]) >> 1
+		IsolatedPawnMasks[file] = mask
+
+		// Create doubled pawns masks.
+		rank := int(RankOf(uint8(sq)))
+
+		mask = fileBB
+		for r := 0; r <= rank; r++ {
+			mask &= ClearRank[r]
+		}
+		DoubledPawnMasks[White][sq] = mask
+
+		mask = fileBB
+		for r := 7; r >= rank; r-- {
+			mask &= ClearRank[r]
+		}
+		DoubledPawnMasks[Black][sq] = mask
+	}
 }
