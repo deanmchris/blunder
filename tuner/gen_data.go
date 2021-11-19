@@ -45,7 +45,11 @@ func GenTrainingData(infile, outfile string) {
 			search.Pos.StatePly--
 
 			// Skip the last few moves.
-			if (len(pgn.Moves)-1)-moveNum <= 12 {
+			if (len(pgn.Moves)-1)-moveNum <= 6 {
+				continue
+			}
+
+			if search.Pos.InCheck() {
 				continue
 			}
 
@@ -57,7 +61,7 @@ func GenTrainingData(infile, outfile string) {
 			fields := strings.Fields(getPVPosition(&pvLine, &search.Pos))
 			result := OutcomeToResult[pgn.Outcome]
 
-			fens = append(fens, fmt.Sprintf("%s %s %s %s c9 \"%s\"\n", fields[0], fields[1], fields[2], fields[3], result))
+			fens = append(fens, fmt.Sprintf("%s %s %s %s c9 \"%s\";\n", fields[0], fields[1], fields[2], fields[3], result))
 			numPositions++
 		}
 	}

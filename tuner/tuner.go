@@ -20,8 +20,8 @@ const (
 	Draw         float64 = 0.5
 	WhiteWin     float64 = 1.0
 	BlackWin     float64 = 0.0
-	NumPositions float64 = 400000.0
-	K            float64 = 1.62
+	NumPositions float64 = 10000.0
+	K            float64 = 1.161
 )
 
 // A struct object to hold data concering a position loaded from the training file.
@@ -171,7 +171,7 @@ func meanSquaredError(K float64) float64 {
 		errorSum += ans
 	}
 
-	return errorSum / float64(len(Positions))
+	return errorSum / NumPositions
 }
 
 func findK() float64 {
@@ -249,8 +249,9 @@ func tune() {
 	fmt.Println("Done tuning!")
 }
 
-func prettyPrintPSQT(psqt [64]int16) {
+func prettyPrintPSQT(msg string, psqt [64]int16) {
 	fmt.Print("\n")
+	fmt.Println(msg)
 	for sq := 0; sq < 64; sq++ {
 		if sq%8 == 0 {
 			fmt.Println()
@@ -261,31 +262,29 @@ func prettyPrintPSQT(psqt [64]int16) {
 }
 
 func printParameters() {
-	prettyPrintPSQT(engine.PSQT_MG[engine.Pawn])
-	prettyPrintPSQT(engine.PSQT_MG[engine.Knight])
-	prettyPrintPSQT(engine.PSQT_MG[engine.Bishop])
-	prettyPrintPSQT(engine.PSQT_MG[engine.Rook])
-	prettyPrintPSQT(engine.PSQT_MG[engine.Queen])
-	prettyPrintPSQT(engine.PSQT_MG[engine.King])
+	prettyPrintPSQT("MG Pawn PST:", engine.PSQT_MG[engine.Pawn])
+	prettyPrintPSQT("MG Knight PST:", engine.PSQT_MG[engine.Knight])
+	prettyPrintPSQT("MG Bishop PST:", engine.PSQT_MG[engine.Bishop])
+	prettyPrintPSQT("MG Rook PST:", engine.PSQT_MG[engine.Rook])
+	prettyPrintPSQT("MG Queen PST:", engine.PSQT_MG[engine.Queen])
+	prettyPrintPSQT("MG King PST:", engine.PSQT_MG[engine.King])
 
-	prettyPrintPSQT(engine.PSQT_EG[engine.Pawn])
-	prettyPrintPSQT(engine.PSQT_EG[engine.Knight])
-	prettyPrintPSQT(engine.PSQT_EG[engine.Bishop])
-	prettyPrintPSQT(engine.PSQT_EG[engine.Rook])
-	prettyPrintPSQT(engine.PSQT_EG[engine.Queen])
-	prettyPrintPSQT(engine.PSQT_EG[engine.King])
+	prettyPrintPSQT("EG Pawn PST:", engine.PSQT_EG[engine.Pawn])
+	prettyPrintPSQT("EG Knight PST:", engine.PSQT_EG[engine.Knight])
+	prettyPrintPSQT("EG Bishop PST:", engine.PSQT_EG[engine.Bishop])
+	prettyPrintPSQT("EG Rook PST:", engine.PSQT_EG[engine.Rook])
+	prettyPrintPSQT("EG Queen PST:", engine.PSQT_EG[engine.Queen])
+	prettyPrintPSQT("EG King PST:", engine.PSQT_EG[engine.King])
 
-	fmt.Println(engine.PieceValueMG)
-	fmt.Println(engine.PieceValueEG)
-	fmt.Println(engine.PieceMobilityMG)
-	fmt.Println(engine.PieceMobilityEG)
+	fmt.Println("MG Piece Values:", engine.PieceValueMG)
+	fmt.Println("EG Piece Values:", engine.PieceValueEG)
+	fmt.Println("MG Piece Mobility Bonuses:", engine.PieceMobilityMG)
+	fmt.Println("EG Piece Mobility Bonuses:", engine.PieceMobilityEG)
 }
 
 func RunTuner(verbose bool) {
-	// K := findK()
-	// fmt.Println("Best K is:", K)
-
 	Positions = loadPositions()
+
 	tune()
 	mapWeightsToParameters()
 
