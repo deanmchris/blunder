@@ -165,6 +165,10 @@ type Position struct {
 
 	prevStates [100]State
 	StatePly   uint8
+
+	MGScores [2]int16
+	EGScores [2]int16
+	Phase    int16
 }
 
 func (pos *Position) MakeMove(move Move) bool {
@@ -431,9 +435,14 @@ func (pos *Position) UnmakeNullMove() {
 func (pos *Position) putPiece(pieceType, pieceColor, to uint8) {
 	pos.PieceBB[pieceColor][pieceType].SetBit(to)
 	pos.SideBB[pieceColor].SetBit(to)
+
 	pos.Squares[to].Type = pieceType
 	pos.Squares[to].Color = pieceColor
 	pos.Hash ^= Zobrist.PieceNumber(pieceType, pieceColor, to)
+
+	pos.MGScores[pieceColor] += PieceValueMG[pieceType] + PSQT_MG[pieceType][FlipSq[pieceColor][to]]
+	pos.EGScores[pieceColor] += PieceValueEG[pieceType] + PSQT_EG[pieceType][FlipSq[pieceColor][to]]
+	pos.Phase -= PhaseValues[pieceType]
 }
 
 // Clear the piece given from the given square.
@@ -441,6 +450,10 @@ func (pos *Position) clearPiece(from uint8) {
 	piece := &pos.Squares[from]
 	pos.PieceBB[piece.Color][piece.Type].ClearBit(from)
 	pos.SideBB[piece.Color].ClearBit(from)
+
+	pos.MGScores[piece.Color] -= PieceValueMG[piece.Type] + PSQT_MG[piece.Type][FlipSq[piece.Color][from]]
+	pos.EGScores[piece.Color] -= PieceValueEG[piece.Type] + PSQT_EG[piece.Type][FlipSq[piece.Color][from]]
+	pos.Phase += PhaseValues[piece.Type]
 
 	pos.Hash ^= Zobrist.PieceNumber(piece.Type, piece.Color, from)
 	piece.Type = NoType
@@ -454,6 +467,12 @@ func (pos *Position) LoadFEN(fen string) {
 	pos.SideBB = [2]Bitboard{}
 	pos.Squares = [64]Piece{}
 	pos.CastlingRights = 0
+
+	pos.MGScores[White] = 0
+	pos.MGScores[Black] = 0
+	pos.EGScores[White] = 0
+	pos.EGScores[Black] = 0
+	pos.Phase = TotalPhase
 
 	for square := range pos.Squares {
 		pos.Squares[square] = Piece{Type: NoType, Color: NoColor}
