@@ -381,7 +381,6 @@ func init() {
 
 		zone |= ((zone >> 8) | (zone >> 16))
 		zone |= ((zone << 8) | (zone << 16))
-
-		KingZones[sq] = KingZone{OuterRing: zone &^ (KingMoves[sq] | sqBB), InnerRing: KingMoves[sq]}
+		KingZones[sq] = KingZone{OuterRing: zone &^ (KingMoves[sq] | sqBB), InnerRing: KingMoves[sq] | sqBB}
 	}
 }
