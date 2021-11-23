@@ -21,6 +21,7 @@ var EndGameDraw int16 = 0
 type Eval struct {
 	MGScores [2]int16
 	EGScores [2]int16
+	Scores   [2]int16
 
 	KingZones        [2]KingZone
 	KingAttackPoints [2]uint8
@@ -32,12 +33,18 @@ type KingZone struct {
 	InnerRing Bitboard
 }
 
+var KingZones [64]KingZone
+var IsolatedPawnMasks [8]Bitboard
+var DoubledPawnMasks [2][64]Bitboard
+
 var PieceValueMG [6]int16 = [6]int16{89, 309, 339, 458, 940}
 var PieceValueEG [6]int16 = [6]int16{130, 270, 289, 501, 929}
 var PieceMobilityMG [4]int16 = [4]int16{3, 4, 6, 1}
 var PieceMobilityEG [4]int16 = [4]int16{3, 4, 2, 8}
 
-var KingZones [64]KingZone
+var IsolatedPawnPenatly int16 = 10
+var DoubledPawnPenatly int16 = 10
+
 var MinorAttackOuterRing int16 = 1
 var MinorAttackInnerRing int16 = 2
 var RookAttackOuterRing int16 = 1
@@ -255,6 +262,8 @@ func EvaluatePos(pos *Position) int16 {
 		piece := pos.Squares[sq]
 
 		switch piece.Type {
+		case Pawn:
+			evalPawn(pos, piece.Color, sq, &eval)
 		case Knight:
 			evalKnight(pos, piece.Color, sq, &eval)
 		case Bishop:
@@ -273,7 +282,27 @@ func EvaluatePos(pos *Position) int16 {
 	egScore := eval.EGScores[pos.SideToMove] - eval.EGScores[pos.SideToMove^1]
 
 	phase := (pos.Phase*256 + (TotalPhase / 2)) / TotalPhase
-	return int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
+	score := int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
+
+	score += eval.Scores[pos.SideToMove]
+	score -= eval.Scores[pos.SideToMove^1]
+	return score
+}
+
+// Evaluate the score of a pawn.
+func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
+	usPawns := pos.PieceBB[color][Pawn]
+	file := FileOf(sq)
+
+	// Evaluate isolated pawns.
+	if IsolatedPawnMasks[file]&usPawns == 0 {
+		eval.Scores[color] -= IsolatedPawnPenatly
+	}
+
+	// Evaluate doubled pawns.
+	if DoubledPawnMasks[color][sq]&usPawns != 0 {
+		eval.Scores[color] -= DoubledPawnPenatly
+	}
 }
 
 // Evaluate the score of a knight.
@@ -374,6 +403,7 @@ func min_u8(a, b uint8) uint8 {
 
 func init() {
 	for sq := 0; sq < 64; sq++ {
+		// Create king zones.
 		sqBB := SquareBB[sq]
 		zone := ((sqBB & ClearFile[FileH]) >> 1) | ((sqBB & (ClearFile[FileG] & ClearFile[FileH])) >> 2)
 		zone |= ((sqBB & ClearFile[FileA]) << 1) | ((sqBB & (ClearFile[FileB] & ClearFile[FileA])) << 2)
@@ -382,5 +412,28 @@ func init() {
 		zone |= ((zone >> 8) | (zone >> 16))
 		zone |= ((zone << 8) | (zone << 16))
 		KingZones[sq] = KingZone{OuterRing: zone &^ (KingMoves[sq] | sqBB), InnerRing: KingMoves[sq] | sqBB}
+
+		// Create isolated pawn masks.
+		file := FileOf(uint8(sq))
+		fileBB := MaskFile[file]
+
+		mask := (fileBB & ClearFile[FileA]) << 1
+		mask |= (fileBB & ClearFile[FileH]) >> 1
+		IsolatedPawnMasks[file] = mask
+
+		// Create doubled pawns masks.
+		rank := int(RankOf(uint8(sq)))
+
+		mask = fileBB
+		for r := 0; r <= rank; r++ {
+			mask &= ClearRank[r]
+		}
+		DoubledPawnMasks[White][sq] = mask
+
+		mask = fileBB
+		for r := 7; r >= rank; r-- {
+			mask &= ClearRank[r]
+		}
+		DoubledPawnMasks[Black][sq] = mask
 	}
 }

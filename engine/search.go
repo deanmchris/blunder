@@ -149,9 +149,6 @@ func (search *Search) Search() Move {
 			break
 		}
 
-		// Update the total time we've spent on the current search.
-		search.Timer.UpdateTotalTime(endTime.Milliseconds())
-
 		// Save the best move and report search statistics to the GUI
 		bestMove = pvLine.GetPVMove()
 
@@ -169,12 +166,6 @@ func (search *Search) Search() Move {
 			endTime.Milliseconds(),
 			pvLine,
 		)
-
-		// Check if the search should be terminated early due to how much time
-		// we've already spent.
-		if depth > 1 && search.Timer.CheckForEarlyTermination() {
-			break
-		}
 	}
 
 	// Return the best move found to the GUI.
