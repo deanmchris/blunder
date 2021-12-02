@@ -37,19 +37,19 @@ var KingZones [64]KingZone
 var IsolatedPawnMasks [8]Bitboard
 var DoubledPawnMasks [2][64]Bitboard
 
-var PieceValueMG [6]int16 = [6]int16{89, 309, 339, 458, 940}
-var PieceValueEG [6]int16 = [6]int16{130, 270, 289, 501, 929}
-var PieceMobilityMG [4]int16 = [4]int16{3, 4, 6, 1}
-var PieceMobilityEG [4]int16 = [4]int16{3, 4, 2, 8}
+var PieceValueMG [6]int16 = [6]int16{94, 313, 344, 462, 957}
+var PieceValueEG [6]int16 = [6]int16{138, 274, 294, 510, 952}
+var PieceMobilityMG [4]int16 = [4]int16{3, 4, 5, 1}
+var PieceMobilityEG [4]int16 = [4]int16{2, 3, 3, 6}
 
-var IsolatedPawnPenatly int16 = 10
-var DoubledPawnPenatly int16 = 10
+var IsolatedPawnPenatly int16 = 6
+var DoubledPawnPenatly int16 = 17
 
 var MinorAttackOuterRing int16 = 1
-var MinorAttackInnerRing int16 = 2
-var RookAttackOuterRing int16 = 1
-var RookAttackInnerRing int16 = 3
-var QueenAttackOuterRing int16 = 1
+var MinorAttackInnerRing int16 = 5
+var RookAttackOuterRing int16 = 2
+var RookAttackInnerRing int16 = 6
+var QueenAttackOuterRing int16 = 2
 var QueenAttackInnerRing int16 = 5
 
 var KingAttackTable [64]int16 = [64]int16{
@@ -74,74 +74,74 @@ var PSQT_MG [6][64]int16 = [6][64]int16{
 
 	// Piece-square table for pawns
 	{
-		15, -6, 1, 0, -1, 4, 0, -1,
-		111, 131, 99, 97, 104, 97, 90, -7,
-		3, 9, 25, 28, 54, 38, -15, -17,
-		-26, 4, -4, 15, 14, 2, 10, -37,
-		-34, -12, -10, 3, 9, -4, -1, -36,
-		-24, -12, -13, -12, -3, -4, 22, -18,
-		-30, -5, -28, -19, -13, 17, 29, -24,
-		15, 1, 0, 0, -2, 0, 0, -1,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		126, 136, 104, 97, 104, 109, 64, 70,
+		-5, 6, 26, 26, 50, 56, 20, -19,
+		-25, 0, -2, 17, 16, 7, 5, -35,
+		-35, -20, -10, 4, 9, -2, -9, -36,
+		-28, -20, -11, -14, -2, -1, 13, -20,
+		-34, -14, -30, -21, -16, 16, 19, -25,
+		0, 0, 0, 0, 0, 0, 0, 0,
 	},
 
 	// Piece-square table for knights
 	{
-		-132, -66, 9, -22, 31, -90, -31, -93,
-		-64, -52, 62, 16, 26, 42, -2, -9,
-		-42, 35, 25, 48, 68, 89, 60, 27,
-		-3, 15, 12, 42, 26, 61, 19, 32,
-		-14, 2, 12, 8, 29, 17, 31, 0,
-		-21, -9, 10, 15, 33, 21, 23, -9,
-		2, -26, -4, 10, 13, 26, -8, -3,
-		-60, -6, -29, -14, -3, 5, -2, -20,
+		-146, -59, -32, -38, 33, -87, -26, -93,
+		-75, -47, 52, 10, 4, 45, 1, -27,
+		-33, 49, 22, 43, 52, 72, 53, 31,
+		-5, 18, 7, 42, 16, 51, 8, 18,
+		-4, 9, 15, 9, 25, 14, 15, -3,
+		-14, -1, 16, 21, 31, 24, 29, -7,
+		-11, -31, -2, 15, 18, 26, 2, 0,
+		-75, -2, -32, -12, 9, 0, -1, -13,
 	},
 
 	// Piece-square table for bishops
 	{
-		-10, 10, -71, -23, -39, -26, 9, 0,
-		-33, 14, -8, -1, -12, 50, 10, -36,
-		-26, 25, 25, 25, 32, 57, 33, -1,
-		-3, 9, 24, 47, 37, 34, 13, 2,
-		5, 15, 6, 24, 28, 7, 13, 25,
-		8, 13, 22, 9, 15, 30, 19, 10,
-		15, 27, 19, 14, 14, 28, 38, 14,
-		-14, 14, 11, 5, 10, 3, 6, -5,
+		-27, 1, -76, -38, -38, -46, -12, 14,
+		-25, 15, -23, -23, 14, 32, 17, -45,
+		-14, 33, 36, 32, 22, 45, 26, 0,
+		2, 8, 9, 37, 33, 18, 11, -3,
+		8, 20, 12, 29, 31, 11, 12, 19,
+		12, 27, 28, 16, 23, 40, 29, 15,
+		19, 35, 25, 19, 25, 38, 47, 22,
+		-7, 19, 16, 10, 18, 11, -10, -4,
 	},
 
 	// Piece square table for rook
 	{
-		-2, 16, -2, 29, 22, 2, 15, -6,
-		2, 2, 26, 28, 44, 35, 6, 9,
-		-15, -5, -9, 9, -17, 25, 39, -21,
-		-33, -26, -5, 17, 0, 24, -17, -31,
-		-47, -30, -17, -10, -2, -20, -4, -42,
-		-35, -29, -25, -19, 3, -12, -11, -39,
-		-37, -20, -14, -1, 2, 5, -6, -55,
-		-9, -5, 9, 20, 17, 17, -27, -14,
+		1, 14, -9, 12, 17, -22, -14, -14,
+		-1, 7, 28, 26, 34, 32, -5, 13,
+		-19, -1, -2, -1, -19, 10, 36, -14,
+		-31, -24, -3, 4, -9, 10, -23, -29,
+		-39, -28, -9, -8, -6, -23, -14, -33,
+		-36, -24, -9, -13, -2, -4, -18, -32,
+		-31, -12, -6, -1, 6, 9, -13, -57,
+		-6, -2, 13, 22, 21, 19, -26, -10,
 	},
 
 	// Piece square table for queens
 	{
-		-18, -16, 25, 13, 37, 35, 40, 29,
-		-28, -44, -10, 6, 4, 49, 53, 29,
-		-22, -16, 3, -2, 10, 46, 45, 44,
-		-36, -34, -22, -18, -8, -4, 15, -11,
-		-11, -41, -11, -18, -5, -2, 4, 1,
-		-20, 2, -6, -2, -7, -1, 10, 7,
-		-17, -5, 13, 7, 17, 15, 5, 20,
-		4, -1, 14, 21, 1, -14, -21, -44,
+		-27, -19, -14, -28, 26, 24, 18, 27,
+		-30, -50, -21, -9, -55, -7, -3, 23,
+		-16, -20, -6, -32, -5, 25, -2, 20,
+		-32, -31, -27, -30, -22, -17, -21, -21,
+		-8, -33, -12, -17, -12, -12, -11, -12,
+		-18, 5, -5, 0, -2, 0, 5, -3,
+		-24, -3, 14, 14, 20, 24, 3, 12,
+		10, 4, 13, 24, 9, -5, -3, -33,
 	},
 
 	// Piece square table for kings
 	{
-		13, 59, 78, 58, -8, 22, 28, 22,
-		51, 25, 35, 58, 37, 39, 15, 17,
-		25, 38, 41, 26, 17, 57, 49, -14,
-		-11, 10, 22, 24, 13, 22, 16, -5,
-		-29, 37, -9, -31, -8, -14, -4, -37,
-		26, 4, 0, -22, -18, -21, -7, -16,
-		7, 17, -17, -57, -42, -19, 0, 7,
-		-41, 32, 22, -55, 5, -25, 28, 6,
+		-22, 49, 70, 44, -9, 8, 31, 10,
+		61, 43, 35, 64, 36, 38, 13, -21,
+		38, 34, 50, 34, 39, 63, 72, 12,
+		20, 30, 30, 24, 23, 15, 23, -22,
+		-27, 38, 12, -6, -20, -10, -15, -45,
+		5, 10, 4, -6, -9, -6, 10, -17,
+		6, 20, 1, -48, -31, -6, 15, 5,
+		-35, 33, 18, -53, 1, -27, 23, 0,
 	},
 }
 
@@ -149,75 +149,75 @@ var PSQT_EG [6][64]int16 = [6][64]int16{
 
 	// Piece-square table for pawns
 	{
-		14, 7, 1, 0, -1, 1, 2, 1,
-		145, 135, 99, 96, 111, 98, 130, 157,
-		60, 69, 51, 33, 17, 23, 57, 50,
-		4, -8, -18, -29, -36, -31, -18, -11,
-		-16, -22, -35, -41, -41, -43, -31, -31,
-		-29, -25, -37, -33, -34, -38, -38, -40,
-		-22, -25, -23, -26, -26, -35, -34, -40,
-		10, -1, 2, 0, 1, 3, 0, 1,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		139, 135, 111, 96, 102, 102, 132, 142,
+		63, 67, 51, 31, 19, 15, 48, 51,
+		2, -11, -22, -33, -40, -33, -23, -16,
+		-19, -26, -39, -47, -47, -46, -37, -36,
+		-31, -30, -43, -34, -39, -43, -45, -45,
+		-21, -29, -24, -29, -27, -38, -41, -45,
+		0, 0, 0, 0, 0, 0, 0, 0,
 	},
 
 	// Piece-square table for knights
 	{
 
-		-65, -19, 2, -14, -6, -18, -52, -94,
-		-13, 7, -22, 13, -5, -25, -9, -42,
-		-10, -9, 12, 14, -1, -4, -8, -24,
-		1, 14, 23, 24, 24, 10, 12, -9,
-		-5, 2, 18, 34, 14, 21, 11, -12,
-		-3, 7, -5, 16, 4, -7, -15, -6,
-		-31, -3, -5, -4, 1, -23, -17, -36,
-		-17, -36, -8, -2, -14, -27, -34, -37,
+		-39, -29, 1, -18, -17, -18, -46, -83,
+		-12, 7, -16, 12, 1, -18, -12, -35,
+		-16, -10, 18, 15, 5, 5, -10, -32,
+		-2, 13, 31, 28, 32, 18, 17, -5,
+		-6, 2, 23, 32, 22, 23, 15, -6,
+		-10, 5, 0, 16, 11, -4, -15, -10,
+		-26, -8, 0, 0, 2, -11, -10, -33,
+		-18, -35, -10, -2, -11, -10, -31, -49,
 	},
 
 	// Piece-square table for bishops
 	{
-		-16, -17, 5, 9, 9, 4, 7, -9,
-		9, 5, 11, -7, 11, -11, 0, -12,
-		18, 6, 5, 2, -5, 2, 6, 14,
-		7, 14, 10, 2, 10, 8, 8, 13,
-		1, 6, 16, 16, -2, 12, -4, 2,
-		1, 8, 10, 14, 19, 3, 1, 1,
-		-2, -5, -2, 4, 9, 3, 0, -12,
-		-8, 8, -2, 5, 4, 5, -7, 2,
+		0, -8, 8, 4, 10, 5, 2, -14,
+		7, 3, 17, 0, 6, 1, 0, 0,
+		16, 1, 4, 2, 2, 4, 7, 14,
+		10, 18, 19, 10, 11, 13, 9, 15,
+		5, 6, 17, 16, 4, 13, 4, 2,
+		1, 4, 10, 14, 17, 2, 4, 2,
+		-2, -9, 3, 7, 10, -3, -1, -17,
+		-8, 1, -3, 7, 5, 5, 7, -1,
 	},
 
 	// Piece square table for rook
 	{
-		14, 9, 20, 11, 14, 10, 7, 12,
-		11, 17, 16, 18, -3, 7, 9, 16,
-		9, 13, 14, 5, 12, 0, -5, 10,
-		14, 6, 12, 1, 6, 1, -1, 7,
-		15, 8, 12, 5, -4, 4, -5, 1,
-		0, 7, 3, -3, -9, -1, -1, -4,
-		-3, 1, 6, 3, -6, -4, -2, 3,
-		-8, -1, -3, -6, -10, -12, -2, -20,
+		17, 9, 17, 13, 11, 18, 15, 14,
+		15, 14, 12, 12, -1, 4, 12, 9,
+		11, 10, 8, 9, 8, 0, -5, 5,
+		10, 7, 13, 1, 6, 5, 3, 10,
+		11, 10, 8, 3, 0, 2, -1, -1,
+		4, 6, -2, 1, -6, -6, 1, -6,
+		1, 0, 2, 5, -5, -5, -3, 5,
+		-9, 0, -3, -7, -8, -13, 1, -22,
 	},
 
 	// Piece square table for queens
 	{
-		4, 24, 19, 17, 38, 12, 16, 33,
-		-3, 13, 17, 30, 35, 19, -11, 29,
-		-1, 2, -12, 43, 42, 36, 26, 40,
-		25, 19, 11, 18, 23, 20, 34, 53,
-		-6, 26, 3, 27, 14, 25, 31, 39,
-		11, -21, 0, -1, 0, 17, 23, 25,
-		-11, -9, -17, 0, -7, -20, -16, -23,
-		-5, -23, -15, -9, 15, -3, 6, -24,
+		-19, 14, 20, 21, 12, 12, 4, 13,
+		-12, 7, 23, 24, 51, 25, 21, 3,
+		-18, -7, -16, 39, 31, 11, 24, 16,
+		14, 14, 6, 20, 31, 19, 45, 39,
+		-15, 21, 2, 27, 12, 17, 32, 24,
+		3, -31, 4, -6, -2, 12, 18, 15,
+		-6, -19, -25, -18, -12, -23, -27, -23,
+		-27, -32, -26, -21, -12, -19, -19, -33,
 	},
 
 	// Piece square table for kings
 	{
-		-37, -35, -26, -5, 7, 5, 0, -27,
-		0, 19, 21, 15, 20, 37, 24, 10,
-		9, 15, 22, 20, 17, 45, 42, 13,
-		-9, 24, 26, 28, 31, 32, 30, 1,
-		-15, -6, 23, 33, 30, 28, 15, -7,
-		-25, -1, 15, 26, 25, 22, 11, -9,
-		-30, -13, 13, 20, 21, 13, 4, -13,
-		-49, -30, -22, 1, -19, -6, -20, -38,
+		-72, -34, -22, -21, -5, 16, 10, -7,
+		-13, 15, 13, 12, 14, 36, 25, 18,
+		8, 21, 23, 13, 17, 40, 38, 13,
+		-12, 19, 24, 27, 25, 33, 27, 7,
+		-16, -6, 22, 28, 33, 26, 14, -4,
+		-19, -3, 12, 21, 25, 19, 8, -5,
+		-28, -11, 7, 18, 20, 10, -2, -14,
+		-45, -37, -22, -4, -19, -4, -23, -42,
 	},
 }
 
@@ -250,11 +250,10 @@ var FlipSq [2][64]int = [2][64]int{
 // more positive if it's good for the side to move, otherwise more negative).
 func EvaluatePos(pos *Position) int16 {
 	var eval Eval
-	eval.MGScores = pos.MGScores
-	eval.EGScores = pos.EGScores
-
 	eval.KingZones[White] = KingZones[pos.PieceBB[White][King].Msb()]
 	eval.KingZones[Black] = KingZones[pos.PieceBB[Black][King].Msb()]
+
+	phase := TotalPhase
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
 
 	for allBB != 0 {
@@ -272,7 +271,11 @@ func EvaluatePos(pos *Position) int16 {
 			evalRook(pos, piece.Color, sq, &eval)
 		case Queen:
 			evalQueen(pos, piece.Color, sq, &eval)
+		case King:
+			evalKing(pos, piece.Color, sq, &eval)
 		}
+
+		phase -= PhaseValues[piece.Type]
 	}
 
 	evalKingAttack(pos, White, &eval)
@@ -281,7 +284,7 @@ func EvaluatePos(pos *Position) int16 {
 	mgScore := eval.MGScores[pos.SideToMove] - eval.MGScores[pos.SideToMove^1]
 	egScore := eval.EGScores[pos.SideToMove] - eval.EGScores[pos.SideToMove^1]
 
-	phase := (pos.Phase*256 + (TotalPhase / 2)) / TotalPhase
+	phase = (phase*256 + (TotalPhase / 2)) / TotalPhase
 	score := int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
 
 	score += eval.Scores[pos.SideToMove]
@@ -291,6 +294,9 @@ func EvaluatePos(pos *Position) int16 {
 
 // Evaluate the score of a pawn.
 func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Pawn] + PSQT_MG[Pawn][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Pawn] + PSQT_EG[Pawn][FlipSq[color][sq]]
+
 	usPawns := pos.PieceBB[color][Pawn]
 	file := FileOf(sq)
 
@@ -307,6 +313,9 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 
 // Evaluate the score of a knight.
 func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Knight] + PSQT_MG[Knight][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Knight] + PSQT_EG[Knight][FlipSq[color][sq]]
+
 	usBB := pos.SideBB[color]
 	moves := KnightMoves[sq] & ^usBB
 	mobility := int16(moves.CountBits())
@@ -326,6 +335,9 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 
 // Evaluate the score of a bishop.
 func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Bishop] + PSQT_MG[Bishop][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Bishop] + PSQT_EG[Bishop][FlipSq[color][sq]]
+
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
 
@@ -347,6 +359,9 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 
 // Evaluate the score of a rook.
 func evalRook(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Rook] + PSQT_MG[Rook][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Rook] + PSQT_EG[Rook][FlipSq[color][sq]]
+
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
 
@@ -368,6 +383,9 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 
 // Evaluate the score of a queen.
 func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PieceValueMG[Queen] + PSQT_MG[Queen][FlipSq[color][sq]]
+	eval.EGScores[color] += PieceValueEG[Queen] + PSQT_EG[Queen][FlipSq[color][sq]]
+
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
 
@@ -385,6 +403,11 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 		eval.KingAttackPoints[color] += uint8(outerRingAttacks.CountBits()) * uint8(QueenAttackOuterRing)
 		eval.KingAttackPoints[color] += uint8(innerRingAttacks.CountBits()) * uint8(QueenAttackInnerRing)
 	}
+}
+
+func evalKing(pos *Position, color, sq uint8, eval *Eval) {
+	eval.MGScores[color] += PSQT_MG[King][FlipSq[color][sq]]
+	eval.EGScores[color] += PSQT_EG[King][FlipSq[color][sq]]
 }
 
 func evalKingAttack(pos *Position, color uint8, eval *Eval) {

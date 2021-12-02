@@ -12,43 +12,53 @@ import (
 )
 
 const (
-	DataFile   = ""
-	NumCores   = 4
-	NumWeights = 786
+	NumCores   = 8
+	NumWeights = 794
 	KPrecision = 10
+	Report     = 10
 
-	Draw         float64 = 0.5
-	WhiteWin     float64 = 1.0
-	BlackWin     float64 = 0.0
-	NumPositions float64 = 10000.0
-	K            float64 = 1.161
+	Draw     float64 = 0.5
+	WhiteWin float64 = 1.0
+	BlackWin float64 = 0.0
 )
 
 // A struct object to hold data concering a position loaded from the training file.
 // Each position consists of a position board object and the outcome of the game
 // the position was from.
-type Position struct {
+type Entry struct {
 	Pos     engine.Position
 	Outcome float64
 }
 
 // A global variable to hold the positions loaded from the training file.
-var Positions []Position
+var Entries []Entry
 
 // A global variable to hold the parallel computations of the MSE function.
 var Answers = make(chan float64)
 
-// A method to specifiy which weights should be ignored when tuning.
-var IgnoreWeights = make([]bool, len(Weights))
-
-func setIgnoredWeights(from, to int) {
-	for i := from; i < to; i++ {
-		IgnoreWeights[i] = true
-	}
-}
-
 // The weights to be adjusted during the tuning process.
-var Weights []int16 = loadWeights()
+var Weights []int16
+
+// Boolean map of futile weights that shouldn't be tuned by the tuner (i.e 1st and 8th rank
+// weights for pawns)
+var FutileIndexes []bool
+
+// Intialize futile indexes.
+func initFutileIndexes() (indexes []bool) {
+	futileIndexes := []int{
+		0, 1, 2, 3, 4, 5, 6, 7,
+		56, 57, 58, 59, 60, 61, 62, 63,
+		384, 385, 386, 387, 388, 389, 390, 391,
+		440, 441, 442, 443, 444, 445, 446, 447,
+	}
+
+	indexes = make([]bool, NumWeights)
+	for _, idx := range futileIndexes {
+		indexes[idx] = true
+	}
+
+	return indexes
+}
 
 // Load the weights for tuning from the current evaluation terms.
 func loadWeights() (weights []int16) {
@@ -72,19 +82,29 @@ func loadWeights() (weights []int16) {
 	copy(weights[778:782], engine.PieceMobilityMG[:])
 	copy(weights[782:786], engine.PieceMobilityEG[:])
 
+	weights[786] = engine.IsolatedPawnPenatly
+	weights[787] = engine.DoubledPawnPenatly
+
+	weights[788] = engine.MinorAttackInnerRing
+	weights[789] = engine.MinorAttackOuterRing
+	weights[790] = engine.RookAttackInnerRing
+	weights[791] = engine.RookAttackOuterRing
+	weights[792] = engine.QueenAttackInnerRing
+	weights[793] = engine.QueenAttackOuterRing
+
 	return weights
 }
 
 // Load the given number of positions from the training set file.
-func loadPositions() (positions []Position) {
-	file, err := os.Open(DataFile)
+func loadEntries(infile string, numPositions int) (entries []Entry) {
+	file, err := os.Open(infile)
 	if err != nil {
 		panic(err)
 	}
 	reader := bufio.NewReader(file)
 	scanner := bufio.NewScanner(reader)
 
-	for positionCount := 0; scanner.Scan() && positionCount < int(NumPositions); positionCount++ {
+	for positionCount := 0; scanner.Scan() && positionCount < numPositions; positionCount++ {
 		line := scanner.Text()
 		fields := strings.Fields(line)
 
@@ -100,32 +120,42 @@ func loadPositions() (positions []Position) {
 
 		var pos engine.Position
 		pos.LoadFEN(fen)
-		positions = append(positions, Position{Pos: pos, Outcome: outcome})
+		entries = append(entries, Entry{Pos: pos, Outcome: outcome})
 	}
 
-	fmt.Printf("Done loading %d positions...\n", int(NumPositions))
-	return positions
+	fmt.Printf("Done loading %d positions...\n", numPositions)
+	return entries
 }
 
-func mapWeightsToParameters() {
-	copy(engine.PSQT_MG[engine.Pawn][:], Weights[0:64])
-	copy(engine.PSQT_MG[engine.Knight][:], Weights[64:128])
-	copy(engine.PSQT_MG[engine.Bishop][:], Weights[128:192])
-	copy(engine.PSQT_MG[engine.Rook][:], Weights[192:256])
-	copy(engine.PSQT_MG[engine.Queen][:], Weights[256:320])
-	copy(engine.PSQT_MG[engine.King][:], Weights[320:384])
+func mapWeights(weights []int16) {
+	copy(engine.PSQT_MG[engine.Pawn][:], weights[0:64])
+	copy(engine.PSQT_MG[engine.Knight][:], weights[64:128])
+	copy(engine.PSQT_MG[engine.Bishop][:], weights[128:192])
+	copy(engine.PSQT_MG[engine.Rook][:], weights[192:256])
+	copy(engine.PSQT_MG[engine.Queen][:], weights[256:320])
+	copy(engine.PSQT_MG[engine.King][:], weights[320:384])
 
-	copy(engine.PSQT_EG[engine.Pawn][:], Weights[384:448])
-	copy(engine.PSQT_EG[engine.Knight][:], Weights[448:512])
-	copy(engine.PSQT_EG[engine.Bishop][:], Weights[512:576])
-	copy(engine.PSQT_EG[engine.Rook][:], Weights[576:640])
-	copy(engine.PSQT_EG[engine.Queen][:], Weights[640:704])
-	copy(engine.PSQT_EG[engine.King][:], Weights[704:768])
+	copy(engine.PSQT_EG[engine.Pawn][:], weights[384:448])
+	copy(engine.PSQT_EG[engine.Knight][:], weights[448:512])
+	copy(engine.PSQT_EG[engine.Bishop][:], weights[512:576])
+	copy(engine.PSQT_EG[engine.Rook][:], weights[576:640])
+	copy(engine.PSQT_EG[engine.Queen][:], weights[640:704])
+	copy(engine.PSQT_EG[engine.King][:], weights[704:768])
 
-	copy(engine.PieceValueMG[:], Weights[768:773])
-	copy(engine.PieceValueEG[:], Weights[773:778])
-	copy(engine.PieceMobilityMG[:], Weights[778:782])
-	copy(engine.PieceMobilityEG[:], Weights[782:786])
+	copy(engine.PieceValueMG[:], weights[768:773])
+	copy(engine.PieceValueEG[:], weights[773:778])
+	copy(engine.PieceMobilityMG[:], weights[778:782])
+	copy(engine.PieceMobilityEG[:], weights[782:786])
+
+	engine.IsolatedPawnPenatly = weights[786]
+	engine.DoubledPawnPenatly = weights[787]
+
+	engine.MinorAttackInnerRing = weights[788]
+	engine.MinorAttackOuterRing = weights[789]
+	engine.RookAttackInnerRing = weights[790]
+	engine.RookAttackOuterRing = weights[791]
+	engine.QueenAttackInnerRing = weights[792]
+	engine.QueenAttackOuterRing = weights[793]
 }
 
 // Evaluate the position from the training set file.
@@ -143,25 +173,24 @@ func evaluate(pos engine.Position) int16 {
 func processor(start, end int, K float64) {
 	var errorSum float64
 	for i := start; i < end; i++ {
-		score := float64(evaluate(Positions[i].Pos))
+		score := float64(evaluate(Entries[i].Pos))
 		sigmoid := 1 / (1 + math.Pow(10, -K*score/400))
-		errorSum += math.Pow(Positions[i].Outcome-sigmoid, 2)
+		errorSum += math.Pow(Entries[i].Outcome-sigmoid, 2)
 	}
 	Answers <- errorSum
 }
 
 // Calculate the mean square error given the current weights. Credit to
 // Amanj Sherwany (author of Zahak) for this parallelized implementation.
-func meanSquaredError(K float64) float64 {
-	mapWeightsToParameters()
-	var errorSum float64
+func meanSquaredError(weights []int16, K float64) (errorSum float64) {
+	mapWeights(weights)
+	batchSize := len(Entries) / NumCores
 
-	batchSize := len(Positions) / NumCores
 	for i := 0; i < NumCores; i++ {
 		start := i * batchSize
 		end := (i + 1) * batchSize
 		if i == NumCores-1 {
-			end = len(Positions)
+			end = len(Entries)
 		}
 		go processor(start, end, K)
 	}
@@ -171,21 +200,23 @@ func meanSquaredError(K float64) float64 {
 		errorSum += ans
 	}
 
-	return errorSum / NumPositions
+	return errorSum / float64(len(Entries))
 }
 
+// Credit to Andrew Grant (author of the chess engine Ethereal), for
+// this specfic implementation of computing an appropriate K value.
 func findK() float64 {
 	start, end, step := float64(0), float64(10), float64(1)
 	err := float64(0)
 
 	curr := start
-	best := meanSquaredError(start)
+	best := meanSquaredError(Weights, start)
 
 	for i := 0; i < KPrecision; i++ {
 		curr = start - step
 		for curr < end {
 			curr = curr + step
-			err = meanSquaredError(curr)
+			err = meanSquaredError(Weights, curr)
 			if err <= best {
 				best = err
 				start = curr
@@ -202,54 +233,7 @@ func findK() float64 {
 	return start
 }
 
-func tune() {
-	numParams := len(Weights)
-	bestError := meanSquaredError(K)
-
-	improved := true
-	for iteration := 1; improved; iteration++ {
-		improved = false
-		for weightIdx := 0; weightIdx < numParams; weightIdx++ {
-			if IgnoreWeights[weightIdx] {
-				continue
-			}
-
-			Weights[weightIdx] += 1
-			newError := meanSquaredError(K)
-
-			if newError < bestError {
-				bestError = newError
-				improved = true
-			} else {
-				Weights[weightIdx] -= 2
-
-				if weightIdx >= 768 && Weights[weightIdx] <= 0 {
-					Weights[weightIdx] += 1
-					continue
-				}
-
-				newError = meanSquaredError(K)
-				if newError < bestError {
-					bestError = newError
-					improved = true
-				} else {
-					Weights[weightIdx] += 1
-				}
-			}
-		}
-
-		fmt.Printf("Iteration %d complete...\n", iteration)
-		fmt.Printf("Best error: %.15f\n", bestError)
-
-		if iteration%10 == 0 {
-			printParameters()
-		}
-	}
-
-	fmt.Println("Done tuning!")
-}
-
-func prettyPrintPSQT(msg string, psqt [64]int16) {
+func prettyPrintPSQT(msg string, psqt []int16) {
 	fmt.Print("\n")
 	fmt.Println(msg)
 	for sq := 0; sq < 64; sq++ {
@@ -262,33 +246,88 @@ func prettyPrintPSQT(msg string, psqt [64]int16) {
 }
 
 func printParameters() {
-	prettyPrintPSQT("MG Pawn PST:", engine.PSQT_MG[engine.Pawn])
-	prettyPrintPSQT("MG Knight PST:", engine.PSQT_MG[engine.Knight])
-	prettyPrintPSQT("MG Bishop PST:", engine.PSQT_MG[engine.Bishop])
-	prettyPrintPSQT("MG Rook PST:", engine.PSQT_MG[engine.Rook])
-	prettyPrintPSQT("MG Queen PST:", engine.PSQT_MG[engine.Queen])
-	prettyPrintPSQT("MG King PST:", engine.PSQT_MG[engine.King])
+	prettyPrintPSQT("MG Pawn PST:", Weights[0:64])
+	prettyPrintPSQT("MG Knight PST:", Weights[64:128])
+	prettyPrintPSQT("MG Bishop PST:", Weights[128:192])
+	prettyPrintPSQT("MG Rook PST:", Weights[192:256])
+	prettyPrintPSQT("MG Queen PST:", Weights[256:320])
+	prettyPrintPSQT("MG King PST:", Weights[320:384])
 
-	prettyPrintPSQT("EG Pawn PST:", engine.PSQT_EG[engine.Pawn])
-	prettyPrintPSQT("EG Knight PST:", engine.PSQT_EG[engine.Knight])
-	prettyPrintPSQT("EG Bishop PST:", engine.PSQT_EG[engine.Bishop])
-	prettyPrintPSQT("EG Rook PST:", engine.PSQT_EG[engine.Rook])
-	prettyPrintPSQT("EG Queen PST:", engine.PSQT_EG[engine.Queen])
-	prettyPrintPSQT("EG King PST:", engine.PSQT_EG[engine.King])
+	prettyPrintPSQT("EG Pawn PST:", Weights[384:448])
+	prettyPrintPSQT("EG Knight PST:", Weights[448:512])
+	prettyPrintPSQT("EG Bishop PST:", Weights[512:576])
+	prettyPrintPSQT("EG Rook PST:", Weights[576:640])
+	prettyPrintPSQT("EG Queen PST:", Weights[640:704])
+	prettyPrintPSQT("EG King PST:", Weights[704:768])
 
-	fmt.Println("MG Piece Values:", engine.PieceValueMG)
-	fmt.Println("EG Piece Values:", engine.PieceValueEG)
-	fmt.Println("MG Piece Mobility Bonuses:", engine.PieceMobilityMG)
-	fmt.Println("EG Piece Mobility Bonuses:", engine.PieceMobilityEG)
+	fmt.Println("MG Piece Values:", Weights[768:773])
+	fmt.Println("EG Piece Values:", Weights[773:778])
+	fmt.Println("MG Piece Mobility Bonuses:", Weights[778:782])
+	fmt.Println("EG Piece Mobility Bonuses:", Weights[782:786])
+
+	fmt.Println("Isolated Pawn Penalty:", engine.IsolatedPawnPenatly)
+	fmt.Println("Doubled Pawn Penalty:", engine.DoubledPawnPenatly)
+
+	fmt.Println("Minor Attacking Inner Ring:", engine.MinorAttackInnerRing)
+	fmt.Println("Minor Attacking Outer Ring:", engine.MinorAttackOuterRing)
+	fmt.Println("Rook Attacking Inner Ring:", engine.RookAttackInnerRing)
+	fmt.Println("Rook Attacking Outer Ring:", engine.RookAttackOuterRing)
+	fmt.Println("Queen Attacking Inner Ring:", engine.QueenAttackInnerRing)
+	fmt.Println("Queen Attacking Outer Ring:", engine.QueenAttackOuterRing)
 }
 
-func RunTuner(verbose bool) {
-	Positions = loadPositions()
+func Tune(infile string, numPositions int) {
+	Entries = loadEntries(infile, numPositions)
+	Weights = loadWeights()
+	FutileIndexes = initFutileIndexes()
 
-	tune()
-	mapWeightsToParameters()
+	K := findK()
+	bestError := meanSquaredError(Weights, K)
+	improved := true
 
-	if verbose {
-		printParameters()
+	for iteration := 1; improved; iteration++ {
+		improved = false
+
+		for weightIdx := 0; weightIdx < NumWeights; weightIdx++ {
+			if FutileIndexes[weightIdx] {
+				continue
+			}
+
+			Weights[weightIdx] += 1
+			newError := meanSquaredError(Weights, K)
+
+			if newError < bestError {
+				bestError = newError
+				improved = true
+			} else {
+				Weights[weightIdx] -= 2
+
+				// All weights but those in the piece-square tables should be
+				// positive.
+				if weightIdx >= 768 && Weights[weightIdx] <= 0 {
+					Weights[weightIdx] += 1
+					continue
+				}
+
+				newError = meanSquaredError(Weights, K)
+				if newError < bestError {
+					bestError = newError
+					improved = true
+				} else {
+					Weights[weightIdx] += 1
+				}
+			}
+		}
+
+		if iteration%Report == 0 {
+			fmt.Printf("Best evaluation terms (iteration %d):", iteration)
+			printParameters()
+		} else {
+			fmt.Printf("iteration %d, error = %.15f\n", iteration, bestError)
+		}
 	}
+
+	fmt.Println("\nDone tuning! Best weights:")
+	mapWeights(Weights)
+	printParameters()
 }
