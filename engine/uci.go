@@ -37,6 +37,10 @@ type UCIInterface struct {
 	OptionBookMoveDelay int
 }
 
+func (inter *UCIInterface) Reset() {
+	*inter = UCIInterface{}
+}
+
 // Respond to the command "uci"
 func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Printf("\nid name %v\n", EngineName)
@@ -261,6 +265,35 @@ func (inter *UCIInterface) UCILoop() {
 			inter.printCommandResponse()
 		} else if command == "eval\n" {
 			fmt.Println(EvaluatePos(&inter.Search.Pos), "cp")
+		}
+	}
+}
+
+func runCommLoop() {
+	reader := bufio.NewReader(os.Stdin)
+	var inter UCIInterface
+
+	for {
+		command, _ := reader.ReadString('\n')
+		command = strings.Replace(command, "\r\n", "\n", -1)
+
+		if strings.HasPrefix(command, "perft") {
+
+		} else if strings.HasPrefix(command, "dperft ") {
+
+		} else if strings.HasPrefix(command, "fen ") {
+
+		} else if command == "print\n" {
+
+		} else if command == "uci\n" {
+			inter.UCILoop()
+			break
+		} else if command == "options\n" {
+
+		} else if command == "eval\n" {
+
+		} else if command == "quit\n" {
+			break
 		}
 	}
 }

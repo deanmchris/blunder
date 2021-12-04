@@ -284,13 +284,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if doNull && !inCheck && !isPVNode && depth >= 3 && !search.Pos.NoMajorsOrMiniors() {
-		R := FirstNullMoveReduction
-		if depth > 6 {
-			R = SecondNullMoveReduction
-		}
-
+		R := 3 + depth/6
 		search.Pos.MakeNullMove()
-		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &childPVLine, false)
+		score := -search.negamax(depth-R-1, ply+1, -beta, -beta+1, &childPVLine, false)
 		search.Pos.UnmakeNullMove()
 		childPVLine.Clear()
 
