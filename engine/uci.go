@@ -12,19 +12,6 @@ import (
 )
 
 const (
-	EngineName   = "Blunder dev"
-	EngineAuthor = "Christian Dean"
-	EngineEmail  = "deanmchris@gmail.com"
-
-	Banner = `
-██████╗░██╗░░░░░██╗░░░██╗███╗░░██╗██████╗░███████╗██████╗░
-██╔══██╗██║░░░░░██║░░░██║████╗░██║██╔══██╗██╔════╝██╔══██╗
-██████╦╝██║░░░░░██║░░░██║██╔██╗██║██║░░██║█████╗░░██████╔╝
-██╔══██╗██║░░░░░██║░░░██║██║╚████║██║░░██║██╔══╝░░██╔══██╗
-██████╦╝███████╗╚██████╔╝██║░╚███║██████╔╝███████╗██║░░██║
-╚═════╝░╚══════╝░╚═════╝░╚═╝░░╚══╝╚═════╝░╚══════╝╚═╝░░╚═╝
-	`
-
 	DefaultBookMoveDelay = 2
 )
 
@@ -228,11 +215,8 @@ func (inter *UCIInterface) UCILoop() {
 	rand.Seed(time.Now().Unix())
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Println(Banner)
-	fmt.Println("Author:", EngineAuthor)
-	fmt.Println("Engine:", EngineName)
-	fmt.Println("Email:", EngineEmail)
-	fmt.Printf("Hash size: %d MB\n\n", DefaultTTSize)
+	inter.uciCommandResponse()
+	inter.Reset()
 
 	inter.Search.TT.Resize(DefaultTTSize)
 	inter.Search.Pos.LoadFEN(FENStartPosition)
@@ -263,37 +247,6 @@ func (inter *UCIInterface) UCILoop() {
 			break
 		} else if command == "print\n" {
 			inter.printCommandResponse()
-		} else if command == "eval\n" {
-			fmt.Println(EvaluatePos(&inter.Search.Pos), "cp")
-		}
-	}
-}
-
-func runCommLoop() {
-	reader := bufio.NewReader(os.Stdin)
-	var inter UCIInterface
-
-	for {
-		command, _ := reader.ReadString('\n')
-		command = strings.Replace(command, "\r\n", "\n", -1)
-
-		if strings.HasPrefix(command, "perft") {
-
-		} else if strings.HasPrefix(command, "dperft ") {
-
-		} else if strings.HasPrefix(command, "fen ") {
-
-		} else if command == "print\n" {
-
-		} else if command == "uci\n" {
-			inter.UCILoop()
-			break
-		} else if command == "options\n" {
-
-		} else if command == "eval\n" {
-
-		} else if command == "quit\n" {
-			break
 		}
 	}
 }
