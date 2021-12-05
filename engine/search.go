@@ -39,7 +39,7 @@ const (
 	LMRDepthLimit                   int8  = 3
 )
 
-var FutilityMargins = [4]int16{0, 200, 300, 500}
+var FutilityMargins = [9]int16{0, 100, 160, 220, 280, 340, 400, 460, 520}
 
 type Reduction struct {
 	MoveLimit int
@@ -307,7 +307,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// suck and probably don't even have a chance of raising alpha.         //
 	// =====================================================================//
 
-	if depth <= 3 && !isPVNode && !inCheck && alpha < Checkmate {
+	if depth <= 8 && !isPVNode && !inCheck && alpha < Checkmate {
 		staticScore := EvaluatePos(&search.Pos)
 		if staticScore+FutilityMargins[depth] <= alpha {
 			canFutilityPrune = true
