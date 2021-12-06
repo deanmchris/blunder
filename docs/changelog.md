@@ -1,5 +1,6 @@
 Changelog
 ---------
+* Blunder 7.3.0
 * Blunder 7.2.0
 * Blunder 7.1.0
 * Blunder 7.0.0
@@ -10,6 +11,25 @@ Changelog
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 7.3.0
+-------------
+
+New features included in this version are evaluation terms for king safety and pawn structure. Both are still quite basic and have much lacking, but I believe them to be solid designs to build on in future versions. Addtionally, all evaluation terms have been retuned on a larger dataset, yielding some minior gains. However, most of the strength gain in this new version comes from slight tweaks to the pruning parameters and conditions for late-move reductions, null-move pruning, and futility pruning. Lastly, there are some non-strength gaining tweaks here and there, code clean-ups, and the command line interface is much more user friendly. The major changes as usual are summarized below:
+
+* Engine
+    - Improved command-line interface
+    - UCI command `movetime` now implemented
+* Search
+    - Tweaked futility pruning's allowed depth and margins
+    - Tweaked the formula for calculating null-move reductions (much more agressive for higher depths)
+    - Trasitioned to using a basic table for computing late-move reductions.
+* Evaluation
+    - [Basic king safety](https://www.chessprogramming.org/King_Safety)
+    - [Basic pawn structure](https://www.chessprogramming.org/Pawn_Structure)
+    - All terms retuned using the full Zurichess dataset.
+
+Though not as large as past gains, these tweaks and tunings show promise, and indicate Blunder's gained anywhere between 45-60 Elo.
 
 Blunder 7.2.0
 -------------

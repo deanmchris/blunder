@@ -15,7 +15,8 @@ be straightforward and easy to read, so that others can benefit from the project
 | 6.1.0       | 2200                   | 2155              | N/A                 | N/A
 | 7.0.0       | 2280                   | N/A               | 279                 | 2477
 | 7.1.0       | 2395                   | N/A               | N/A                 | N/A
-| 7.2.0       | 2395                   | N/A               | N/A                 | N/A
+| 7.2.0       | 2395                   | 2425              | N/A                 | N/A
+| 7.3.0       | 2450                   | N/A               | N/A                 | N/A
 
 <sup>1 [Win At Chess](https://www.chessprogramming.org/Win_at_Chess)</sup>
 
@@ -37,7 +38,9 @@ should then able to run.
 
 Alternatively, if the `make` build automation tool is installed on your computer (it comes standard on most Linux systems),
 simply download this repository's zip file, unzip it, navigate to the primary folder, and run `make` from the command line.
-An executable for WIndows, Linux, and MacOS will be built and placed inside of the primary directory.
+An executable for Windows, Linux, and MacOS will be built and placed inside of the primary directory.
+
+If you're on a windows platform, you'll need to run `make build-windows` instead.
 
 Usage
 -----
@@ -84,6 +87,8 @@ Features
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
     - [Tapered evaluation](https://www.chessprogramming.org/Tapered_Eval)
     - [Mobility](https://www.chessprogramming.org/Mobility)
+    - [Basic king safety](https://www.chessprogramming.org/King_Safety)
+    - [Basic pawn structure](https://www.chessprogramming.org/Pawn_Structure)
     - [Texel Tuner](https://www.chessprogramming.org/Texel%27s_Tuning_Method)
     
  Changelog

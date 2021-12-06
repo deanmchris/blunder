@@ -38,6 +38,7 @@ And some people who I'd like to thank especially:
   * Judd Niemann (author of [JuddPerft](https://github.com/jniemann66/juddperft)), a tool that was invaluable in debugging the early stages of Blunder's
     move generation.
   * The [Stockfish](https://github.com/official-stockfish/Stockfish/tree/master/src) Developers, for their work on Stockfish, which has been an invaluable resource in the development of Blunder.
+  * Robert Hyatt & co., the developers of [Crafty](https://www.chessprogramming.org/Crafty), for providing me with new ideas to try and inspiration.
 
  
  These credits will be updated from time to time as a remember or encounter more people who help, or have helped,
