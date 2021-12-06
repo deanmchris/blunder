@@ -40,6 +40,32 @@ func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Print("option name BookMoveDelay type spin default 2 min 0 max 10\n")
 	fmt.Print("option name MiddleGameContempt type spin default 25 min 0 max 100\n")
 	fmt.Print("option name EndGameContempt type spin default 0 min 0 max 100\n")
+	fmt.Print("\nAvailable UCI commands:\n")
+	/*
+	* wtime
+	* btime
+	* winc
+	* binc
+	* movestogo
+	* depth
+	* nodes
+	* movetime
+	* infinite
+	 */
+	fmt.Print("    * uci\n    * isready\n    * ucinewgame")
+	fmt.Print("\n    * setoption name <NAME> value <VALUE>")
+
+	fmt.Print("\n    * position")
+	fmt.Print("\n\t* fen <FEN>")
+	fmt.Print("\n\t* startpos")
+
+	fmt.Print("\n    * go")
+	fmt.Print("\n\t* wtime <MILLISECONDS>\n\t* btime <MILLISECONDS>")
+	fmt.Print("\n\t* winc <MILLISECONDS>\n\t* binc <MILLISECONDS>")
+	fmt.Print("\n\t* movestogo <INTEGER>\n\t* depth <INTEGER>\n\t* nodes <INTEGER>\n\t* movetime <INTEGER>")
+	fmt.Print("\n\t* infinite")
+
+	fmt.Print("\n    * stop\n    * quit\n\n")
 	fmt.Printf("uciok\n\n")
 }
 
@@ -171,6 +197,7 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 	timeLeft, increment, movesToGo := -1, 0, 0
 	specifiedDepth := uint64(MaxPly)
 	specifiedNodes := uint64(math.MaxUint64)
+	searchTime := uint64(0)
 
 	for index, field := range fields {
 		if strings.HasPrefix(field, colorPrefix) {
@@ -185,12 +212,24 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 			specifiedDepth, _ = strconv.ParseUint(fields[index+1], 10, 8)
 		} else if field == "nodes" {
 			specifiedNodes, _ = strconv.ParseUint(fields[index+1], 10, 64)
+		} else if field == "movetime" {
+			searchTime, _ = strconv.ParseUint(fields[index+1], 10, 64)
 		}
+	}
 
+	if searchTime > 0 {
+		// A hack for getting movetime to work. Blunder's time mangagement is currently
+		// linear and uses time_left/40 for each search. So multiply the movetime
+		// value by 40 to get Blunder to search the amount of time specified by movetime.
+		//
+		// TODO: Get rid of this hack and do things properly since eventually Blunder's
+		// time mangagement won't be strictly linear anymore.
+		inter.Search.Timer.TimeLeft = int64(searchTime * 40)
+	} else {
+		inter.Search.Timer.TimeLeft = int64(timeLeft)
 	}
 
 	// Setup the timer with the go command time control information.
-	inter.Search.Timer.TimeLeft = int64(timeLeft)
 	inter.Search.Timer.Increment = int64(increment)
 	inter.Search.Timer.MovesToGo = int64(movesToGo)
 
@@ -205,10 +244,6 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 
 func (inter *UCIInterface) quitCommandResponse() {
 	inter.Search.TT.Unitialize()
-}
-
-func (inter *UCIInterface) printCommandResponse() {
-	// print internal engine info
 }
 
 func (inter *UCIInterface) UCILoop() {
@@ -245,8 +280,6 @@ func (inter *UCIInterface) UCILoop() {
 		} else if command == "quit\n" {
 			inter.quitCommandResponse()
 			break
-		} else if command == "print\n" {
-			inter.printCommandResponse()
 		}
 	}
 }
