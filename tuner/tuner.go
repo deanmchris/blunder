@@ -39,6 +39,10 @@ var Answers = make(chan float64)
 // The weights to be adjusted during the tuning process.
 var Weights []int16
 
+// The steps to adjust each weight.
+
+var Steps []int16
+
 // Boolean map of futile weights that shouldn't be tuned by the tuner (i.e 1st and 8th rank
 // weights for pawns)
 var FutileIndexes []bool
@@ -93,6 +97,25 @@ func loadWeights() (weights []int16) {
 	weights[793] = engine.QueenAttackOuterRing
 
 	return weights
+}
+
+// Load the steps for each weight.
+func loadSteps() (steps []int16) {
+	steps = make([]int16, NumWeights)
+	copy(steps[0:768], make_int16_slice(768, 2))
+	copy(steps[768:778], make_int16_slice(10, 1))
+	copy(steps[778:794], make_int16_slice(16, 1))
+	return steps
+}
+
+// Create an int16 slice of a certian size and filled
+// with a specified default value.
+func make_int16_slice(size int, defaultValue int16) (slice []int16) {
+	slice = make([]int16, size)
+	for i := range slice {
+		slice[i] = defaultValue
+	}
+	return slice
 }
 
 // Load the given number of positions from the training set file.
@@ -276,45 +299,41 @@ func printParameters() {
 	fmt.Println("Queen Attacking Outer Ring:", engine.QueenAttackOuterRing)
 }
 
-func Tune(infile string, numPositions int) {
+func Tune(infile string, numPositions, iterations int) {
 	Entries = loadEntries(infile, numPositions)
 	Weights = loadWeights()
+	Steps = loadSteps()
 	FutileIndexes = initFutileIndexes()
 
 	K := findK()
 	bestError := meanSquaredError(Weights, K)
-	improved := true
 
-	for iteration := 1; improved; iteration++ {
-		improved = false
-
+	for iteration := 1; iteration <= iterations; iteration++ {
 		for weightIdx := 0; weightIdx < NumWeights; weightIdx++ {
 			if FutileIndexes[weightIdx] {
 				continue
 			}
 
-			Weights[weightIdx] += 1
+			Weights[weightIdx] += Steps[weightIdx]
 			newError := meanSquaredError(Weights, K)
 
 			if newError < bestError {
 				bestError = newError
-				improved = true
 			} else {
-				Weights[weightIdx] -= 2
+				Weights[weightIdx] -= Steps[weightIdx] * 2
 
 				// All weights but those in the piece-square tables should be
 				// positive.
 				if weightIdx >= 768 && Weights[weightIdx] <= 0 {
-					Weights[weightIdx] += 1
+					Weights[weightIdx] += Steps[weightIdx]
 					continue
 				}
 
 				newError = meanSquaredError(Weights, K)
 				if newError < bestError {
 					bestError = newError
-					improved = true
 				} else {
-					Weights[weightIdx] += 1
+					Weights[weightIdx] += Steps[weightIdx]
 				}
 			}
 		}

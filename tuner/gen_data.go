@@ -40,25 +40,26 @@ func GenTrainingData(infile, outfile string) {
 		fmt.Printf("Extracting positions from game %d\n", i+1)
 
 		search.Pos.LoadFEN(pgn.Fen)
-		for moveNum, move := range pgn.Moves {
+		for j, move := range pgn.Moves {
 			search.Pos.MakeMove(move)
 			search.Pos.StatePly--
 
-			// Skip the last few moves.
-			if (len(pgn.Moves)-1)-moveNum <= 6 {
-				continue
-			}
+			eval := engine.EvaluatePos(&search.Pos)
+			qeval := search.Qsearch(-engine.Inf, engine.Inf, 0, &engine.PVLine{})
 
 			if search.Pos.InCheck() {
 				continue
 			}
 
-			// Ensure the position is quiet by doing a qsearch and using the resulting
-			// PV line to construct the final position.
-			var pvLine engine.PVLine
-			search.Qsearch(-engine.Inf, engine.Inf, 0, &pvLine)
+			if (len(pgn.Moves) - j) <= 10 {
+				continue
+			}
 
-			fields := strings.Fields(getPVPosition(&pvLine, &search.Pos))
+			if abs16(qeval-eval) > 50 {
+				continue
+			}
+
+			fields := strings.Fields(search.Pos.GenFEN())
 			result := OutcomeToResult[pgn.Outcome]
 
 			fens = append(fens, fmt.Sprintf("%s %s %s %s c9 \"%s\";\n", fields[0], fields[1], fields[2], fields[3], result))
@@ -70,36 +71,20 @@ func GenTrainingData(infile, outfile string) {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(fens), func(i, j int) { fens[i], fens[j] = fens[j], fens[i] })
 
-	seen := make(map[string]int)
-	duplicates := 0
-
 	for _, fen := range fens {
-		seen[fen]++
-		if seen[fen] == 1 {
-			_, err := file.WriteString(fen)
-			if err != nil {
-				panic(err)
-			}
-		} else {
-			duplicates++
+		_, err := file.WriteString(fen)
+		if err != nil {
+			panic(err)
 		}
 	}
 
 	fmt.Printf("%d positions succesfully extracted!\n", numPositions)
-	fmt.Printf("%d duplicate positions were skipped!\n", duplicates)
 	file.Close()
 }
 
-func getPVPosition(pvLine *engine.PVLine, pos *engine.Position) (fen string) {
-	for _, move := range pvLine.Moves {
-		pos.MakeMove(move)
+func abs16(n int16) int16 {
+	if n < 0 {
+		return -n
 	}
-
-	fen = pos.GenFEN()
-
-	for i := len(pvLine.Moves) - 1; i >= 0; i-- {
-		pos.UnmakeMove(pvLine.Moves[i])
-	}
-
-	return
+	return n
 }

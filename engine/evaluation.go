@@ -36,11 +36,15 @@ type KingZone struct {
 var KingZones [64]KingZone
 var IsolatedPawnMasks [8]Bitboard
 var DoubledPawnMasks [2][64]Bitboard
+var KnightOutpustMasks [2][64]Bitboard
 
 var PieceValueMG [6]int16 = [6]int16{94, 313, 344, 462, 957}
 var PieceValueEG [6]int16 = [6]int16{138, 274, 294, 510, 952}
 var PieceMobilityMG [4]int16 = [4]int16{3, 4, 5, 1}
 var PieceMobilityEG [4]int16 = [4]int16{2, 3, 3, 6}
+
+var KnightOutpostBonusMG int16 = 20
+var KnightOutpostBonusEG int16 = 10
 
 var IsolatedPawnPenatly int16 = 6
 var DoubledPawnPenatly int16 = 17
@@ -246,6 +250,11 @@ var FlipSq [2][64]int = [2][64]int{
 	},
 }
 
+var FlipRank [2][8]int = [2][8]int{
+	{Rank8, Rank7, Rank6, Rank5, Rank4, Rank3, Rank2, Rank1},
+	{Rank1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8},
+}
+
 // Evaluate a position and give a score, from the perspective of the side to move (
 // more positive if it's good for the side to move, otherwise more negative).
 func EvaluatePos(pos *Position) int16 {
@@ -315,6 +324,17 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Knight] + PSQT_MG[Knight][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Knight] + PSQT_EG[Knight][FlipSq[color][sq]]
+
+	usPawns := pos.PieceBB[color][Pawn]
+	enemyPawns := pos.PieceBB[color^1][Pawn]
+
+	if KnightOutpustMasks[color][sq]&enemyPawns == 0 &&
+		PawnAttacks[color^1][sq]&usPawns != 0 &&
+		FlipRank[color][RankOf(sq)] >= Rank5 {
+
+		eval.MGScores[color] += KnightOutpostBonusMG
+		eval.EGScores[color] += KnightOutpostBonusEG
+	}
 
 	usBB := pos.SideBB[color]
 	moves := KnightMoves[sq] & ^usBB
@@ -458,5 +478,21 @@ func init() {
 			mask &= ClearRank[r]
 		}
 		DoubledPawnMasks[Black][sq] = mask
+
+		// Create knight outpost masks.
+		mask = (fileBB & ClearFile[FileA]) << 1
+		mask |= (fileBB & ClearFile[FileH]) >> 1
+
+		whiteKnightMask := mask
+		for r := 0; r <= rank; r++ {
+			whiteKnightMask &= ClearRank[r]
+		}
+		KnightOutpustMasks[White][sq] = whiteKnightMask
+
+		blackKnightMask := mask
+		for r := 7; r >= rank; r-- {
+			blackKnightMask &= ClearRank[r]
+		}
+		KnightOutpustMasks[Black][sq] = blackKnightMask
 	}
 }

@@ -41,17 +41,7 @@ func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Print("option name MiddleGameContempt type spin default 25 min 0 max 100\n")
 	fmt.Print("option name EndGameContempt type spin default 0 min 0 max 100\n")
 	fmt.Print("\nAvailable UCI commands:\n")
-	/*
-	* wtime
-	* btime
-	* winc
-	* binc
-	* movestogo
-	* depth
-	* nodes
-	* movetime
-	* infinite
-	 */
+
 	fmt.Print("    * uci\n    * isready\n    * ucinewgame")
 	fmt.Print("\n    * setoption name <NAME> value <VALUE>")
 
@@ -62,7 +52,7 @@ func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Print("\n    * go")
 	fmt.Print("\n\t* wtime <MILLISECONDS>\n\t* btime <MILLISECONDS>")
 	fmt.Print("\n\t* winc <MILLISECONDS>\n\t* binc <MILLISECONDS>")
-	fmt.Print("\n\t* movestogo <INTEGER>\n\t* depth <INTEGER>\n\t* nodes <INTEGER>\n\t* movetime <INTEGER>")
+	fmt.Print("\n\t* movestogo <INTEGER>\n\t* depth <INTEGER>\n\t* nodes <INTEGER>\n\t* movetime <MILLISECONDS>")
 	fmt.Print("\n\t* infinite")
 
 	fmt.Print("\n    * stop\n    * quit\n\n")
