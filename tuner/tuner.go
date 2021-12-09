@@ -13,7 +13,7 @@ import (
 
 const (
 	NumCores   = 8
-	NumWeights = 794
+	NumWeights = 812
 	KPrecision = 10
 	Report     = 10
 
@@ -96,15 +96,19 @@ func loadWeights() (weights []int16) {
 	weights[792] = engine.QueenAttackInnerRing
 	weights[793] = engine.QueenAttackOuterRing
 
+	weights[794] = engine.KnightOutpostBonusMG
+	weights[795] = engine.KnightOutpostBonusMG
+
 	return weights
 }
 
 // Load the steps for each weight.
 func loadSteps() (steps []int16) {
 	steps = make([]int16, NumWeights)
-	copy(steps[0:768], make_int16_slice(768, 2))
+	copy(steps[0:768], make_int16_slice(768, 1))
 	copy(steps[768:778], make_int16_slice(10, 1))
 	copy(steps[778:794], make_int16_slice(16, 1))
+	copy(steps[794:812], make_int16_slice(18, 1))
 	return steps
 }
 
@@ -179,6 +183,9 @@ func mapWeights(weights []int16) {
 	engine.RookAttackOuterRing = weights[791]
 	engine.QueenAttackInnerRing = weights[792]
 	engine.QueenAttackOuterRing = weights[793]
+
+	engine.KnightOutpostBonusMG = weights[794]
+	engine.KnightOutpostBonusMG = weights[795]
 }
 
 // Evaluate the position from the training set file.
@@ -283,20 +290,23 @@ func printParameters() {
 	prettyPrintPSQT("EG Queen PST:", Weights[640:704])
 	prettyPrintPSQT("EG King PST:", Weights[704:768])
 
-	fmt.Println("MG Piece Values:", Weights[768:773])
+	fmt.Println("\nMG Piece Values:", Weights[768:773])
 	fmt.Println("EG Piece Values:", Weights[773:778])
 	fmt.Println("MG Piece Mobility Bonuses:", Weights[778:782])
 	fmt.Println("EG Piece Mobility Bonuses:", Weights[782:786])
 
-	fmt.Println("Isolated Pawn Penalty:", engine.IsolatedPawnPenatly)
+	fmt.Println("\nIsolated Pawn Penalty:", engine.IsolatedPawnPenatly)
 	fmt.Println("Doubled Pawn Penalty:", engine.DoubledPawnPenatly)
 
-	fmt.Println("Minor Attacking Inner Ring:", engine.MinorAttackInnerRing)
+	fmt.Println("\nMinor Attacking Inner Ring:", engine.MinorAttackInnerRing)
 	fmt.Println("Minor Attacking Outer Ring:", engine.MinorAttackOuterRing)
 	fmt.Println("Rook Attacking Inner Ring:", engine.RookAttackInnerRing)
 	fmt.Println("Rook Attacking Outer Ring:", engine.RookAttackOuterRing)
 	fmt.Println("Queen Attacking Inner Ring:", engine.QueenAttackInnerRing)
 	fmt.Println("Queen Attacking Outer Ring:", engine.QueenAttackOuterRing)
+
+	fmt.Println("\nMG Knight Outpost Bonus:", engine.KnightOutpostBonusMG)
+	fmt.Println("EG Knight Outpost Bonus:", engine.KnightOutpostBonusEG)
 }
 
 func Tune(infile string, numPositions, iterations int) {

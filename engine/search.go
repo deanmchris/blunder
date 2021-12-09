@@ -131,6 +131,7 @@ func (search *Search) Search() Move {
 
 	search.totalNodes = 0
 	depth := uint8(0)
+	lastIterationScore := int16(0)
 
 	for depth = 1; depth <= MaxPly && depth <= search.SpecifiedDepth && search.SpecifiedNodes > 0; depth++ {
 		// Clear the nodes searched and the last iterations pv line.
@@ -147,6 +148,10 @@ func (search *Search) Search() Move {
 				bestMove = pvLine.GetPVMove()
 			}
 			break
+		}
+
+		if depth > 1 && lastIterationScore > score && lastIterationScore-score >= 30 {
+			search.Timer.Update(search.Timer.TimeForMove * 13 / 10)
 		}
 
 		// Save the best move and report search statistics to the GUI
@@ -166,6 +171,8 @@ func (search *Search) Search() Move {
 			endTime.Milliseconds(),
 			pvLine,
 		)
+
+		lastIterationScore = score
 	}
 
 	// Return the best move found to the GUI.

@@ -19,7 +19,9 @@ type TimeManager struct {
 	MovesToGo int64
 	Stop      bool
 
-	stopTime time.Time
+	stopTime    time.Time
+	startTime   time.Time
+	TimeForMove int64
 }
 
 // Start the timer, setting up the internal state.
@@ -62,8 +64,20 @@ func (tm *TimeManager) Start() {
 
 	// Calculate the time from now when we need to stop searching, based on the
 	// time are allowed to spend on the current search.
-	tm.stopTime = time.Now().Add(time.Duration(timeForMove) * time.Millisecond)
+	tm.startTime = time.Now()
+	tm.stopTime = tm.startTime.Add(time.Duration(timeForMove) * time.Millisecond)
+	tm.TimeForMove = timeForMove
 	tm.Stop = false
+}
+
+// Update the alloted time for the current search.
+func (tm *TimeManager) Update(newTime int64) {
+	if newTime > tm.TimeLeft/8 {
+		newTime = tm.TimeLeft / 8
+	}
+
+	tm.TimeForMove = newTime
+	tm.stopTime = tm.startTime.Add(time.Duration(newTime) * time.Millisecond)
 }
 
 // Check if the time we alloted for picking this move has expired.
