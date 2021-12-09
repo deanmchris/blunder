@@ -175,7 +175,8 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 		}
 	}
 
-	command = strings.TrimPrefix(command, "go ")
+	command = strings.TrimPrefix(command, "go")
+	command = strings.TrimPrefix(command, " ")
 	fields := strings.Fields(command)
 
 	colorPrefix := "b"
@@ -184,10 +185,10 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 	}
 
 	// Parse the time left, increment, and moves to go from the command parameters.
-	timeLeft, increment, movesToGo := -1, 0, 0
+	timeLeft, increment, movesToGo := int(NoValue), int(NoValue), int(NoValue)
 	specifiedDepth := uint64(MaxPly)
 	specifiedNodes := uint64(math.MaxUint64)
-	searchTime := uint64(0)
+	searchTime := uint64(NoValue)
 
 	for index, field := range fields {
 		if strings.HasPrefix(field, colorPrefix) {
@@ -207,19 +208,15 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 		}
 	}
 
-	if searchTime > 0 {
-		// A hack for getting movetime to work. Blunder's time mangagement is currently
-		// linear and uses time_left/40 for each search. So multiply the movetime
-		// value by 40 to get Blunder to search the amount of time specified by movetime.
-		//
-		// TODO: Get rid of this hack and do things properly since eventually Blunder's
-		// time mangagement won't be strictly linear anymore.
-		inter.Search.Timer.TimeLeft = int64(searchTime * 40)
+	// If the "go" command is given no arguments, we assumed "go infinite"
+	if len(fields) == 0 {
+		inter.Search.Timer.TimeLeft = int64(InfiniteTime)
 	} else {
 		inter.Search.Timer.TimeLeft = int64(timeLeft)
 	}
 
 	// Setup the timer with the go command time control information.
+	inter.Search.Timer.SetHardTimeForMove(int64(searchTime))
 	inter.Search.Timer.Increment = int64(increment)
 	inter.Search.Timer.MovesToGo = int64(movesToGo)
 

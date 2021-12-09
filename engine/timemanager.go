@@ -19,9 +19,10 @@ type TimeManager struct {
 	MovesToGo int64
 	Stop      bool
 
-	stopTime    time.Time
-	startTime   time.Time
-	TimeForMove int64
+	stopTime        time.Time
+	startTime       time.Time
+	hardTimeForMove int64
+	SoftTimeForMove int64
 }
 
 // Start the timer, setting up the internal state.
@@ -32,6 +33,12 @@ func (tm *TimeManager) Start() {
 	// If we're given infinite time, we're done calculating the time for the
 	// current move.
 	if tm.TimeLeft == InfiniteTime {
+		return
+	}
+
+	// If we're given a hard time limit, we're also done calculating, since we've
+	// been told already how much time should be spent on the current search.
+	if tm.hardTimeForMove != NoValue {
 		return
 	}
 
@@ -66,18 +73,44 @@ func (tm *TimeManager) Start() {
 	// time are allowed to spend on the current search.
 	tm.startTime = time.Now()
 	tm.stopTime = tm.startTime.Add(time.Duration(timeForMove) * time.Millisecond)
-	tm.TimeForMove = timeForMove
+	tm.SoftTimeForMove = timeForMove
+	tm.hardTimeForMove = NoValue
 	tm.Stop = false
 }
 
-// Update the alloted time for the current search.
-func (tm *TimeManager) Update(newTime int64) {
+// Set a hard limit for the maximum amount of time the current
+// search can use. Normally this value is set automatically to
+// allow the search to use however much time it needs, but there
+// are cases where we want to enforce a strict time limit.
+//
+// This method should not be called after TimeManger.Start has been called,
+// since both methods act as the intializers of the current search, and one
+// would conflict with the other. So either TimeManager.Start or
+// TimeManeger.SetHardTimeForMove should be called to intialize the current
+// search time logic, but not both.
+func (tm *TimeManager) SetHardTimeForMove(newTime int64) {
+	tm.hardTimeForMove = newTime
+	tm.stopTime = time.Now().Add(time.Duration(newTime) * time.Millisecond)
+}
+
+// Set the soft time limit for current search. The soft time limit
+// is a reccomendation for how long the search should continue, but
+// can be changed by dynamic factors during the search.
+func (tm *TimeManager) SetSoftTimeForMove(newTime int64) {
+	// To avoid losing on time, we do enforce a rule that
+	// any update to the soft time limit must not exceeded
+	// more than 1/8th of the total time left for our side.
 	if newTime > tm.TimeLeft/8 {
 		newTime = tm.TimeLeft / 8
 	}
 
-	tm.TimeForMove = newTime
-	tm.stopTime = tm.startTime.Add(time.Duration(newTime) * time.Millisecond)
+	// If the hard time limit for this move has already been set, only update the
+	// time limit if the hard time limit has not been set, or it is still greater
+	// than or equal to the new soft time limit.
+	if newTime != NoValue && (tm.hardTimeForMove == NoValue || tm.hardTimeForMove >= newTime) {
+		tm.SoftTimeForMove = newTime
+		tm.stopTime = tm.startTime.Add(time.Duration(newTime) * time.Millisecond)
+	}
 }
 
 // Check if the time we alloted for picking this move has expired.

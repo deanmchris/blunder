@@ -150,8 +150,10 @@ func (search *Search) Search() Move {
 			break
 		}
 
+		// If the score between this current iteration and the last iteration drops,
+		// take more time on the current search to make sure we find the best move.
 		if depth > 1 && lastIterationScore > score && lastIterationScore-score >= 30 {
-			search.Timer.Update(search.Timer.TimeForMove * 13 / 10)
+			search.Timer.SetSoftTimeForMove(search.Timer.SoftTimeForMove * 13 / 10)
 		}
 
 		// Save the best move and report search statistics to the GUI

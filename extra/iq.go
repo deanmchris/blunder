@@ -67,7 +67,7 @@ func TestIQ(timeAlloted int64) {
 	loadTestPositions()
 
 	var search engine.Search
-	search.Timer.TimeLeft = timeAlloted * 1000 * 40
+	search.Timer.SetHardTimeForMove(timeAlloted * 1000)
 	search.SpecifiedDepth = uint8(engine.MaxPly)
 	search.SpecifiedNodes = uint64(math.MaxUint64)
 	search.TT.Resize(engine.DefaultTTSize)
