@@ -21,10 +21,9 @@ var EndGameDraw int16 = 0
 type Eval struct {
 	MGScores [2]int16
 	EGScores [2]int16
-	Scores   [2]int16
 
 	KingZones        [2]KingZone
-	KingAttackPoints [2]uint8
+	KingAttackPoints [2]uint16
 	KingAttackers    [2]uint8
 }
 
@@ -36,25 +35,32 @@ type KingZone struct {
 var KingZones [64]KingZone
 var IsolatedPawnMasks [8]Bitboard
 var DoubledPawnMasks [2][64]Bitboard
+var PassedPawnMasks [2][64]Bitboard
 var KnightOutpustMasks [2][64]Bitboard
 
-var PieceValueMG [6]int16 = [6]int16{94, 313, 344, 462, 957}
-var PieceValueEG [6]int16 = [6]int16{138, 274, 294, 510, 952}
-var PieceMobilityMG [4]int16 = [4]int16{3, 4, 5, 1}
-var PieceMobilityEG [4]int16 = [4]int16{2, 3, 3, 6}
+var PieceValueMG [6]int16 = [6]int16{183, 677, 729, 1069, 2242}
+var PieceValueEG [6]int16 = [6]int16{267, 638, 661, 1223, 2240}
+var PieceMobilityMG [4]int16 = [4]int16{5, 8, 13, 1}
+var PieceMobilityEG [4]int16 = [4]int16{3, 9, 6, 15}
 
-var KnightOutpostBonusMG int16 = 20
-var KnightOutpostBonusEG int16 = 10
+var PassedPawnBonusMG [8]int16 = [8]int16{0, 6, 8, 4, 30, 91, 135, 0}
+var PassedPawnBonusEG [8]int16 = [8]int16{0, 1, 1, 44, 100, 199, 205, 0}
 
-var IsolatedPawnPenatly int16 = 6
-var DoubledPawnPenatly int16 = 17
+var IsolatedPawnPenatlyMG int16 = 41
+var IsolatedPawnPenatlyEG int16 = 10
+var DoubledPawnPenatlyMG int16 = 1
+var DoubledPawnPenatlyEG int16 = 48
 
-var MinorAttackOuterRing int16 = 1
-var MinorAttackInnerRing int16 = 5
-var RookAttackOuterRing int16 = 2
-var RookAttackInnerRing int16 = 6
-var QueenAttackOuterRing int16 = 2
-var QueenAttackInnerRing int16 = 5
+var KnightOutpostBonusMG int16 = 87
+var KnightOutpostBonusEG int16 = 24
+
+var MinorAttackOuterRing int16 = 31
+var MinorAttackInnerRing int16 = 63
+var RookAttackOuterRing int16 = 21
+var RookAttackInnerRing int16 = 64
+var QueenAttackOuterRing int16 = 29
+var QueenAttackInnerRing int16 = 55
+var SemiOpenFileNextToKingPenalty int16 = 60
 
 var KingAttackTable [64]int16 = [64]int16{
 	0, 0, 1, 2, 3, 5, 7, 9, 12, 15,
@@ -79,73 +85,73 @@ var PSQT_MG [6][64]int16 = [6][64]int16{
 	// Piece-square table for pawns
 	{
 		0, 0, 0, 0, 0, 0, 0, 0,
-		126, 136, 104, 97, 104, 109, 64, 70,
-		-5, 6, 26, 26, 50, 56, 20, -19,
-		-25, 0, -2, 17, 16, 7, 5, -35,
-		-35, -20, -10, 4, 9, -2, -9, -36,
-		-28, -20, -11, -14, -2, -1, 13, -20,
-		-34, -14, -30, -21, -16, 16, 19, -25,
+		139, 165, 85, 120, 108, 155, -14, -52,
+		-26, -30, 26, 9, 96, 142, 34, -36,
+		-38, 0, 6, 48, 47, 31, 12, -54,
+		-59, -47, -11, 24, 34, 10, -26, -58,
+		-40, -52, -15, -19, 8, 6, 26, -20,
+		-53, -40, -57, -38, -24, 45, 35, -33,
 		0, 0, 0, 0, 0, 0, 0, 0,
 	},
 
 	// Piece-square table for knights
 	{
-		-146, -59, -32, -38, 33, -87, -26, -93,
-		-75, -47, 52, 10, 4, 45, 1, -27,
-		-33, 49, 22, 43, 52, 72, 53, 31,
-		-5, 18, 7, 42, 16, 51, 8, 18,
-		-4, 9, 15, 9, 25, 14, 15, -3,
-		-14, -1, 16, 21, 31, 24, 29, -7,
-		-11, -31, -2, 15, 18, 26, 2, 0,
-		-75, -2, -32, -12, 9, 0, -1, -13,
+		-312, -131, -66, -72, 70, -175, -66, -210,
+		-154, -96, 132, 51, 31, 103, 7, -56,
+		-80, 87, 64, 92, 142, 170, 114, 90,
+		-9, 45, 5, 93, 53, 129, 35, 52,
+		4, 45, 56, 36, 69, 48, 51, 5,
+		-15, 18, 54, 65, 89, 74, 83, 5,
+		-6, -53, 13, 47, 54, 78, 19, 19,
+		-159, 12, -45, -17, 40, 12, 17, -8,
 	},
 
 	// Piece-square table for bishops
 	{
-		-27, 1, -76, -38, -38, -46, -12, 14,
-		-25, 15, -23, -23, 14, 32, 17, -45,
-		-14, 33, 36, 32, 22, 45, 26, 0,
-		2, 8, 9, 37, 33, 18, 11, -3,
-		8, 20, 12, 29, 31, 11, 12, 19,
-		12, 27, 28, 16, 23, 40, 29, 15,
-		19, 35, 25, 19, 25, 38, 47, 22,
-		-7, 19, 16, 10, 18, 11, -10, -4,
+		-47, 25, -151, -87, -48, -61, 1, 44,
+		-27, 59, -4, -23, 72, 90, 61, -92,
+		9, 104, 116, 97, 91, 124, 80, 38,
+		48, 53, 67, 113, 101, 79, 58, 27,
+		46, 78, 56, 99, 100, 58, 55, 72,
+		60, 91, 94, 68, 88, 119, 97, 62,
+		76, 109, 89, 76, 89, 116, 133, 85,
+		16, 72, 70, 66, 81, 60, 14, 13,
 	},
 
 	// Piece square table for rook
 	{
-		1, 14, -9, 12, 17, -22, -14, -14,
-		-1, 7, 28, 26, 34, 32, -5, 13,
-		-19, -1, -2, -1, -19, 10, 36, -14,
-		-31, -24, -3, 4, -9, 10, -23, -29,
-		-39, -28, -9, -8, -6, -23, -14, -33,
-		-36, -24, -9, -13, -2, -4, -18, -32,
-		-31, -12, -6, -1, 6, 9, -13, -57,
-		-6, -2, 13, 22, 21, 19, -26, -10,
+		-16, 17, -48, 26, 31, -40, -20, -17,
+		-4, -4, 55, 59, 84, 74, -23, 23,
+		-51, -13, -11, -16, -53, 26, 73, -35,
+		-86, -76, -30, -7, -39, 6, -74, -89,
+		-105, -82, -52, -49, -34, -63, -31, -97,
+		-98, -65, -40, -47, -27, -30, -64, -89,
+		-85, -45, -42, -19, -8, -1, -43, -138,
+		-27, -18, 13, 33, 31, 22, -70, -33,
 	},
 
 	// Piece square table for queens
 	{
-		-27, -19, -14, -28, 26, 24, 18, 27,
-		-30, -50, -21, -9, -55, -7, -3, 23,
-		-16, -20, -6, -32, -5, 25, -2, 20,
-		-32, -31, -27, -30, -22, -17, -21, -21,
-		-8, -33, -12, -17, -12, -12, -11, -12,
-		-18, 5, -5, 0, -2, 0, 5, -3,
-		-24, -3, 14, 14, 20, 24, 3, 12,
-		10, 4, 13, 24, 9, -5, -3, -33,
+		-89, -42, -31, -35, 66, 61, 30, 40,
+		-70, -118, -45, -18, -104, 6, -3, 39,
+		-47, -44, -21, -64, -3, 56, 4, 46,
+		-77, -81, -66, -64, -52, -41, -54, -59,
+		-31, -84, -42, -45, -40, -36, -39, -36,
+		-56, 0, -25, -11, -15, -12, -2, -16,
+		-65, -14, 18, 18, 28, 40, -11, 16,
+		9, -1, 17, 38, 7, -24, -21, -95,
 	},
 
 	// Piece square table for kings
 	{
-		-22, 49, 70, 44, -9, 8, 31, 10,
-		61, 43, 35, 64, 36, 38, 13, -21,
-		38, 34, 50, 34, 39, 63, 72, 12,
-		20, 30, 30, 24, 23, 15, 23, -22,
-		-27, 38, 12, -6, -20, -10, -15, -45,
-		5, 10, 4, -6, -9, -6, 10, -17,
-		6, 20, 1, -48, -31, -6, 15, 5,
-		-35, 33, 18, -53, 1, -27, 23, 0,
+		-81, 117, 134, 87, -21, 8, 48, 33,
+		138, 94, 64, 118, 65, 79, 24, -52,
+		77, 108, 121, 50, 80, 138, 142, 13,
+		45, 57, 67, 31, 42, 38, 60, -49,
+		-57, 80, 2, -35, -44, -10, -43, -96,
+		15, 20, -7, -32, -37, -27, 14, -50,
+		19, 49, -8, -111, -74, -9, 32, 18,
+		-72, 73, 41, -126, 0, -57, 57, 3,
 	},
 }
 
@@ -154,74 +160,73 @@ var PSQT_EG [6][64]int16 = [6][64]int16{
 	// Piece-square table for pawns
 	{
 		0, 0, 0, 0, 0, 0, 0, 0,
-		139, 135, 111, 96, 102, 102, 132, 142,
-		63, 67, 51, 31, 19, 15, 48, 51,
-		2, -11, -22, -33, -40, -33, -23, -16,
-		-19, -26, -39, -47, -47, -46, -37, -36,
-		-31, -30, -43, -34, -39, -43, -45, -45,
-		-21, -29, -24, -29, -27, -38, -41, -45,
+		194, 177, 127, 82, 103, 88, 173, 225,
+		71, 70, 11, -52, -83, -49, 19, 38,
+		2, -19, -50, -89, -79, -64, -36, -28,
+		-22, -27, -60, -78, -77, -70, -50, -55,
+		-50, -37, -63, -56, -54, -60, -69, -75,
+		-31, -39, -26, -47, -34, -57, -61, -77,
 		0, 0, 0, 0, 0, 0, 0, 0,
 	},
 
 	// Piece-square table for knights
 	{
-
-		-39, -29, 1, -18, -17, -18, -46, -83,
-		-12, 7, -16, 12, 1, -18, -12, -35,
-		-16, -10, 18, 15, 5, 5, -10, -32,
-		-2, 13, 31, 28, 32, 18, 17, -5,
-		-6, 2, 23, 32, 22, 23, 15, -6,
-		-10, 5, 0, 16, 11, -4, -15, -10,
-		-26, -8, 0, 0, 2, -11, -10, -33,
-		-18, -35, -10, -2, -11, -10, -31, -49,
+		-108, -57, 15, -33, -23, -34, -96, -181,
+		-19, 29, -20, 37, 16, -23, -17, -65,
+		-19, -4, 51, 49, 25, 28, -6, -59,
+		4, 31, 78, 73, 76, 49, 43, -2,
+		5, 18, 68, 94, 70, 72, 50, -1,
+		-12, 29, 19, 58, 48, 11, -17, -10,
+		-44, -2, 17, 21, 23, -10, -13, -62,
+		-14, -64, -13, 10, -12, -7, -60, -102,
 	},
 
 	// Piece-square table for bishops
 	{
-		0, -8, 8, 4, 10, 5, 2, -14,
-		7, 3, 17, 0, 6, 1, 0, 0,
-		16, 1, 4, 2, 2, 4, 7, 14,
-		10, 18, 19, 10, 11, 13, 9, 15,
-		5, 6, 17, 16, 4, 13, 4, 2,
-		1, 4, 10, 14, 17, 2, 4, 2,
-		-2, -9, 3, 7, 10, -3, -1, -17,
-		-8, 1, -3, 7, 5, 5, 7, -1,
+		51, 24, 54, 53, 62, 54, 46, 14,
+		60, 46, 70, 41, 49, 46, 39, 51,
+		72, 41, 40, 40, 38, 48, 62, 70,
+		54, 72, 69, 59, 61, 61, 53, 72,
+		55, 55, 75, 74, 48, 60, 46, 48,
+		49, 54, 65, 68, 72, 47, 51, 49,
+		43, 28, 45, 53, 59, 42, 46, 5,
+		27, 54, 37, 56, 49, 51, 62, 48,
 	},
 
 	// Piece square table for rook
 	{
-		17, 9, 17, 13, 11, 18, 15, 14,
-		15, 14, 12, 12, -1, 4, 12, 9,
-		11, 10, 8, 9, 8, 0, -5, 5,
-		10, 7, 13, 1, 6, 5, 3, 10,
-		11, 10, 8, 3, 0, 2, -1, -1,
-		4, 6, -2, 1, -6, -6, 1, -6,
-		1, 0, 2, 5, -5, -5, -3, 5,
-		-9, 0, -3, -7, -8, -13, 1, -22,
+		9, -5, 21, 1, 3, 12, 4, -1,
+		5, 9, -3, -2, -30, -18, 6, -8,
+		-1, -6, -11, -6, -9, -29, -37, -21,
+		0, -7, 6, -21, -10, -15, -15, 5,
+		2, 1, 0, -9, -20, -19, -31, -18,
+		-12, -10, -28, -20, -30, -35, -17, -36,
+		-17, -24, -16, -15, -35, -36, -34, -14,
+		-45, -27, -30, -42, -45, -50, -21, -73,
 	},
 
 	// Piece square table for queens
 	{
-		-19, 14, 20, 21, 12, 12, 4, 13,
-		-12, 7, 23, 24, 51, 25, 21, 3,
-		-18, -7, -16, 39, 31, 11, 24, 16,
-		14, 14, 6, 20, 31, 19, 45, 39,
-		-15, 21, 2, 27, 12, 17, 32, 24,
-		3, -31, 4, -6, -2, 12, 18, 15,
-		-6, -19, -25, -18, -12, -23, -27, -23,
-		-27, -32, -26, -21, -12, -19, -19, -33,
+		-54, -1, 7, 3, 0, -10, -21, 13,
+		-58, -15, 3, 22, 69, 10, 5, -12,
+		-66, -58, -64, 42, 38, 6, 24, -4,
+		-7, 2, -15, 1, 36, 22, 81, 63,
+		-63, 24, -21, 31, -3, 5, 47, 21,
+		-10, -95, -19, -46, -31, -5, 14, 1,
+		-42, -75, -83, -66, -65, -76, -98, -81,
+		-88, -109, -85, -76, -47, -79, -67, -102,
 	},
 
 	// Piece square table for kings
 	{
-		-72, -34, -22, -21, -5, 16, 10, -7,
-		-13, 15, 13, 12, 14, 36, 25, 18,
-		8, 21, 23, 13, 17, 40, 38, 13,
-		-12, 19, 24, 27, 25, 33, 27, 7,
-		-16, -6, 22, 28, 33, 26, 14, -4,
-		-19, -3, 12, 21, 25, 19, 8, -5,
-		-28, -11, 7, 18, 20, 10, -2, -14,
-		-45, -37, -22, -4, -19, -4, -23, -42,
+		-166, -95, -55, -54, -22, 35, 6, -34,
+		-47, 31, 27, 28, 37, 79, 49, 30,
+		9, 33, 41, 35, 38, 93, 84, 23,
+		-31, 41, 52, 67, 60, 75, 57, 13,
+		-36, -11, 55, 70, 75, 60, 36, -11,
+		-41, -1, 38, 58, 66, 52, 23, -4,
+		-57, -21, 24, 48, 51, 26, 0, -32,
+		-102, -74, -40, 0, -37, -7, -50, -91,
 	},
 }
 
@@ -294,11 +299,7 @@ func EvaluatePos(pos *Position) int16 {
 	egScore := eval.EGScores[pos.SideToMove] - eval.EGScores[pos.SideToMove^1]
 
 	phase = (phase*256 + (TotalPhase / 2)) / TotalPhase
-	score := int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
-
-	score += eval.Scores[pos.SideToMove]
-	score -= eval.Scores[pos.SideToMove^1]
-	return score
+	return int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
 }
 
 // Evaluate the score of a pawn.
@@ -307,16 +308,25 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 	eval.EGScores[color] += PieceValueEG[Pawn] + PSQT_EG[Pawn][FlipSq[color][sq]]
 
 	usPawns := pos.PieceBB[color][Pawn]
+	enemyPawns := pos.PieceBB[color^1][Pawn]
 	file := FileOf(sq)
 
 	// Evaluate isolated pawns.
 	if IsolatedPawnMasks[file]&usPawns == 0 {
-		eval.Scores[color] -= IsolatedPawnPenatly
+		eval.MGScores[color] -= IsolatedPawnPenatlyMG
+		eval.EGScores[color] -= IsolatedPawnPenatlyEG
 	}
 
 	// Evaluate doubled pawns.
 	if DoubledPawnMasks[color][sq]&usPawns != 0 {
-		eval.Scores[color] -= DoubledPawnPenatly
+		eval.MGScores[color] -= DoubledPawnPenatlyMG
+		eval.EGScores[color] -= DoubledPawnPenatlyEG
+	}
+
+	// Evaluate passed pawns.
+	if PassedPawnMasks[color][sq]&enemyPawns == 0 {
+		eval.MGScores[color] += PassedPawnBonusMG[FlipRank[color][RankOf(sq)]]
+		eval.EGScores[color] += PassedPawnBonusEG[FlipRank[color][RankOf(sq)]]
 	}
 }
 
@@ -348,8 +358,8 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 
 	if outerRingAttacks != 0 || innerRingAttacks != 0 {
 		eval.KingAttackers[color]++
-		eval.KingAttackPoints[color] += uint8(outerRingAttacks.CountBits()) * uint8(MinorAttackOuterRing)
-		eval.KingAttackPoints[color] += uint8(innerRingAttacks.CountBits()) * uint8(MinorAttackInnerRing)
+		eval.KingAttackPoints[color] += uint16(outerRingAttacks.CountBits()) * uint16(MinorAttackOuterRing)
+		eval.KingAttackPoints[color] += uint16(innerRingAttacks.CountBits()) * uint16(MinorAttackInnerRing)
 	}
 }
 
@@ -372,8 +382,8 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 
 	if outerRingAttacks != 0 || innerRingAttacks != 0 {
 		eval.KingAttackers[color]++
-		eval.KingAttackPoints[color] += uint8(outerRingAttacks.CountBits()) * uint8(MinorAttackOuterRing)
-		eval.KingAttackPoints[color] += uint8(innerRingAttacks.CountBits()) * uint8(MinorAttackInnerRing)
+		eval.KingAttackPoints[color] += uint16(outerRingAttacks.CountBits()) * uint16(MinorAttackOuterRing)
+		eval.KingAttackPoints[color] += uint16(innerRingAttacks.CountBits()) * uint16(MinorAttackInnerRing)
 	}
 }
 
@@ -396,8 +406,8 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 
 	if outerRingAttacks != 0 || innerRingAttacks != 0 {
 		eval.KingAttackers[color]++
-		eval.KingAttackPoints[color] += uint8(outerRingAttacks.CountBits()) * uint8(RookAttackOuterRing)
-		eval.KingAttackPoints[color] += uint8(innerRingAttacks.CountBits()) * uint8(RookAttackInnerRing)
+		eval.KingAttackPoints[color] += uint16(outerRingAttacks.CountBits()) * uint16(RookAttackOuterRing)
+		eval.KingAttackPoints[color] += uint16(innerRingAttacks.CountBits()) * uint16(RookAttackInnerRing)
 	}
 }
 
@@ -420,8 +430,8 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 
 	if outerRingAttacks != 0 || innerRingAttacks != 0 {
 		eval.KingAttackers[color]++
-		eval.KingAttackPoints[color] += uint8(outerRingAttacks.CountBits()) * uint8(QueenAttackOuterRing)
-		eval.KingAttackPoints[color] += uint8(innerRingAttacks.CountBits()) * uint8(QueenAttackInnerRing)
+		eval.KingAttackPoints[color] += uint16(outerRingAttacks.CountBits()) * uint16(QueenAttackOuterRing)
+		eval.KingAttackPoints[color] += uint16(innerRingAttacks.CountBits()) * uint16(QueenAttackInnerRing)
 	}
 }
 
@@ -431,13 +441,37 @@ func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 }
 
 func evalKingAttack(pos *Position, color uint8, eval *Eval) {
-	points := min_u8(eval.KingAttackPoints[color], uint8(len(KingAttackTable)-1))
+	points := eval.KingAttackPoints[color]
+	enemyKingSq := pos.PieceBB[color^1][King].Msb()
+	enemyKingFile := MaskFile[FileOf(enemyKingSq)]
+	enemyPawns := pos.PieceBB[color^1][Pawn]
+
+	// Evaluate semi-open files adjacent to the enemy king
+	leftFile := ((enemyKingFile & ClearFile[FileA]) << 1)
+	rightFile := ((enemyKingFile & ClearFile[FileH]) >> 1)
+
+	if enemyKingFile&enemyPawns == 0 {
+		points += uint16(SemiOpenFileNextToKingPenalty)
+	}
+
+	if leftFile != 0 && leftFile&enemyPawns == 0 {
+		points += uint16(SemiOpenFileNextToKingPenalty)
+	}
+
+	if rightFile != 0 && rightFile&enemyPawns == 0 {
+		points += uint16(SemiOpenFileNextToKingPenalty)
+	}
+
+	// Take all the king saftey points collected for the enemy,
+	// and see what kind of penatly we should get by indexing the
+	// non-linear king-saftey table.
+	points = min_u16(points/10, uint16(len(KingAttackTable)-1))
 	if eval.KingAttackers[color] >= 2 && pos.PieceBB[color][Queen] != 0 {
 		eval.MGScores[color] += KingAttackTable[points]
 	}
 }
 
-func min_u8(a, b uint8) uint8 {
+func min_u16(a, b uint16) uint16 {
 	if a < b {
 		return a
 	}
@@ -479,20 +513,34 @@ func init() {
 		}
 		DoubledPawnMasks[Black][sq] = mask
 
-		// Create knight outpost masks.
-		mask = (fileBB & ClearFile[FileA]) << 1
-		mask |= (fileBB & ClearFile[FileH]) >> 1
+		// Create knight outpost masks & passed pawn masks.
+		knightMask := (fileBB & ClearFile[FileA]) << 1
+		knightMask |= (fileBB & ClearFile[FileH]) >> 1
 
-		whiteKnightMask := mask
+		frontSpanMask := fileBB
+		frontSpanMask |= (fileBB & ClearFile[FileA]) << 1
+		frontSpanMask |= (fileBB & ClearFile[FileH]) >> 1
+
+		whiteKnightMask := knightMask
+		whiteFrontSpan := frontSpanMask
+
 		for r := 0; r <= rank; r++ {
 			whiteKnightMask &= ClearRank[r]
+			whiteFrontSpan &= ClearRank[r]
 		}
-		KnightOutpustMasks[White][sq] = whiteKnightMask
 
-		blackKnightMask := mask
+		KnightOutpustMasks[White][sq] = whiteKnightMask
+		PassedPawnMasks[White][sq] = whiteFrontSpan
+
+		blackKnightMask := knightMask
+		blackFrontSpan := frontSpanMask
+
 		for r := 7; r >= rank; r-- {
 			blackKnightMask &= ClearRank[r]
+			blackFrontSpan &= ClearRank[r]
 		}
+
 		KnightOutpustMasks[Black][sq] = blackKnightMask
+		PassedPawnMasks[Black][sq] = blackFrontSpan
 	}
 }

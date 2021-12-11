@@ -13,7 +13,7 @@ import (
 
 const (
 	NumCores   = 8
-	NumWeights = 812
+	NumWeights = 815
 	KPrecision = 10
 	Report     = 10
 
@@ -54,6 +54,7 @@ func initFutileIndexes() (indexes []bool) {
 		56, 57, 58, 59, 60, 61, 62, 63,
 		384, 385, 386, 387, 388, 389, 390, 391,
 		440, 441, 442, 443, 444, 445, 446, 447,
+		786, 793, 794, 801,
 	}
 
 	indexes = make([]bool, NumWeights)
@@ -86,18 +87,24 @@ func loadWeights() (weights []int16) {
 	copy(weights[778:782], engine.PieceMobilityMG[:])
 	copy(weights[782:786], engine.PieceMobilityEG[:])
 
-	weights[786] = engine.IsolatedPawnPenatly
-	weights[787] = engine.DoubledPawnPenatly
+	copy(weights[786:794], engine.PassedPawnBonusMG[:])
+	copy(weights[794:802], engine.PassedPawnBonusEG[:])
 
-	weights[788] = engine.MinorAttackInnerRing
-	weights[789] = engine.MinorAttackOuterRing
-	weights[790] = engine.RookAttackInnerRing
-	weights[791] = engine.RookAttackOuterRing
-	weights[792] = engine.QueenAttackInnerRing
-	weights[793] = engine.QueenAttackOuterRing
+	weights[802] = engine.IsolatedPawnPenatlyMG
+	weights[803] = engine.IsolatedPawnPenatlyEG
+	weights[804] = engine.DoubledPawnPenatlyMG
+	weights[805] = engine.DoubledPawnPenatlyEG
 
-	weights[794] = engine.KnightOutpostBonusMG
-	weights[795] = engine.KnightOutpostBonusMG
+	weights[806] = engine.KnightOutpostBonusMG
+	weights[807] = engine.KnightOutpostBonusEG
+
+	weights[808] = engine.MinorAttackOuterRing
+	weights[809] = engine.MinorAttackInnerRing
+	weights[810] = engine.RookAttackOuterRing
+	weights[811] = engine.RookAttackInnerRing
+	weights[812] = engine.QueenAttackOuterRing
+	weights[813] = engine.QueenAttackInnerRing
+	weights[814] = engine.SemiOpenFileNextToKingPenalty
 
 	return weights
 }
@@ -105,10 +112,7 @@ func loadWeights() (weights []int16) {
 // Load the steps for each weight.
 func loadSteps() (steps []int16) {
 	steps = make([]int16, NumWeights)
-	copy(steps[0:768], make_int16_slice(768, 1))
-	copy(steps[768:778], make_int16_slice(10, 1))
-	copy(steps[778:794], make_int16_slice(16, 1))
-	copy(steps[794:812], make_int16_slice(18, 1))
+	copy(steps[0:NumWeights], make_int16_slice(NumWeights, 1))
 	return steps
 }
 
@@ -174,18 +178,24 @@ func mapWeights(weights []int16) {
 	copy(engine.PieceMobilityMG[:], weights[778:782])
 	copy(engine.PieceMobilityEG[:], weights[782:786])
 
-	engine.IsolatedPawnPenatly = weights[786]
-	engine.DoubledPawnPenatly = weights[787]
+	copy(engine.PassedPawnBonusMG[:], weights[786:794])
+	copy(engine.PassedPawnBonusEG[:], weights[794:802])
 
-	engine.MinorAttackInnerRing = weights[788]
-	engine.MinorAttackOuterRing = weights[789]
-	engine.RookAttackInnerRing = weights[790]
-	engine.RookAttackOuterRing = weights[791]
-	engine.QueenAttackInnerRing = weights[792]
-	engine.QueenAttackOuterRing = weights[793]
+	engine.IsolatedPawnPenatlyMG = weights[802]
+	engine.IsolatedPawnPenatlyEG = weights[803]
+	engine.DoubledPawnPenatlyMG = weights[804]
+	engine.DoubledPawnPenatlyEG = weights[805]
 
-	engine.KnightOutpostBonusMG = weights[794]
-	engine.KnightOutpostBonusMG = weights[795]
+	engine.KnightOutpostBonusMG = weights[806]
+	engine.KnightOutpostBonusEG = weights[807]
+
+	engine.MinorAttackOuterRing = weights[808]
+	engine.MinorAttackInnerRing = weights[809]
+	engine.RookAttackOuterRing = weights[810]
+	engine.RookAttackInnerRing = weights[811]
+	engine.QueenAttackOuterRing = weights[812]
+	engine.QueenAttackInnerRing = weights[813]
+	engine.SemiOpenFileNextToKingPenalty = weights[814]
 }
 
 // Evaluate the position from the training set file.
@@ -295,21 +305,27 @@ func printParameters() {
 	fmt.Println("MG Piece Mobility Bonuses:", Weights[778:782])
 	fmt.Println("EG Piece Mobility Bonuses:", Weights[782:786])
 
-	fmt.Println("\nIsolated Pawn Penalty:", engine.IsolatedPawnPenatly)
-	fmt.Println("Doubled Pawn Penalty:", engine.DoubledPawnPenatly)
+	fmt.Println("\nMG Passed Pawn Bonus:", engine.PassedPawnBonusMG)
+	fmt.Println("EG Passed Pawn Bonus:", engine.PassedPawnBonusEG)
 
-	fmt.Println("\nMinor Attacking Inner Ring:", engine.MinorAttackInnerRing)
-	fmt.Println("Minor Attacking Outer Ring:", engine.MinorAttackOuterRing)
-	fmt.Println("Rook Attacking Inner Ring:", engine.RookAttackInnerRing)
-	fmt.Println("Rook Attacking Outer Ring:", engine.RookAttackOuterRing)
-	fmt.Println("Queen Attacking Inner Ring:", engine.QueenAttackInnerRing)
-	fmt.Println("Queen Attacking Outer Ring:", engine.QueenAttackOuterRing)
+	fmt.Println("\nMG Isolated Pawn Penalty:", engine.IsolatedPawnPenatlyMG)
+	fmt.Println("EG Isolated Pawn Penalty:", engine.IsolatedPawnPenatlyEG)
+	fmt.Println("MG Doubled Pawn Penalty:", engine.DoubledPawnPenatlyMG)
+	fmt.Println("EG Doubled Pawn Penalty:", engine.DoubledPawnPenatlyEG)
 
 	fmt.Println("\nMG Knight Outpost Bonus:", engine.KnightOutpostBonusMG)
 	fmt.Println("EG Knight Outpost Bonus:", engine.KnightOutpostBonusEG)
+
+	fmt.Println("\nMinor Attacking Outer Ring:", engine.MinorAttackOuterRing)
+	fmt.Println("Minor Attacking Inner Ring:", engine.MinorAttackInnerRing)
+	fmt.Println("Rook Attacking Outer Ring:", engine.RookAttackOuterRing)
+	fmt.Println("Rook Attacking Inner Ring:", engine.RookAttackInnerRing)
+	fmt.Println("Queen Attacking Outer Ring:", engine.QueenAttackOuterRing)
+	fmt.Println("Queen Attacking Inner Ring:", engine.QueenAttackInnerRing)
+	fmt.Println("Semi-Open File Next To King Penalty:", engine.SemiOpenFileNextToKingPenalty)
 }
 
-func Tune(infile string, numPositions, iterations int) {
+func Tune(infile string, numPositions int) {
 	Entries = loadEntries(infile, numPositions)
 	Weights = loadWeights()
 	Steps = loadSteps()
@@ -317,8 +333,10 @@ func Tune(infile string, numPositions, iterations int) {
 
 	K := findK()
 	bestError := meanSquaredError(Weights, K)
+	improved := true
 
-	for iteration := 1; iteration <= iterations; iteration++ {
+	for iteration := 1; improved; iteration++ {
+		improved = false
 		for weightIdx := 0; weightIdx < NumWeights; weightIdx++ {
 			if FutileIndexes[weightIdx] {
 				continue
@@ -329,6 +347,7 @@ func Tune(infile string, numPositions, iterations int) {
 
 			if newError < bestError {
 				bestError = newError
+				improved = true
 			} else {
 				Weights[weightIdx] -= Steps[weightIdx] * 2
 
@@ -342,6 +361,7 @@ func Tune(infile string, numPositions, iterations int) {
 				newError = meanSquaredError(Weights, K)
 				if newError < bestError {
 					bestError = newError
+					improved = true
 				} else {
 					Weights[weightIdx] += Steps[weightIdx]
 				}

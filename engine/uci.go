@@ -185,7 +185,7 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 	}
 
 	// Parse the time left, increment, and moves to go from the command parameters.
-	timeLeft, increment, movesToGo := int(NoValue), int(NoValue), int(NoValue)
+	timeLeft, increment, movesToGo := int(InfiniteTime), int(NoValue), int(NoValue)
 	specifiedDepth := uint64(MaxPly)
 	specifiedNodes := uint64(math.MaxUint64)
 	searchTime := uint64(NoValue)
@@ -208,15 +208,15 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 		}
 	}
 
-	// If the "go" command is given no arguments, we assumed "go infinite"
-	if len(fields) == 0 {
-		inter.Search.Timer.TimeLeft = int64(InfiniteTime)
-	} else {
-		inter.Search.Timer.TimeLeft = int64(timeLeft)
+	// Set the timeLeft to NoValue if we're already given a move time
+	// to use via movetime.
+	if searchTime != uint64(NoValue) {
+		timeLeft = int(NoValue)
 	}
 
 	// Setup the timer with the go command time control information.
 	inter.Search.Timer.SetHardTimeForMove(int64(searchTime))
+	inter.Search.Timer.TimeLeft = int64(timeLeft)
 	inter.Search.Timer.Increment = int64(increment)
 	inter.Search.Timer.MovesToGo = int64(movesToGo)
 
