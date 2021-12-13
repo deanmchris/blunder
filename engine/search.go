@@ -156,8 +156,17 @@ func (search *Search) Search() Move {
 			break
 		}
 
+		// ========================================================================//
+		// ASPIRATION WINDOWS: Many times, the scores returned between iterations  //
+		// are close to each other. So to achieve more beta-cutoffs and speed up   //
+		// the search, we can use a window centered around the score of the last   //
+		// iterations value instead of (-INF, INF). When the score returned from a //
+		// search with a narrow window is outside of the window, we need to do a   //
+		// research to make sure we're getting the true score. However, if the     //
+		// window size is picked well, this should rare enough to where the        //
+		// benefits of a quicker search easily outweigh the few extra searches.    //
+		// ========================================================================//
 		if score <= alpha || score >= beta {
-			fmt.Println("Researching at depth:", depth, "alpha-beta:", alpha, beta)
 			alpha = -Inf
 			beta = Inf
 			depth--
