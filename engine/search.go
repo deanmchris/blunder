@@ -31,12 +31,15 @@ const (
 	// is allowed to reach.
 	MaxHistoryScore int32 = int32(MvvLvaOffset) - int32((MaxKillers+1)*KillerMoveScore)
 
+	// Constants representing various pruning margins and parameters used
+	// in the search.
 	StaticNullMovePruningBaseMargin int16 = 120
 	FirstNullMoveReduction          int8  = 2
 	SecondNullMoveReduction         int8  = 3
 	LateMoveReduction               int8  = 2
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
+	WindowSize                      int16 = 25
 )
 
 var FutilityMargins = [9]int16{0, 100, 160, 220, 280, 340, 400, 460, 520}
@@ -133,6 +136,9 @@ func (search *Search) Search() Move {
 	depth := uint8(0)
 	lastIterationScore := int16(0)
 
+	alpha := -Inf
+	beta := Inf
+
 	for depth = 1; depth <= MaxPly && depth <= search.SpecifiedDepth && search.SpecifiedNodes > 0; depth++ {
 		// Clear the nodes searched and the last iterations pv line.
 		search.nodes = 0
@@ -140,7 +146,7 @@ func (search *Search) Search() Move {
 
 		// Start a search, and time it for reporting purposes.
 		startTime := time.Now()
-		score := search.negamax(int8(depth), 0, -Inf, Inf, &pvLine, true)
+		score := search.negamax(int8(depth), 0, alpha, beta, &pvLine, true)
 		endTime := time.Since(startTime)
 
 		if search.Timer.Stop {
@@ -149,6 +155,17 @@ func (search *Search) Search() Move {
 			}
 			break
 		}
+
+		if score <= alpha || score >= beta {
+			fmt.Println("Researching at depth:", depth, "alpha-beta:", alpha, beta)
+			alpha = -Inf
+			beta = Inf
+			depth--
+			continue
+		}
+
+		alpha = score - WindowSize
+		beta = score + WindowSize
 
 		// If the score between this current iteration and the last iteration drops,
 		// take more time on the current search to make sure we find the best move.
