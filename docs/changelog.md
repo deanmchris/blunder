@@ -1,5 +1,6 @@
 Changelog
 ---------
+* Blunder 7.4.0
 * Blunder 7.3.0
 * Blunder 7.2.0
 * Blunder 7.1.0
@@ -11,6 +12,34 @@ Changelog
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 7.4.0
+-------------
+The release of this version includes evaluation terms for passed pawns and knight outposts, a new form of dynamic time management, and a better tuned evaluation, particularly with regards to king safety. All of these additions amount to about 50 Elo in gauntlet testing over 7.3.0, and self-play tests show Blunder 7.4.0 is roughly 50 Elo stronger than 7.3.0 (tc=inf/10+0.1):
+
+```
+Score of Blunder 7.4.0-1 vs Blunder 7.3.0: 582 - 384 - 350  [0.575] 1316
+...      Blunder 7.4.0-1 playing White: 286 - 191 - 181  [0.572] 658
+...      Blunder 7.4.0-1 playing Black: 296 - 193 - 169  [0.578] 658
+...      White vs Black: 479 - 487 - 350  [0.497] 1316
+Elo difference: 52.7 +/- 16.2, LOS: 100.0 %, DrawRatio: 26.6 %
+SPRT: llr 2.95 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
+```
+
+and more than 100 Elo stronger than 7.1.0 (tc=inf/10+0.1):
+
+```
+Score of Blunder 7.4.0 vs Blunder 7.1.0: 334 - 132 - 117  [0.673] 583
+...      Blunder 7.4.0 playing White: 173 - 63 - 55  [0.689] 291
+...      Blunder 7.4.0 playing Black: 161 - 69 - 62  [0.658] 292
+...      White vs Black: 242 - 224 - 117  [0.515] 583
+Elo difference: 125.6 +/- 26.4, LOS: 100.0 %, DrawRatio: 20.1 %
+SPRT: llr 2.95 (100.0%), lbound -2.94, ubound 2.94 - H1 was accepted
+```
+
+These testing results would put Blunder 7.4.0 at 2500+ Elo.
+
+Many thanks to those who continue to test and use Blunder. Your support is very much appreicated.
 
 Blunder 7.3.0
 -------------
