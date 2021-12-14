@@ -621,7 +621,7 @@ func (search *Search) storeKiller(ply uint8, move Move) {
 // satisified with a draw in the endgame.
 func (search *Search) contempt() int16 {
 	drawValue := MiddleGameDraw
-	if search.Pos.IsEndgameForSide() {
+	if search.Pos.IsEndgame() {
 		drawValue = EndGameDraw
 	}
 

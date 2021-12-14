@@ -696,14 +696,13 @@ func (pos *Position) InCheck() bool {
 
 // Determine if the current position should be considered an endgame
 // position for the current side to move.
-func (pos *Position) IsEndgameForSide() bool {
-	pawnMaterial := int16(pos.PieceBB[pos.SideToMove][Pawn].CountBits()) * 100
-	knightMaterial := int16(pos.PieceBB[pos.SideToMove][Knight].CountBits()) * 320
-	bishopMaterial := int16(pos.PieceBB[pos.SideToMove][Bishop].CountBits()) * 330
-	rookMaterial := int16(pos.PieceBB[pos.SideToMove][Rook].CountBits()) * 500
-	queenMaterial := int16(pos.PieceBB[pos.SideToMove][Queen].CountBits()) * 950
-
-	return (pawnMaterial + knightMaterial + bishopMaterial + rookMaterial + queenMaterial) < 1300
+func (pos *Position) IsEndgame() bool {
+	pawnMaterial := int16(pos.PieceBB[White][Pawn].CountBits()+pos.PieceBB[Black][Pawn].CountBits()) * 100
+	knightMaterial := int16(pos.PieceBB[White][Knight].CountBits()+pos.PieceBB[Black][Knight].CountBits()) * 320
+	bishopMaterial := int16(pos.PieceBB[White][Bishop].CountBits()+pos.PieceBB[Black][Bishop].CountBits()) * 330
+	rookMaterial := int16(pos.PieceBB[White][Rook].CountBits()+pos.PieceBB[Black][Rook].CountBits()) * 500
+	queenMaterial := int16(pos.PieceBB[White][Queen].CountBits()+pos.PieceBB[Black][Queen].CountBits()) * 950
+	return (pawnMaterial + knightMaterial + bishopMaterial + rookMaterial + queenMaterial) < 2600
 }
 
 // Evaluate if an endgame is drawn.
