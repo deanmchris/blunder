@@ -408,7 +408,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		if legalMoves == 1 {
 			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
 		} else {
-			tactical := inCheck || move.MoveType() == Attack
+			tactical := inCheck || move.MoveType() == Attack ||
+				search.killers[ply][0].Equal(move) ||
+				search.killers[ply][1].Equal(move)
 			reduction := int8(0)
 
 			if !isPVNode && legalMoves >= LMRLegalMovesLimit && depth >= LMRDepthLimit && !tactical {
