@@ -79,15 +79,17 @@ func (inter *UCIInterface) positionCommandResponse(command string) {
 	// the moves that have occured if any to update the position.
 	inter.Search.Pos.LoadFEN(fenString)
 	if strings.HasPrefix(args, "moves") {
-		args = strings.TrimPrefix(args, "moves ")
-		for _, moveAsString := range strings.Fields(args) {
-			move := MoveFromCoord(&inter.Search.Pos, moveAsString)
-			inter.Search.Pos.MakeMove(move)
+		args = strings.TrimSuffix(strings.TrimPrefix(args, "moves"), " ")
+		if args != "" {
+			for _, moveAsString := range strings.Fields(args) {
+				move := MoveFromCoord(&inter.Search.Pos, moveAsString)
+				inter.Search.Pos.MakeMove(move)
 
-			// Decrementing the history counter here makes
-			// sure that no state is saved on the position's
-			// history stack since this move will never be undone.
-			inter.Search.Pos.StatePly--
+				// Decrementing the history counter here makes
+				// sure that no state is saved on the position's
+				// history stack since this move will never be undone.
+				inter.Search.Pos.StatePly--
+			}
 		}
 	}
 }
