@@ -377,6 +377,14 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 		legalMoves++
 
+		if depth <= 2 && !isPVNode && !inCheck && legalMoves > 12 {
+			tactical := search.Pos.InCheck() || inCheck || isPawnPushToSeventh(&search.Pos, move)
+			if !tactical {
+				search.Pos.UnmakeMove(move)
+				continue
+			}
+		}
+
 		// =====================================================================//
 		// FUTILITY PRUNING: If we're close to the horizon, and even with a     //
 		// large margin the static evaluation can't be raised above alpha,      //
@@ -689,4 +697,11 @@ func orderMoves(currIndex int, moves *MoveList) {
 	tempMove := moves.Moves[currIndex]
 	moves.Moves[currIndex] = moves.Moves[bestIndex]
 	moves.Moves[bestIndex] = tempMove
+}
+
+// Determine if a move is a pawn push to the seventh rank
+// or second rank.
+func isPawnPushToSeventh(pos *Position, move Move) bool {
+	moved := pos.Squares[move.ToSq()]
+	return moved.Type == Pawn && FlipRank[moved.Color][RankOf(move.ToSq())] == Rank7
 }
