@@ -43,6 +43,7 @@ const (
 )
 
 var FutilityMargins = [9]int16{0, 100, 160, 220, 280, 340, 400, 460, 520}
+var LateMovePruningMargins = [4]int{0, 8, 12, 24}
 
 type Reduction struct {
 	MoveLimit int
@@ -377,8 +378,15 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 		legalMoves++
 
-		if depth <= 2 && !isPVNode && !inCheck && legalMoves > 12 {
-			tactical := search.Pos.InCheck() || inCheck || isPawnPushToSeventh(&search.Pos, move)
+		// =====================================================================//
+		// LATE MOVE PRUNING: Because of move ordering, moves late in the move  //
+		// list are not very likely to be interesting, so save time by          //
+		// completing pruning such moves without searching them. Cauation needs //
+		// to be taken we don't miss a tactical move however, so the further    //
+		// away we prune from the horizon, the "later" the move needs to be.    //
+		// =====================================================================//
+		if depth <= 3 && !isPVNode && !inCheck && legalMoves > LateMovePruningMargins[depth] {
+			tactical := search.Pos.InCheck() || move.MoveType() == Promotion
 			if !tactical {
 				search.Pos.UnmakeMove(move)
 				continue
@@ -697,11 +705,4 @@ func orderMoves(currIndex int, moves *MoveList) {
 	tempMove := moves.Moves[currIndex]
 	moves.Moves[currIndex] = moves.Moves[bestIndex]
 	moves.Moves[bestIndex] = tempMove
-}
-
-// Determine if a move is a pawn push to the seventh rank
-// or second rank.
-func isPawnPushToSeventh(pos *Position, move Move) bool {
-	moved := pos.Squares[move.ToSq()]
-	return moved.Type == Pawn && FlipRank[moved.Color][RankOf(move.ToSq())] == Rank7
 }
