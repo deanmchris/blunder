@@ -67,7 +67,6 @@ func TestIQ(timeAlloted int64) {
 	loadTestPositions()
 
 	var search engine.Search
-	search.Timer.SetHardTimeForMove(timeAlloted * 1000)
 	search.SpecifiedDepth = uint8(engine.MaxPly)
 	search.SpecifiedNodes = uint64(math.MaxUint64)
 	search.TT.Resize(engine.DefaultTTSize)
@@ -87,6 +86,7 @@ func TestIQ(timeAlloted int64) {
 		}
 
 		search.Pos.LoadFEN(testPos.Fen)
+		search.Timer.SetHardTimeForMove(timeAlloted * 1000)
 		bestMove := search.Search()
 
 		if testPos.FirstBestMove.Equal(engine.NullMove) && testPos.SecondBestMove.Equal(engine.NullMove) {
