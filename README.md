@@ -17,7 +17,7 @@ be straightforward and easy to read, so that others can benefit from the project
 | 7.1.0       | 2395                   | N/A               |
 | 7.2.0       | 2395                   | 2425              |
 | 7.3.0       | 2450                   | N/A               |
-| 7.4.0       | 2510                   | N/A               |
+| 7.4.0       | 2510                   | 2532              |
 
 Installation
 -----
