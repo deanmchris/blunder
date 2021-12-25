@@ -1,23 +1,45 @@
 Overview
 --------
 
-[Blunder](http://ccrl.chessdom.com/ccrl/404/cgi/compare_engines.cgi?family=Blunder&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
+Blunder is an open-source UCI compatible chess engine. The philosophy behind Blunder's design is for the code to 
 be straightforward and easy to read, so that others can benefit from the project.
 
-| Version     | Estimated Rating (Elo) | CCRL Rating (Elo) | 
-| ----------- | -----------------------|-------------------|
-| 1.0.0       | 1400                   | N/A               |
-| 2.0.0       | 1570                   | N/A               |
-| 3.0.0       | 1782                   | N/A               |
-| 4.0.0       | 1832                   | 1734              |
-| 5.0.0       | 2000                   | 2080              |
-| 6.0.0       | 2200                   | N/A               |
-| 6.1.0       | 2200                   | 2155              |
-| 7.0.0       | 2280                   | N/A               |
-| 7.1.0       | 2395                   | N/A               |
-| 7.2.0       | 2395                   | 2425              |
-| 7.3.0       | 2450                   | N/A               |
-| 7.4.0       | 2510                   | 2532              |
+History
+-------
+
+The inspiration for Blunder started near the beginning of 2021. Me and many of my friends had recently started playing chess more seriously, and having a couple of years of programming knowledge, I imagined it would be fun to create my own chess playing program. I started a very rough first version, written in Python, but soon abandonded it, as I realized writing a chess engine was a much more daunting project then I had first anticpated. 
+
+With my intial failure, I started doing more research and discovered the rich field of computer programming, and the many helpful people that are a part of it. About 5 months and ten attempts later, I released the first version of Blunder! And I've been working to improve Blunder ever since. As for the programming language switch, though Python is an amazing language (I think anyway), and the first language I learned, it's simply not fast enough for the purpose of writing a relatively strong chess engine. So instead of writing another C/C++ chess engine, I decided to give Go a try, and I've enjoyed working with its tools.
+
+I've also [started a blog](https://algerbrex.github.io/) to track and write about the development of Blunder.
+
+Ratings
+-------
+
+When discussing an engine's (or human chess player's) strength, it's important to remember that the Elo is always relative to one's testing conditions. One tester may estimate an engine's strength to be 2300 for example, while another may get 2245. Neither tester is "wrong" per se, but they both likely have a different pool of opponets, different hardware, different time controls, etc.
+
+With that said, several people have been kind enough to test various versions of Blunder, and a summary of the rating list and their ratings for the versions are listed below:
+
+| Version     | Estimated Rating (Elo) | CCRL Blitz Rating (Elo) | Bruce's Bullet Rating List (ELo) |
+| ----------- | -----------------------|-------------------------|----------------------------------|
+| 1.0.0       | 1400                   | -                       | -                                |
+| 2.0.0       | 1570                   | -                       | -                                |
+| 3.0.0       | 1782                   | -                       | -                                |
+| 4.0.0       | 1832                   | 1734                    | -                                |
+| 5.0.0       | 2000                   | 2080                    | 2174                             |
+| 6.0.0       | 2200                   | -                       | 2248                             |
+| 6.1.0       | 2200                   | 2155                    | 2226                             |
+| 7.0.0       | 2280                   | -                       | 2374                             |
+| 7.1.0       | 2395                   | -                       | 2455                             |
+| 7.2.0       | 2395                   | 2425                    | 2472                             |
+| 7.3.0       | 2450                   | -                       | 2499                             |
+| 7.4.0       | 2510                   | 2532                    | 2554                             |
+| 7.5.0       | 2540                   | ?                       | ?                                |
+
+* [CCRL Blitz Rating List](http://ccrl.chessdom.com/ccrl/404/)
+* [Bruce's Bullet Rating List](https://e4e6.com/)
+
+A very big thank you to those who have helped and continue to help test Blunder.
 
 Installation
 -----
@@ -25,7 +47,7 @@ Installation
 Builds for Windows, Linux, and MacOS are included with each release of Blunder. However, if you
 prefer to build Blunder from scratch the steps to do so are outlined below.
 
-Visit [Golang download page](https://golang.org/dl/), and install Golang using the download
+Visit the [Golang download page](https://golang.org/dl/), and install Golang using the download
 package appropriate for your machine. To make using the Golang compiler easier, make sure that if the installer asks,
 you let it add the Golang compiler command to your path.
 
@@ -80,6 +102,7 @@ Features
     - [Futility pruning](https://www.chessprogramming.org/Futility_Pruning)
     - [Static-exchange evaluation](https://www.chessprogramming.org/Static_Exchange_Evaluation)
     - [Aspiration windows](https://www.chessprogramming.org/Aspiration_Windows)
+    - [Late-move pruning/move-count based pruning](https://www.chessprogramming.org/Futility_Pruning#MoveCountBasedPruning)
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
@@ -111,6 +134,19 @@ Features
  
  These credits will be updated from time to time as I remember or encounter more people who have helped me
  in Blunder's development.
+ 
+ Resources
+ ---------
+ 
+ This list is by no means exhaustive, but here are some of the main resources that I've found and cotinue to find helpful while developing Blunder:
+ 
+* [The Chess Programming Wiki](https://www.chessprogramming.org/Main_Page)
+* [The Chess Stack Exchange site](https://chess.stackexchange.com/)
+* [Talkchess](http://talkchess.com/forum3/index.php)
+* [Programming a chess engine in C](https://www.youtube.com/watch?v=bGAfaepBco4&list=PLZ1QII7yudbc-Ky058TEaOstZHVbT-2hg)
+* [Programming a chess engine in Javascript](https://www.youtube.com/watch?v=2eA0bD3wV3Q&list=PLZ1QII7yudbe4gz2gh9BCI6VDA-xafLog)
+* [Bitboard engine in C](https://www.youtube.com/watch?v=QUNP-UjujBM&list=PLmN0neTso3Jxh8ZIylk74JpwfiWNI76Cs)
+* [Logic Crazy's Chess Engine Tutorial](https://www.youtube.com/watch?v=V_2-LOvr5E8&list=PLQV5mozTHmacMeRzJCW_8K3qw2miYqd0c)
 
  License
  -------

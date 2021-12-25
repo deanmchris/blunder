@@ -1,5 +1,6 @@
 Changelog
 ---------
+* Blunder 7.5.0
 * Blunder 7.4.0
 * Blunder 7.3.0
 * Blunder 7.2.0
@@ -12,6 +13,13 @@ Changelog
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 7.5.0
+-------------
+The release of Blunder 7.5.0 consists of mostly strength gaining tweaks to Blunder's previous features, with the exception of the addition of late-move pruning/move-count based pruning. This version is estimated to be roughly 30 Elo stronger than Blunder 7.4.0.
+
+* Search
+    - [Late-move pruning/move-count based pruning](https://www.chessprogramming.org/Futility_Pruning#MoveCountBasedPruning) 
 
 Blunder 7.4.0
 -------------
