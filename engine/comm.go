@@ -34,6 +34,7 @@ Options:
 - eval: Display the static evaluation of the current position
 - options: Display this help message
 - quit: Quit the program
+
 `
 )
 
@@ -124,7 +125,7 @@ func RunCommLoop() {
 			inter.UCILoop()
 			break
 		} else if command == "options\n" {
-			fmt.Println(HelpMessage)
+			fmt.Print(HelpMessage)
 		} else if command == "eval\n" {
 			fmt.Println(EvaluatePos(&inter.Search.Pos), "cp")
 		} else if command == "quit\n" {
