@@ -473,6 +473,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			// Break he move loop, since we have a beta cutoff.
 			break
 		} else {
+			// If the move doesn't cause a beta cutoff decrease it's history score.
 			search.decrementHistoryScore(move)
 		}
 
@@ -492,6 +493,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			// Set the transposition table flag to exact.
 			ttFlag = ExactFlag
 		} else {
+			// If the move doesn't raise alpha decrease it's history score.
 			search.decrementHistoryScore(move)
 		}
 
