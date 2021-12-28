@@ -470,10 +470,12 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			search.storeKiller(ply, move)
 
 			// Update the history table.
-			search.updateHistoryTable(move, depth)
+			search.incrementHistoryScore(move, depth)
 
 			// Break he move loop, since we have a beta cutoff.
 			break
+		} else {
+			search.decrementHistoryScore(move)
 		}
 
 		// If the score of this move is better than alpha (i.e better than the score
@@ -484,13 +486,15 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			alpha = score
 
 			// Update the history table.
-			search.updateHistoryTable(move, depth)
+			search.incrementHistoryScore(move, depth)
 
 			// Update the principal variation line.
 			pvLine.Update(move, childPVLine)
 
 			// Set the transposition table flag to exact.
 			ttFlag = ExactFlag
+		} else {
+			search.decrementHistoryScore(move)
 		}
 
 		// Clear this child node's principal variation line for the
@@ -594,14 +598,23 @@ func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8, pvLine *PVLin
 	return bestScore
 }
 
-// Update the history heuristics table if the move that caused a beta-cutoff is quiet.
-func (search *Search) updateHistoryTable(move Move, depth int8) {
+// Increment the history score for the given move if it caused a beta-cutoff and is quiet.
+func (search *Search) incrementHistoryScore(move Move, depth int8) {
 	if search.Pos.Squares[move.ToSq()].Type == NoType {
 		search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] += int32(depth) * int32(depth)
 	}
 
 	if search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] >= MaxHistoryScore {
 		search.ageHistoryTable()
+	}
+}
+
+// Decrement the history score for the given move if it didn't cause a beta-cutoff and is quiet.
+func (search *Search) decrementHistoryScore(move Move) {
+	if search.Pos.Squares[move.ToSq()].Type == NoType {
+		if search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] > 0 {
+			search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] -= 1
+		}
 	}
 }
 
