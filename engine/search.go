@@ -34,8 +34,6 @@ const (
 	// Constants representing various pruning margins and parameters used
 	// in the search.
 	StaticNullMovePruningBaseMargin int16 = 120
-	FirstNullMoveReduction          int8  = 2
-	SecondNullMoveReduction         int8  = 3
 	LateMoveReduction               int8  = 2
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
