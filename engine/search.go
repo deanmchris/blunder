@@ -558,7 +558,7 @@ func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8, pvLine *PVLin
 		alpha = bestScore
 	}
 
-	moves := genCaptures(&search.Pos)
+	moves := genCapturesAndQPromotions(&search.Pos)
 	search.scoreMoves(&moves, NullMove, negamaxPly)
 	var childPVLine PVLine
 
