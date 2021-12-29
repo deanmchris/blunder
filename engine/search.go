@@ -424,7 +424,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		} else {
 			tactical := inCheck || move.MoveType() == Attack ||
 				search.killers[ply][0].Equal(move) ||
-				search.killers[ply][1].Equal(move)
+				search.killers[ply][1].Equal(move) ||
+				(FlipRank[search.Pos.SideToMove^1][RankOf(move.ToSq())] >= Rank6 && isPawnPush(&search.Pos, move))
+
 			reduction := int8(0)
 
 			if !isPVNode && legalMoves >= LMRLegalMovesLimit && depth >= LMRDepthLimit && !tactical {
@@ -718,4 +720,9 @@ func orderMoves(currIndex int, moves *MoveList) {
 	tempMove := moves.Moves[currIndex]
 	moves.Moves[currIndex] = moves.Moves[bestIndex]
 	moves.Moves[bestIndex] = tempMove
+}
+
+// A helper method to determine if a move is a pawn push.
+func isPawnPush(pos *Position, move Move) bool {
+	return pos.Squares[move.ToSq()].Type == Pawn && move.MoveType() == Quiet
 }
