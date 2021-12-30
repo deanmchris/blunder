@@ -1,5 +1,6 @@
 Changelog
 ---------
+* Blunder 7.6.0
 * Blunder 7.5.0
 * Blunder 7.4.0
 * Blunder 7.3.0
@@ -13,6 +14,34 @@ Changelog
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 7.6.0
+-------------
+
+This release contains no new features, but various tweaks of existing ones that have improved
+Blunder's strength. History values are decreased when the move fails to raise alpha or cause
+a beta-cutoff, queen promotions are considered in quiescence search, pawn pushes to the 6th
+rank and above are no longer reduced, and late-move reductions are no longer allowed to drop 
+the search directly into quiescence search. These changes are summarized below and resulted 
+in a gain of around 80 Elo in self-play:
+
+```
+Score of Blunder 7.6.0 vs Blunder 7.5.0: 313 - 147 - 251  [0.617] 711
+...      Blunder 7.6.0 playing White: 156 - 80 - 120  [0.607] 356
+...      Blunder 7.6.0 playing Black: 157 - 67 - 131  [0.627] 355
+...      White vs Black: 223 - 237 - 251  [0.490] 711
+Elo difference: 82.6 +/- 20.8, LOS: 100.0 %, DrawRatio: 35.3 %
+SPRT: llr 2.95 (100.3%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
+
+The individual gains from each tweak can be seen in the commit history, per usual.
+
+* Search
+    - Decrease the history value of moves that don't raise alpha or cause a betacutoff
+    - Consider queen promotions in quiescence search
+    - Don't reduce pawn pushes to the 6th rank and above
+    - Don't allow LMR to drop the search directly into quiescence search
 
 Blunder 7.5.0
 -------------

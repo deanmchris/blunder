@@ -34,7 +34,8 @@ With that said, several people have been kind enough to test various versions of
 | 7.2.0       | 2395                   | 2425                    | 2472                             |
 | 7.3.0       | 2450                   | -                       | 2499                             |
 | 7.4.0       | 2510                   | 2532                    | 2554                             |
-| 7.5.0       | 2540                   | ?                       | ?                                |
+| 7.5.0       | 2540                   | ?                       | 2593                             |
+| 7.6.0       | 2620                   | ?                       | ?                                |
 
 * [CCRL Blitz Rating List](http://ccrl.chessdom.com/ccrl/404/)
 * [Bruce's Bullet Rating List](https://e4e6.com/)
@@ -42,7 +43,7 @@ With that said, several people have been kind enough to test various versions of
 A very big thank you to those who have helped and continue to help test Blunder.
 
 Installation
------
+------------
 
 Builds for Windows, Linux, and MacOS are included with each release of Blunder. However, if you
 prefer to build Blunder from scratch the steps to do so are outlined below.
