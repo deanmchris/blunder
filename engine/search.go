@@ -438,10 +438,18 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 				}
 			}
 
-			score = -search.negamax(depth-1-reduction, ply+1, -alpha-1, -alpha, &childPVLine, true)
+			// Don't drop directly into quiescence search from a late-move
+			// reduction, unless we're already at a frontier node (a node at
+			// depth=1). This increases the tactical strength.
+			reducedDepth := max8(depth-1-reduction, 1)
+			if depth == 1 {
+				reducedDepth = depth - 1
+			}
+
+			score = -search.negamax(reducedDepth, ply+1, -alpha-1, -alpha, &childPVLine, true)
 
 			if score > alpha && reduction > 0 {
-				score = -search.negamax(depth-1-reduction, ply+1, -beta, -alpha, &childPVLine, true)
+				score = -search.negamax(reducedDepth, ply+1, -beta, -alpha, &childPVLine, true)
 				if score > alpha {
 					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
 				}

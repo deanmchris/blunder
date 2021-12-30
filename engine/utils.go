@@ -47,6 +47,14 @@ func abs16(n int16) int16 {
 	return n
 }
 
+// Get the maximum between two signed 8-bit numbers.
+func max8(a, b int8) int8 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // Determine if a square is dark.
 func sqIsDark(sq uint8) bool {
 	fileNo := FileOf(sq)
