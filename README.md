@@ -35,7 +35,7 @@ With that said, several people have been kind enough to test various versions of
 | 7.3.0       | 2450                   | -                       | 2499                             |
 | 7.4.0       | 2510                   | 2532                    | 2554                             |
 | 7.5.0       | 2540                   | ?                       | 2593                             |
-| 7.6.0       | 2620                   | ?                       | ?                                |
+| 7.6.0       | 2620                   | ?                       | 2638                             |
 
 * [CCRL Blitz Rating List](http://ccrl.chessdom.com/ccrl/404/)
 * [Bruce's Bullet Rating List](https://e4e6.com/)
