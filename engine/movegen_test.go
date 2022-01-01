@@ -62,16 +62,6 @@ func loadPerftSuite() (perftTests []PerftTest) {
 	return perftTests
 }
 
-// Pad a string into the center
-func padToCenter(s string, fill string, w int) string {
-	spaceLeft := w - len(s)
-	extraFill := ""
-	if spaceLeft%2 != 0 {
-		extraFill = fill
-	}
-	return strings.Repeat(fill, spaceLeft/2) + extraFill + s + strings.Repeat(fill, spaceLeft/2)
-}
-
 // Print a row in the perft test output
 func printPerftTestRow(fen, depth, expected, moves, correct string) {
 	fmt.Printf(

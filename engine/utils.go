@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"strings"
 	"unicode"
 )
 
@@ -60,6 +61,16 @@ func sqIsDark(sq uint8) bool {
 	fileNo := FileOf(sq)
 	rankNo := RankOf(sq)
 	return ((fileNo + rankNo) % 2) == 0
+}
+
+// Pad a string into the center
+func padToCenter(s string, fill string, w int) string {
+	spaceLeft := w - len(s)
+	extraFill := ""
+	if spaceLeft%2 != 0 {
+		extraFill = fill
+	}
+	return strings.Repeat(fill, spaceLeft/2) + extraFill + s + strings.Repeat(fill, spaceLeft/2)
 }
 
 // Convert a move in short algebraic notation, to the long algebraic notation used

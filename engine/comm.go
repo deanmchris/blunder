@@ -31,7 +31,7 @@ Options:
 - dperft <DEPTH>: Run divide perft up to <DEPTH>
 - fen <FEN>: Load a fen string given by <FEN>
 - print: Display the current board state
-- eval: Display the static evaluation of the current position
+- eval: Display a break down of the static evaluation of the current position
 - options: Display this help message
 - quit: Quit the program
 
@@ -127,7 +127,7 @@ func RunCommLoop() {
 		} else if command == "options\n" {
 			fmt.Print(HelpMessage)
 		} else if command == "eval\n" {
-			fmt.Println(EvaluatePos(&inter.Search.Pos), "cp")
+			evaluatePosTrace(&inter.Search.Pos)
 		} else if command == "quit\n" {
 			break
 		} else {
