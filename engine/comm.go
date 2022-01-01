@@ -32,7 +32,7 @@ Options:
 - fen <FEN>: Load a fen string given by <FEN>
 - print: Display the current board state
 - eval: Display a break down of the static evaluation of the current position
-- options: Display this help message
+- help: Display this help message
 - quit: Quit the program
 
 `
@@ -124,7 +124,7 @@ func RunCommLoop() {
 		} else if command == "uci\n" {
 			inter.UCILoop()
 			break
-		} else if command == "options\n" {
+		} else if command == "help\n" {
 			fmt.Print(HelpMessage)
 		} else if command == "eval\n" {
 			evaluatePosTrace(&inter.Search.Pos)
@@ -132,7 +132,7 @@ func RunCommLoop() {
 			break
 		} else {
 			fmt.Printf("Unknown command \"%v\"\n", strings.TrimSuffix(command, "\n"))
-			fmt.Printf("Enter \"options\" to show available commands\n")
+			fmt.Printf("Enter \"help\" to show available commands\n")
 		}
 	}
 }
