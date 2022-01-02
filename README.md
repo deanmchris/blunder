@@ -9,7 +9,7 @@ History
 
 The inspiration for Blunder started near the beginning of 2021. Me and many of my friends had recently started playing chess more seriously, and having a couple of years of programming knowledge, I imagined it would be fun to create my own chess playing program. I started a very rough first version, written in Python, but soon abandonded it, as I realized writing a chess engine was a much more daunting project then I had first anticpated. 
 
-With my intial failure, I started doing more research and discovered the rich field of computer programming, and the many helpful people that are a part of it. About 5 months and ten attempts later, I released the first version of Blunder! And I've been working to improve Blunder ever since. As for the programming language switch, though Python is an amazing language (I think anyway), and the first language I learned, it's simply not fast enough for the purpose of writing a relatively strong chess engine. So instead of writing another C/C++ chess engine, I decided to give Go a try, and I've enjoyed working with its tools.
+With my intial failure, I started doing more research and discovered the rich field of chess programming, and the many helpful people that are a part of it. About 5 months and ten attempts later, I released the first version of Blunder! And I've been working to improve Blunder ever since. As for the programming language switch, though Python is an amazing language (I think anyway), and the first language I learned, it's simply not fast enough for the purpose of writing a relatively strong chess engine. So instead of writing another C/C++ chess engine, I decided to give Go a try, and I've enjoyed working with its tools.
 
 I've also [started a blog](https://algerbrex.github.io/) to track and write about the development of Blunder.
 
@@ -139,7 +139,7 @@ Features
  Resources
  ---------
  
- This list is by no means exhaustive, but here are some of the main resources that I've found and cotinue to find helpful while developing Blunder:
+ This list is by no means exhaustive, but here are some of the main resources that I've found and continue to find helpful while developing Blunder:
  
 * [The Chess Programming Wiki](https://www.chessprogramming.org/Main_Page)
 * [The Chess Stack Exchange site](https://chess.stackexchange.com/)
