@@ -2,6 +2,10 @@ package engine
 
 // timemanager.go implements the time mangement logic which Blunder
 // uses during its search phase.
+//
+// Credit to Jonatan Pettersson for the orginal, unmodified implementation:
+// http://mediocrechess.blogspot.com/2007/01/guide-time-management.html
+//
 
 import (
 	"time"
