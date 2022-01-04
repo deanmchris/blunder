@@ -43,9 +43,6 @@ var BishopMagics [64]Magic
 var RookAttacks [64][4096]Bitboard
 var BishopAttacks [64][512]Bitboard
 
-var Lines [64][64]Bitboard
-var Between [64][64]Bitboard
-
 var RookMagicNumbers [64]uint64 = [64]uint64{
 	0x2220a09401006042, 0x1022000403018802, 0x2422006150081c02, 0x400200102014081a,
 	0x80020410010008a1, 0x2008102003004009, 0x839100214001, 0x6101310024408005,
@@ -384,52 +381,4 @@ func init() {
 	// Initalize the rook and bishop magic bitboard tables.
 	initRookMagics()
 	initBishopMagics()
-
-	// Initalize the Lines array, a two dimensional structure
-	// that takes two squares, and maps it to a bitboard containg
-	// the full line (from board edge to board edge) that intersects
-	// those two squares. If no intersection exists along a diagonal,
-	// antidiagonal, rank, or file, an empty bitboard is used.
-
-	var sq1, sq2 uint8
-	for sq1 = 0; sq1 < 64; sq1++ {
-		for sq2 = 0; sq2 < 64; sq2++ {
-
-			for idx := 0; idx < 15; idx++ {
-				diagonal := MaskDiagonal[idx]
-				antidiagonal := MaskAntidiagonal[idx]
-
-				if diagonal.BitSet(sq1) && diagonal.BitSet(sq2) {
-					Lines[sq1][sq2] = diagonal
-				}
-
-				if antidiagonal.BitSet(sq1) && antidiagonal.BitSet(sq2) {
-					Lines[sq1][sq2] = antidiagonal
-				}
-			}
-
-			for idx := 0; idx < 8; idx++ {
-				file := MaskFile[idx]
-				rank := MaskRank[idx]
-
-				if file.BitSet(sq1) && file.BitSet(sq2) {
-					Lines[sq1][sq2] = file
-				}
-
-				if rank.BitSet(sq1) && rank.BitSet(sq2) {
-					Lines[sq1][sq2] = rank
-				}
-			}
-		}
-	}
-
-	// Initalize a second two dimensional array, which is like Lines,
-	// but rather than including the full line, it only includes the
-	// line between the two squares of interest.
-	for sq1 = 0; sq1 < 64; sq1++ {
-		for sq2 = 0; sq2 < 64; sq2++ {
-			Between[sq1][sq2] = Lines[sq1][sq2] & ((FullBB >> sq1) ^ (FullBB >> sq2))
-			Between[sq1][sq2] = Between[sq1][sq2] | SquareBB[sq1] | SquareBB[sq2]
-		}
-	}
 }
