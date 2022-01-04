@@ -214,22 +214,22 @@ func makePromotionMoves(pos *Position, from, to uint8, moves *MoveList) {
 // crossing attacked squares is not tested for here, as pseduo-legal move
 // generation is the focus.
 func genCastlingMoves(pos *Position, moves *MoveList) {
-	allPieces := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
+	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
 	if pos.SideToMove == White {
-		if pos.CastlingRights&WhiteKingsideRight != 0 && (allPieces&F1_G1) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E1) &&
+		if pos.CastlingRights&WhiteKingsideRight != 0 && (allBB&F1_G1) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E1) &&
 			!sqIsAttacked(pos, pos.SideToMove, F1) && !sqIsAttacked(pos, pos.SideToMove, G1)) {
 			moves.AddMove(NewMove(E1, G1, Castle, NoFlag))
 		}
-		if pos.CastlingRights&WhiteQueensideRight != 0 && (allPieces&B1_C1_D1) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E1) &&
+		if pos.CastlingRights&WhiteQueensideRight != 0 && (allBB&B1_C1_D1) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E1) &&
 			!sqIsAttacked(pos, pos.SideToMove, D1) && !sqIsAttacked(pos, pos.SideToMove, C1)) {
 			moves.AddMove(NewMove(E1, C1, Castle, NoFlag))
 		}
 	} else {
-		if pos.CastlingRights&BlackKingsideRight != 0 && (allPieces&F8_G8) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E8) &&
+		if pos.CastlingRights&BlackKingsideRight != 0 && (allBB&F8_G8) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E8) &&
 			!sqIsAttacked(pos, pos.SideToMove, F8) && !sqIsAttacked(pos, pos.SideToMove, G8)) {
 			moves.AddMove(NewMove(E8, G8, Castle, NoFlag))
 		}
-		if pos.CastlingRights&BlackQueensideRight != 0 && (allPieces&B8_C8_D8) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E8) &&
+		if pos.CastlingRights&BlackQueensideRight != 0 && (allBB&B8_C8_D8) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E8) &&
 			!sqIsAttacked(pos, pos.SideToMove, D8) && !sqIsAttacked(pos, pos.SideToMove, C8)) {
 			moves.AddMove(NewMove(E8, C8, Castle, NoFlag))
 		}
@@ -268,16 +268,6 @@ func sqIsAttacked(pos *Position, usColor, sq uint8) bool {
 	enemyKing := pos.PieceBB[usColor^1][King]
 	enemyPawns := pos.PieceBB[usColor^1][Pawn]
 
-	intercardinalRays := genBishopMoves(sq, enemyBB|usBB)
-	cardinalRaysRays := genRookMoves(sq, enemyBB|usBB)
-
-	if intercardinalRays&(enemyBishops|enemyQueens) != 0 {
-		return true
-	}
-	if cardinalRaysRays&(enemyRooks|enemyQueens) != 0 {
-		return true
-	}
-
 	if KnightMoves[sq]&enemyKnights != 0 {
 		return true
 	}
@@ -287,7 +277,14 @@ func sqIsAttacked(pos *Position, usColor, sq uint8) bool {
 	if PawnAttacks[usColor][sq]&enemyPawns != 0 {
 		return true
 	}
-	return false
+
+	intercardinalRays := genBishopMoves(sq, enemyBB|usBB)
+	if intercardinalRays&(enemyBishops|enemyQueens) != 0 {
+		return true
+	}
+
+	cardinalRays := genRookMoves(sq, enemyBB|usBB)
+	return cardinalRays&(enemyRooks|enemyQueens) != 0
 }
 
 // Explore the move tree up to depth, and return the total
