@@ -9,7 +9,7 @@ import (
 
 type Bitboard uint64
 
-var SquareBB [64]Bitboard
+var SquareBB [65]Bitboard
 
 func (bitboard *Bitboard) SetBit(sq uint8) {
 	*bitboard |= SquareBB[sq]
@@ -66,7 +66,7 @@ func (bitboard Bitboard) String() (bitboardAsString string) {
 
 func init() {
 	var sq uint8
-	for sq = 0; sq < 64; sq++ {
+	for sq = 0; sq < 65; sq++ {
 		SquareBB[sq] = 0x8000000000000000 >> sq
 	}
 }
