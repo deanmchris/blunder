@@ -26,7 +26,6 @@ type PerftTest struct {
 	DepthValues [MaxPerftDepth]uint64
 }
 
-// Load the perft test suite
 func loadPerftSuite() (perftTests []PerftTest) {
 	wd, _ := os.Getwd()
 	parentFolder := filepath.Dir(wd)
@@ -62,7 +61,6 @@ func loadPerftSuite() (perftTests []PerftTest) {
 	return perftTests
 }
 
-// Print a row in the perft test output
 func printPerftTestRow(fen, depth, expected, moves, correct string) {
 	fmt.Printf(
 		"| %s | %s | %s | %s | %s |\n",
@@ -74,12 +72,10 @@ func printPerftTestRow(fen, depth, expected, moves, correct string) {
 	)
 }
 
-// Print a row separator in the perft test output
 func printPerftTestRowSeparator() {
 	fmt.Println("+" + strings.Repeat("-", 86) + "+" + "--------+------------+------------+----------+")
 }
 
-// Test blunder against the perft suite
 func TestMovegen(t *testing.T) {
 	printPerftTestRowSeparator()
 	printPerftTestRow("position", "depth", "expected", "moves", "correct")

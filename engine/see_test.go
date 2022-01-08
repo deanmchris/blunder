@@ -1,5 +1,7 @@
 package engine
 
+// see_test.go tests Blunder's static-exchange-evaluation routine.
+
 import (
 	"fmt"
 	"testing"

@@ -38,7 +38,6 @@ Options:
 `
 )
 
-// Run the perft command in the command line mode
 func perftCommand(pos *Position, command string) {
 	command = strings.TrimPrefix(command, "perft ")
 	command = strings.TrimSuffix(command, "\n")
@@ -61,7 +60,6 @@ func perftCommand(pos *Position, command string) {
 	}
 }
 
-// Run the divide perft command in the command line mode
 func dividePerftCommand(pos *Position, command string) {
 	command = strings.TrimPrefix(command, "dperft ")
 	command = strings.TrimSuffix(command, "\n")
@@ -85,7 +83,6 @@ func dividePerftCommand(pos *Position, command string) {
 	}
 }
 
-// Run the fen command in the command line mode
 func fenCommand(pos *Position, command string) {
 	command = strings.TrimPrefix(command, "fen ")
 	command = strings.TrimSuffix(command, "\n")

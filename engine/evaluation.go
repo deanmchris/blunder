@@ -1,7 +1,6 @@
 package engine
 
 const (
-	// Constants which map a piece to how much weight it should have on the phase of the game.
 	PawnPhase   int16 = 0
 	KnightPhase int16 = 1
 	BishopPhase int16 = 1
@@ -9,12 +8,9 @@ const (
 	QueenPhase  int16 = 4
 	TotalPhase  int16 = PawnPhase*16 + KnightPhase*4 + BishopPhase*4 + RookPhase*4 + QueenPhase*2
 
-	// A constant infinite (checkmate) value.
 	Inf int16 = 10000
 )
 
-// Variables representing values for draws in the middle and
-// end-game.
 var MiddleGameDraw int16 = 25
 var EndGameDraw int16 = 0
 
@@ -315,7 +311,6 @@ func EvaluatePos(pos *Position) int16 {
 	return int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
 }
 
-// Evaluate the score of a pawn.
 func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Pawn] + PSQT_MG[Pawn][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Pawn] + PSQT_EG[Pawn][FlipSq[color][sq]]
@@ -346,7 +341,6 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 	}
 }
 
-// Evaluate the score of a knight.
 func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Knight] + PSQT_MG[Knight][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Knight] + PSQT_EG[Knight][FlipSq[color][sq]]
@@ -379,7 +373,6 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 	}
 }
 
-// Evaluate the score of a bishop.
 func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Bishop] + PSQT_MG[Bishop][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Bishop] + PSQT_EG[Bishop][FlipSq[color][sq]]
@@ -427,7 +420,6 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 	}
 }
 
-// Evaluate the score of a queen.
 func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Queen] + PSQT_MG[Queen][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Queen] + PSQT_EG[Queen][FlipSq[color][sq]]
@@ -451,7 +443,6 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 	}
 }
 
-// Evaluate the score of a king.
 func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PSQT_MG[King][FlipSq[color][sq]]
 	eval.EGScores[color] += PSQT_EG[King][FlipSq[color][sq]]

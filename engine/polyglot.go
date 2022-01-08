@@ -3,19 +3,14 @@ package engine
 // polyglot.go translates Blunder's internal board representation into a polyglot hash.
 
 const (
-	// These constants peforms the same function
-	// as the one for pieces, but the direct offsets
-	// can be hardcoded.
-	CastleWKSHash = 768
-	CastleWQSHash = 769
-	CastleBKSHash = 770
-	CastleBQSHash = 771
-	EnPassant     = 772
-	SideToMove    = 780
+	CastleWKSHashIndex  = 768
+	CastleWQSHashIndex  = 769
+	CastleBKSHashIndex  = 770
+	CastleBQSHashIndex  = 771
+	EnPassantHashIndex  = 772
+	SideToMoveHashIndex = 780
 )
 
-// Create an initial zobrist hash for a board loaded from a
-// fen string.
 func GenPolyglotHash(pos *Position) (hash uint64) {
 	for sq, piece := range pos.Squares {
 		if piece.Type != NoType {
@@ -24,40 +19,35 @@ func GenPolyglotHash(pos *Position) (hash uint64) {
 	}
 
 	if pos.EPSq != NoSq {
-		hash ^= Random64[EnPassant+int(FileOf(pos.EPSq))]
+		hash ^= Random64[EnPassantHashIndex+int(FileOf(pos.EPSq))]
 	}
 
 	if pos.CastlingRights&WhiteKingsideRight != 0 {
-		hash ^= Random64[CastleWKSHash]
+		hash ^= Random64[CastleWKSHashIndex]
 	}
 
 	if pos.CastlingRights&WhiteQueensideRight != 0 {
-		hash ^= Random64[CastleWQSHash]
+		hash ^= Random64[CastleWQSHashIndex]
 	}
 	if pos.CastlingRights&BlackKingsideRight != 0 {
-		hash ^= Random64[CastleBKSHash]
+		hash ^= Random64[CastleBKSHashIndex]
 	}
 	if pos.CastlingRights&BlackQueensideRight != 0 {
-		hash ^= Random64[CastleBQSHash]
+		hash ^= Random64[CastleBQSHashIndex]
 	}
 
 	if pos.SideToMove == White {
-		hash ^= Random64[SideToMove]
+		hash ^= Random64[SideToMoveHashIndex]
 	}
 
 	return hash
 }
 
-// Use this function when debugging the engine as it checks that the piece
-// given is valid.
 func pieceNumber(pieceType, pieceColor uint8, sq int) uint64 {
 	return Random64[(uint16(pieceType)*2+uint16(pieceColor))*64+uint16(sq)]
 }
 
-// A table containing the random numbers used for zobrist hashing. Currently
-// a pre-computed table is used for testing and and debugging purposes. Once
-// this phase is complete, the 12*64+8+4+1 random numbers needed will be
-// procedurally generated upon program startup.
+// The harcoded set of hashing values used in polyglot hashing.
 var Random64 [781]uint64 = [781]uint64{
 	0x9D39247E33776D41, 0x2AF7398005AAA5C7, 0x44DB015024623547, 0x9C15F73E62A76AE2,
 	0x75834465489C0C89, 0x3290AC3A203001BF, 0x0FBBAD1F61042279, 0xE83A908FF2FB60CA,

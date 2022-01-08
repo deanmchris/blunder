@@ -4,8 +4,7 @@ import (
 	"math/bits"
 )
 
-// A file containing various precomputed tables used
-// in the engine.
+// tables.go contains various precomputed tables used in the engine.
 
 const (
 	Rank1 = iota
@@ -229,7 +228,6 @@ var MaskFile [8]Bitboard = [8]Bitboard{
 	0x101010101010101,
 }
 
-// Generate a blocker mask for rooks.
 func GenRookMasks(sq uint8) Bitboard {
 	slider := SquareBB[sq]
 	sliderPos := slider.Msb()
@@ -251,7 +249,6 @@ func GenRookMasks(sq uint8) Bitboard {
 	return Bitboard(northSouthMoves | eastWestMoves)
 }
 
-// Generate a blocker mask for bishops.
 func GenBishopMasks(sq uint8) Bitboard {
 	slider := SquareBB[sq]
 	sliderPos := slider.Msb()
@@ -295,7 +292,6 @@ func GenRookAttacks(sq uint8, occupied Bitboard) Bitboard {
 	return Bitboard(northSouthMoves | eastWestMoves)
 }
 
-// Generate the moves a bishop has given a square and board occupancy.
 func GenBishopAttacks(sq uint8, occupied Bitboard) Bitboard {
 	slider := SquareBB[sq]
 	sliderPos := slider.Msb()
@@ -317,7 +313,6 @@ func GenBishopAttacks(sq uint8, occupied Bitboard) Bitboard {
 	return Bitboard(diagonalMoves | antidiagonalMoves)
 }
 
-// Initalize the rook tables holding Magic structs and rook attacks
 func initRookMagics() {
 	var sq uint8
 	for sq = 0; sq < 64; sq++ {
@@ -347,7 +342,6 @@ func initRookMagics() {
 	}
 }
 
-// Initalize the rook tables holding Magic structs and rook attacks
 func initBishopMagics() {
 	var sq uint8
 	for sq = 0; sq < 64; sq++ {
@@ -378,7 +372,6 @@ func initBishopMagics() {
 }
 
 func init() {
-	// Initalize the rook and bishop magic bitboard tables.
 	initRookMagics()
 	initBishopMagics()
 }

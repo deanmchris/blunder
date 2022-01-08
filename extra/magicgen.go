@@ -110,12 +110,10 @@ type PseduoRandomGenerator struct {
 	state uint64
 }
 
-// Seed the generator.
 func (prng *PseduoRandomGenerator) Seed(seed uint64) {
 	prng.state = seed
 }
 
-// Generator a random 64 bit number.
 func (prng *PseduoRandomGenerator) Random64() uint64 {
 	prng.state ^= prng.state >> 12
 	prng.state ^= prng.state << 25
@@ -130,7 +128,6 @@ func (prng *PseduoRandomGenerator) SparseRandom64() uint64 {
 	return prng.Random64() & prng.Random64() & prng.Random64()
 }
 
-// Find magic numbers for rooks.
 func genRookMagics() {
 	var prng PseduoRandomGenerator
 
@@ -179,7 +176,6 @@ func genRookMagics() {
 	}
 }
 
-// Find magic numbers for bishops.
 func genBishopMagics() {
 	var prng PseduoRandomGenerator
 

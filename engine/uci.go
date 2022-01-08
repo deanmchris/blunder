@@ -82,8 +82,8 @@ func (inter *UCIInterface) positionCommandResponse(command string) {
 		args = strings.TrimSuffix(strings.TrimPrefix(args, "moves"), " ")
 		if args != "" {
 			for _, moveAsString := range strings.Fields(args) {
-				move := MoveFromCoord(&inter.Search.Pos, moveAsString)
-				inter.Search.Pos.MakeMove(move)
+				move := UCIMoveToInternalMove(&inter.Search.Pos, moveAsString)
+				inter.Search.Pos.DoMove(move)
 
 				// Decrementing the history counter here makes
 				// sure that no state is saved on the position's
@@ -167,7 +167,7 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 			// To allow opening variety, randomly select a move from an entry matching
 			// the current position.
 			entry := entries[rand.Intn(len(entries))]
-			move := MoveFromCoord(&inter.Search.Pos, entry.Move)
+			move := UCIMoveToInternalMove(&inter.Search.Pos, entry.Move)
 
 			if inter.Search.Pos.MoveIsPseduoLegal(move) {
 				time.Sleep(time.Duration(inter.OptionBookMoveDelay) * time.Second)

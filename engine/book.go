@@ -12,8 +12,8 @@ import (
 // book.go is an implementation of a polyglot opening book prober for Blunder.
 
 const (
-	// The size of a polyglot entry
 	EntryByteLength = 16
+
 	// Each masks helps to extract the correct bits
 	// from the move part of a polyglot entry.
 	ToFileMask         uint16 = 0x7
@@ -32,8 +32,6 @@ const (
 	FromRankShift       = 9
 	PromotionPieceShift = 12
 
-	// Characters representing the eight files
-	// and ranks
 	fileCharacters = "abcdefgh"
 	rankCharacters = "12345678"
 )
@@ -51,9 +49,6 @@ type PolyglotEntry struct {
 	Weight uint16
 }
 
-// Parse a polyglot file and create a map of PolyglotEntry's
-// from it. Each zobrist hash for an entry maps to the moves
-// and weight of the entry.
 func LoadPolyglotFile(path string) (map[uint64][]PolyglotEntry, error) {
 	file, err := os.Open(path)
 	if err != nil {

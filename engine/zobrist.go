@@ -26,12 +26,10 @@ type PseduoRandomGenerator struct {
 	state uint64
 }
 
-// Seed the generator.
 func (prng *PseduoRandomGenerator) Seed(seed uint64) {
 	prng.state = seed
 }
 
-// Generator a random 64 bit number.
 func (prng *PseduoRandomGenerator) Random64() uint64 {
 	prng.state ^= prng.state >> 12
 	prng.state ^= prng.state << 25
@@ -62,7 +60,6 @@ type _Zobrist struct {
 	sideToMoveRand64     uint64
 }
 
-// Populate the zobrist arrays with random 64-bit numbers.
 func (zobrist *_Zobrist) init() {
 	var prng PseduoRandomGenerator
 	prng.Seed(ZobristSeedValue)
@@ -84,32 +81,22 @@ func (zobrist *_Zobrist) init() {
 	zobrist.sideToMoveRand64 = prng.Random64()
 }
 
-// Get the unique random number corresponding to the piece type, piece color, and square
-// given.
 func (zobrist *_Zobrist) PieceNumber(pieceType, pieceColor uint8, sq uint8) uint64 {
 	return zobrist.pieceSqRand64[(uint16(pieceType)*2+uint16(pieceColor))*64+uint16(sq)]
 }
 
-// Get the unique random number corresponding to the en passant square
-// given.
 func (zobrist *_Zobrist) EPNumber(epSq uint8) uint64 {
 	return zobrist.epFileRand64[fileOfEP(epSq)]
 }
 
-// Get the unique random number corresponding to castling bits permutation
-// given.
 func (zobrist *_Zobrist) CastlingNumber(castlingRights uint8) uint64 {
 	return zobrist.castlingRightsRand64[castlingRights]
 }
 
-// Get the unique random number corresponding to the side to move given.
 func (zobrist *_Zobrist) SideToMoveNumber(sideToMove uint8) uint64 {
 	return zobrist.sideToMoveRand64
 }
 
-// Generate a zobrist hash from scratch for the given position.
-// Useful for creating hashs when loading in FEN strings and
-// debugging zobrist hashing itself.
 func (zobrist *_Zobrist) GenHash(pos *Position) (hash uint64) {
 	for sq := 0; sq < 64; sq++ {
 		piece := pos.Squares[sq]

@@ -19,8 +19,7 @@ const (
 	FenTagPattern    = "\\[FEN .*\\]"
 	ResultTagPattern = "\\[Result .*\\]"
 	TagPattern       = "\\[.*\\]"
-	//"([a-zA-Z]+\\d(x[a-z]\\d)?(\\+|#|=[QRBN])?)|(O-O-O)|(O-O)"
-	MovePattern = "([a-h]x)?([a-h][81]=[QRBN])|(([QRBNK])?([a-h])?([1-8])?(x)?[a-h][1-8])|(O-O-O)|(O-O)"
+	MovePattern      = "([a-h]x)?([a-h][81]=[QRBN])|(([QRBNK])?([a-h])?([1-8])?(x)?[a-h][1-8])|(O-O-O)|(O-O)"
 )
 
 type PGN struct {
@@ -29,8 +28,6 @@ type PGN struct {
 	Moves   []engine.Move
 }
 
-// Parse a file of PGNs. The file name is assumed to be the name of a
-// file in the blunder/tuner directory.
 func parsePGNs(filename string) (pgns []PGN) {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -111,7 +108,7 @@ func parsePGNs(filename string) (pgns []PGN) {
 
 		for _, moveStr := range moveStrings {
 			move := engine.ConvertSANToLAN(&pos, moveStr)
-			pos.MakeMove(move)
+			pos.DoMove(move)
 			pos.StatePly--
 			moves = append(moves, move)
 		}

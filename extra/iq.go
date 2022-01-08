@@ -17,15 +17,12 @@ import (
 
 var TestPositions []TestPosition
 
-// An object representing a test position, and the best move
-// in the position.
 type TestPosition struct {
 	Fen            string
 	FirstBestMove  engine.Move
 	SecondBestMove engine.Move
 }
 
-// Load the test positions from the file in testdata
 func loadTestPositions() {
 	wd, _ := os.Getwd()
 	parentFolder := filepath.Dir(wd)
@@ -61,8 +58,6 @@ func loadTestPositions() {
 	}
 }
 
-// Test the "iq" of Blunder by testing it's ability to find the best move in a given position
-// within a certian amount of time.
 func TestIQ(timeAlloted int64) {
 	loadTestPositions()
 

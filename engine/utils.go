@@ -100,7 +100,7 @@ func ConvertSANToLAN(pos *Position, moveStr string) Move {
 		}
 	}
 
-	moves := GenMoves(pos)
+	moves := GenAllMoves(pos)
 	matchingMove := NullMove
 
 	for i := 0; i < int(moves.Count); i++ {
@@ -157,11 +157,11 @@ func ConvertSANToLAN(pos *Position, moveStr string) Move {
 		}
 
 		if matchingMove != NullMove {
-			if !pos.MakeMove(matchingMove) {
-				pos.UnmakeMove(matchingMove)
+			if !pos.DoMove(matchingMove) {
+				pos.UndoMove(matchingMove)
 				continue
 			}
-			pos.UnmakeMove(matchingMove)
+			pos.UndoMove(matchingMove)
 			break
 		}
 	}

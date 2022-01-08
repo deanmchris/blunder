@@ -12,8 +12,6 @@ var PieceValues [7]int16 = [7]int16{
 	0,
 }
 
-// Peform a static exchange evaluation on target square of the move given,
-// and return a score of the move from the perspective of the side to move.
 func (pos *Position) See(move Move) int16 {
 	toSq := move.ToSq()
 	frSQ := move.FromSq()

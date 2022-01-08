@@ -30,24 +30,12 @@ type Entry struct {
 	Outcome float64
 }
 
-// A global variable to hold the positions loaded from the training file.
 var Entries []Entry
-
-// A global variable to hold the parallel computations of the MSE function.
-var Answers = make(chan float64)
-
-// The weights to be adjusted during the tuning process.
+var PartialMSESums = make(chan float64)
 var Weights []int16
-
-// The steps to adjust each weight.
-
 var Steps []int16
-
-// Boolean map of futile weights that shouldn't be tuned by the tuner (i.e 1st and 8th rank
-// weights for pawns)
 var FutileIndexes []bool
 
-// Intialize futile indexes.
 func initFutileIndexes() (indexes []bool) {
 	futileIndexes := []int{
 		0, 1, 2, 3, 4, 5, 6, 7,
@@ -65,7 +53,6 @@ func initFutileIndexes() (indexes []bool) {
 	return indexes
 }
 
-// Load the weights for tuning from the current evaluation terms.
 func loadWeights() (weights []int16) {
 	weights = make([]int16, NumWeights)
 	copy(weights[0:64], engine.PSQT_MG[engine.Pawn][:])
@@ -109,15 +96,12 @@ func loadWeights() (weights []int16) {
 	return weights
 }
 
-// Load the steps for each weight.
 func loadSteps() (steps []int16) {
 	steps = make([]int16, NumWeights)
 	copy(steps[0:NumWeights], make_int16_slice(NumWeights, 1))
 	return steps
 }
 
-// Create an int16 slice of a certian size and filled
-// with a specified default value.
 func make_int16_slice(size int, defaultValue int16) (slice []int16) {
 	slice = make([]int16, size)
 	for i := range slice {
@@ -126,7 +110,6 @@ func make_int16_slice(size int, defaultValue int16) (slice []int16) {
 	return slice
 }
 
-// Load the given number of positions from the training set file.
 func loadEntries(infile string, numPositions int) (entries []Entry) {
 	file, err := os.Open(infile)
 	if err != nil {
@@ -198,7 +181,6 @@ func mapWeights(weights []int16) {
 	engine.SemiOpenFileNextToKingPenalty = weights[814]
 }
 
-// Evaluate the position from the training set file.
 func evaluate(pos engine.Position) int16 {
 	score := engine.EvaluatePos(&pos)
 
@@ -217,7 +199,7 @@ func processor(start, end int, K float64) {
 		sigmoid := 1 / (1 + math.Pow(10, -K*score/400))
 		errorSum += math.Pow(Entries[i].Outcome-sigmoid, 2)
 	}
-	Answers <- errorSum
+	PartialMSESums <- errorSum
 }
 
 // Calculate the mean square error given the current weights. Credit to
@@ -236,7 +218,7 @@ func meanSquaredError(weights []int16, K float64) (errorSum float64) {
 	}
 
 	for i := 0; i < NumCores; i++ {
-		ans := <-Answers
+		ans := <-PartialMSESums
 		errorSum += ans
 	}
 

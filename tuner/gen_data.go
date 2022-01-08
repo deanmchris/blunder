@@ -18,8 +18,6 @@ var OutcomeToResult []string = []string{
 	"1/2-1/2",
 }
 
-// Given an infile containg the PGNs, extract quiet positions from the files,
-// and write them to the given outfile.
 func GenTrainingData(infile, outfile string) {
 	file, err := os.OpenFile(outfile, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
@@ -41,7 +39,7 @@ func GenTrainingData(infile, outfile string) {
 
 		search.Pos.LoadFEN(pgn.Fen)
 		for j, move := range pgn.Moves {
-			search.Pos.MakeMove(move)
+			search.Pos.DoMove(move)
 			search.Pos.StatePly--
 
 			eval := engine.EvaluatePos(&search.Pos)

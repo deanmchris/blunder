@@ -11,13 +11,11 @@ const (
 	// the king and it's rooks are clear for castling
 	F1_G1, B1_C1_D1 = 0x600000000000000, 0x7000000000000000
 	F8_G8, B8_C8_D8 = 0x6, 0x70
+
+	FullBB Bitboard = 0xffffffffffffffff
 )
 
-// Generate all pseduo-legal moves for a given position.
-func GenMoves(pos *Position) (moves MoveList) {
-	// Go through each piece type, and each piece for that type,
-	// and generate the moves for that piece.
-
+func GenAllMoves(pos *Position) (moves MoveList) {
 	for piece := uint8(Knight); piece < NoType; piece++ {
 		piecesBB := pos.PieceBB[pos.SideToMove][piece]
 		for piecesBB != 0 {
@@ -26,22 +24,13 @@ func GenMoves(pos *Position) (moves MoveList) {
 		}
 	}
 
-	// Generate pawn moves.
 	genPawnMoves(pos, &moves)
-
-	// Generate castling moves.
 	genCastlingMoves(pos, &moves)
-
 	return moves
 }
 
-// Generate all pseduo-legal captures and queen promotions for a given position.
 func genCapturesAndQPromotions(pos *Position) (moves MoveList) {
-	// Go through each piece type, and each piece for that type,
-	// and generate the moves for that piece.
-
 	targets := pos.SideBB[pos.SideToMove^1]
-
 	for piece := uint8(Knight); piece < NoType; piece++ {
 		piecesBB := pos.PieceBB[pos.SideToMove][piece]
 		for piecesBB != 0 {
@@ -50,20 +39,14 @@ func genCapturesAndQPromotions(pos *Position) (moves MoveList) {
 		}
 	}
 
-	// Generate pawn attacks or queen promotions.
 	genPawnAttacksAndQPromotions(pos, &moves)
-
 	return moves
 }
 
-// Generate the moves a single piece,
 func genPieceMoves(pos *Position, piece, sq uint8, moves *MoveList, targets Bitboard) {
-	// Get a bitboard representing our side and the enemy side.
 	usBB := pos.SideBB[pos.SideToMove]
 	enemyBB := pos.SideBB[pos.SideToMove^1]
 
-	// Figure out what type of piece we're dealing with, and
-	// generate the moves it has accordingly.
 	switch piece {
 	case Knight:
 		knightMoves := (KnightMoves[sq] & ^usBB) & targets
@@ -84,31 +67,23 @@ func genPieceMoves(pos *Position, piece, sq uint8, moves *MoveList, targets Bitb
 	}
 }
 
-// Generate rook moves.
 func genRookMoves(sq uint8, blockers Bitboard) Bitboard {
 	magic := &RookMagics[sq]
 	blockers &= magic.Mask
 	return RookAttacks[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
 }
 
-// Generate rook moves.
 func genBishopMoves(sq uint8, blockers Bitboard) Bitboard {
 	magic := &BishopMagics[sq]
 	blockers &= magic.Mask
 	return BishopAttacks[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
 }
 
-// Generate pawn moves for the current side. Pawns are treated
-// seperately from the rest of the pieces as they have more
-// complicated and exceptional rules for how they can move.
-// Only generate the moves that align with the specified
-// target squares.
 func genPawnMoves(pos *Position, moves *MoveList) {
 	usBB := pos.SideBB[pos.SideToMove]
 	enemyBB := pos.SideBB[pos.SideToMove^1]
 	pawnsBB := pos.PieceBB[pos.SideToMove][Pawn]
 
-	// For each pawn on our side...
 	for pawnsBB != 0 {
 		from := pawnsBB.PopBit()
 
@@ -118,13 +93,9 @@ func genPawnMoves(pos *Position, moves *MoveList) {
 			pawnTwoPush = ((pawnOnePush & MaskRank[Rank3]) >> 8) & ^(usBB | enemyBB)
 		}
 
-		// calculate the push move for the pawn...
 		pawnPush := pawnOnePush | pawnTwoPush
-
-		// and the attacks.
 		pawnAttacks := PawnAttacks[pos.SideToMove][from]
 
-		// Generate pawn push moves
 		for pawnPush != 0 {
 			to := pawnPush.PopBit()
 			if isPromoting(pos.SideToMove, to) {
@@ -134,14 +105,12 @@ func genPawnMoves(pos *Position, moves *MoveList) {
 			moves.AddMove(NewMove(from, to, Quiet, NoFlag))
 		}
 
-		// Generate pawn attack moves.
 		for pawnAttacks != 0 {
 			to := pawnAttacks.PopBit()
 			toBB := SquareBB[to]
 
-			// Check for en passant moves.
 			if to == pos.EPSq {
-				moves.AddMove(NewMove(from, to, Attack, AttackEP))
+				moves.AddMove(NewMove(from, to, Attack, AttackEPFlag))
 			} else if toBB&enemyBB != 0 {
 				if isPromoting(pos.SideToMove, to) {
 					makePromotionMoves(pos, from, to, moves)
@@ -158,30 +127,23 @@ func genPawnAttacksAndQPromotions(pos *Position, moves *MoveList) {
 	enemyBB := pos.SideBB[pos.SideToMove^1]
 	pawnsBB := pos.PieceBB[pos.SideToMove][Pawn]
 
-	// For each pawn on our side...
 	for pawnsBB != 0 {
 		from := pawnsBB.PopBit()
 
-		// Generate a possible pawn push to promotion.
 		pawnOnePush := PawnPushes[pos.SideToMove][from] & ^(usBB | enemyBB)
-
-		// and the attacks.
 		pawnAttacks := PawnAttacks[pos.SideToMove][from]
 
-		// Generate a possible queen promotion.
 		to := pawnOnePush.PopBit()
 		if isPromoting(pos.SideToMove, to) {
-			moves.AddMove(NewMove(from, to, Promotion, QueenPromotion))
+			moves.AddMove(NewMove(from, to, Promotion, QueenPromotionFlag))
 		}
 
-		// Generate pawn attack moves.
 		for pawnAttacks != 0 {
 			to := pawnAttacks.PopBit()
 			toBB := SquareBB[to]
 
-			// Check for en passant moves.
 			if to == pos.EPSq {
-				moves.AddMove(NewMove(from, to, Attack, AttackEP))
+				moves.AddMove(NewMove(from, to, Attack, AttackEPFlag))
 			} else if toBB&enemyBB != 0 {
 				if isPromoting(pos.SideToMove, to) {
 					makePromotionMoves(pos, from, to, moves)
@@ -193,8 +155,6 @@ func genPawnAttacksAndQPromotions(pos *Position, moves *MoveList) {
 	}
 }
 
-// A helper function to determine if a pawn has reached the 8th or
-// 1st rank and will promote.
 func isPromoting(usColor, toSq uint8) bool {
 	if usColor == White {
 		return toSq >= 56 && toSq <= 63
@@ -202,42 +162,36 @@ func isPromoting(usColor, toSq uint8) bool {
 	return toSq <= 7
 }
 
-// Generate promotion moves for pawns
 func makePromotionMoves(pos *Position, from, to uint8, moves *MoveList) {
-	moves.AddMove(NewMove(from, to, Promotion, KnightPromotion))
-	moves.AddMove(NewMove(from, to, Promotion, BishopPromotion))
-	moves.AddMove(NewMove(from, to, Promotion, RookPromotion))
-	moves.AddMove(NewMove(from, to, Promotion, QueenPromotion))
+	moves.AddMove(NewMove(from, to, Promotion, KnightPromotionFlag))
+	moves.AddMove(NewMove(from, to, Promotion, BishopPromotionFlag))
+	moves.AddMove(NewMove(from, to, Promotion, RookPromotionFlag))
+	moves.AddMove(NewMove(from, to, Promotion, QueenPromotionFlag))
 }
 
-// Generate castling moves. Note testing whether or not castling has the king
-// crossing attacked squares is not tested for here, as pseduo-legal move
-// generation is the focus.
 func genCastlingMoves(pos *Position, moves *MoveList) {
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
 	if pos.SideToMove == White {
 		if pos.CastlingRights&WhiteKingsideRight != 0 && (allBB&F1_G1) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E1) &&
-			!sqIsAttacked(pos, pos.SideToMove, F1) && !sqIsAttacked(pos, pos.SideToMove, G1)) {
+			!sqIsAttacked(pos, pos.SideToMove, F1)) {
 			moves.AddMove(NewMove(E1, G1, Castle, NoFlag))
 		}
 		if pos.CastlingRights&WhiteQueensideRight != 0 && (allBB&B1_C1_D1) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E1) &&
-			!sqIsAttacked(pos, pos.SideToMove, D1) && !sqIsAttacked(pos, pos.SideToMove, C1)) {
+			!sqIsAttacked(pos, pos.SideToMove, D1)) {
 			moves.AddMove(NewMove(E1, C1, Castle, NoFlag))
 		}
 	} else {
 		if pos.CastlingRights&BlackKingsideRight != 0 && (allBB&F8_G8) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E8) &&
-			!sqIsAttacked(pos, pos.SideToMove, F8) && !sqIsAttacked(pos, pos.SideToMove, G8)) {
+			!sqIsAttacked(pos, pos.SideToMove, F8)) {
 			moves.AddMove(NewMove(E8, G8, Castle, NoFlag))
 		}
 		if pos.CastlingRights&BlackQueensideRight != 0 && (allBB&B8_C8_D8) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E8) &&
-			!sqIsAttacked(pos, pos.SideToMove, D8) && !sqIsAttacked(pos, pos.SideToMove, C8)) {
+			!sqIsAttacked(pos, pos.SideToMove, D8)) {
 			moves.AddMove(NewMove(E8, C8, Castle, NoFlag))
 		}
 	}
 }
 
-// From a bitboard representing possible squares a piece can move,
-// serialize it, and generate a list of moves.
 func genMovesFromBB(pos *Position, from uint8, movesBB, enemyBB Bitboard, moves *MoveList) {
 	for movesBB != 0 {
 		to := movesBB.PopBit()
@@ -250,14 +204,7 @@ func genMovesFromBB(pos *Position, from uint8, movesBB, enemyBB Bitboard, moves 
 	}
 }
 
-// Given a side and a square, test if the square for the given side
-// is under attack by the enemy side.
 func sqIsAttacked(pos *Position, usColor, sq uint8) bool {
-	// The algorithm used here is to pretend to place a "superpiece" - a piece that
-	// can move like a queen and knight - on our square of interest. Rays are then sent
-	// out from this superpiece sitting on our square, and if any of these rays hit
-	// an enemy piece, we know our square is being attacked by an enemy piece.
-
 	enemyBB := pos.SideBB[usColor^1]
 	usBB := pos.SideBB[usColor]
 
@@ -287,26 +234,18 @@ func sqIsAttacked(pos *Position, usColor, sq uint8) bool {
 	return cardinalRays&(enemyRooks|enemyQueens) != 0
 }
 
-// Explore the move tree up to depth, and return the total
-// number of nodes explored.  This function is used to
-// debug move generation and ensure it is working by comparing
-// the results to the known results of other engines
 func DividePerft(pos *Position, depth, divdeAt uint8) uint64 {
-	// If depth zero has been reached, return zero...
 	if depth == 0 {
 		return 1
 	}
 
-	// otherwise genrate the legal moves we have...
-	moves := GenMoves(pos)
+	moves := GenAllMoves(pos)
 	var nodes uint64
 
-	// And make every move, recursively calling perft to get the number of subnodes
-	// for each move.
 	var idx uint8
 	for idx = 0; idx < moves.Count; idx++ {
 		move := moves.Moves[idx]
-		if pos.MakeMove(move) {
+		if pos.DoMove(move) {
 			moveNodes := DividePerft(pos, depth-1, divdeAt)
 			if depth == divdeAt {
 				fmt.Printf("%v: %v\n", move, moveNodes)
@@ -315,35 +254,27 @@ func DividePerft(pos *Position, depth, divdeAt uint8) uint64 {
 			nodes += moveNodes
 		}
 
-		pos.UnmakeMove(move)
+		pos.UndoMove(move)
 	}
 
-	// Return the total amount of nodes for the given position.
 	return nodes
 }
 
-// Same as divide perft but doesn't print subnode count
-// for each move, only the final total.
 func Perft(pos *Position, depth uint8) uint64 {
-	// If depth zero has been reached, return zero...
 	if depth == 0 {
 		return 1
 	}
 
-	// otherwise genrate the legal moves we have...
-	moves := GenMoves(pos)
+	moves := GenAllMoves(pos)
 	var nodes uint64
 
-	// And make every move, recursively calling perft to get the number of subnodes
-	// for each move.
 	var idx uint8
 	for idx = 0; idx < moves.Count; idx++ {
-		if pos.MakeMove(moves.Moves[idx]) {
+		if pos.DoMove(moves.Moves[idx]) {
 			nodes += Perft(pos, depth-1)
 		}
-		pos.UnmakeMove(moves.Moves[idx])
+		pos.UndoMove(moves.Moves[idx])
 	}
 
-	// Return the total amount of nodes for the given position.
 	return nodes
 }
