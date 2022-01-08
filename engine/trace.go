@@ -231,7 +231,7 @@ func evalKnightTrace(pos *Position, color, sq uint8, trace *Trace) {
 	usPawns := pos.PieceBB[color][Pawn]
 	enemyPawns := pos.PieceBB[color^1][Pawn]
 
-	if KnightOutpustMasks[color][sq]&enemyPawns == 0 &&
+	if MiniorOutpostMasks[color][sq]&enemyPawns == 0 &&
 		PawnAttacks[color^1][sq]&usPawns != 0 &&
 		FlipRank[color][RankOf(sq)] >= Rank5 {
 		trace.AddEvalTerm(Positional, KnightOutpostBonusMG, KnightOutpostBonusEG, color)
@@ -261,6 +261,15 @@ func evalKnightTrace(pos *Position, color, sq uint8, trace *Trace) {
 func evalBishopTrace(pos *Position, color, sq uint8, trace *Trace) {
 	trace.AddEvalTerm(Material, PieceValueMG[Bishop], PieceValueEG[Bishop], color)
 	trace.AddEvalTerm(Positional, PSQT_MG[Bishop][FlipSq[color][sq]], PSQT_EG[Bishop][FlipSq[color][sq]], color)
+
+	usPawns := pos.PieceBB[color][Pawn]
+	enemyPawns := pos.PieceBB[color^1][Pawn]
+
+	if MiniorOutpostMasks[color][sq]&enemyPawns == 0 &&
+		PawnAttacks[color^1][sq]&usPawns != 0 &&
+		FlipRank[color][RankOf(sq)] >= Rank5 {
+		trace.AddEvalTerm(Positional, BishopOutpostBonusMG, BishopOutpostBonusEG, color)
+	}
 
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]

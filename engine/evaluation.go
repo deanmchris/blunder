@@ -32,7 +32,7 @@ var KingZones [64]KingZone
 var IsolatedPawnMasks [8]Bitboard
 var DoubledPawnMasks [2][64]Bitboard
 var PassedPawnMasks [2][64]Bitboard
-var KnightOutpustMasks [2][64]Bitboard
+var MiniorOutpostMasks [2][64]Bitboard
 
 var PieceValueMG [6]int16 = [6]int16{83, 328, 365, 473, 968}
 var PieceValueEG [6]int16 = [6]int16{98, 273, 303, 522, 976}
@@ -49,6 +49,8 @@ var DoubledPawnPenatlyEG int16 = 17
 
 var KnightOutpostBonusMG int16 = 41
 var KnightOutpostBonusEG int16 = 8
+var BishopOutpostBonusMG int16 = 20
+var BishopOutpostBonusEG int16 = 10
 
 var MinorAttackOuterRing int16 = 1
 var MinorAttackInnerRing int16 = 3
@@ -348,7 +350,7 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 	usPawns := pos.PieceBB[color][Pawn]
 	enemyPawns := pos.PieceBB[color^1][Pawn]
 
-	if KnightOutpustMasks[color][sq]&enemyPawns == 0 &&
+	if MiniorOutpostMasks[color][sq]&enemyPawns == 0 &&
 		PawnAttacks[color^1][sq]&usPawns != 0 &&
 		FlipRank[color][RankOf(sq)] >= Rank5 {
 
@@ -376,6 +378,17 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Bishop] + PSQT_MG[Bishop][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Bishop] + PSQT_EG[Bishop][FlipSq[color][sq]]
+
+	usPawns := pos.PieceBB[color][Pawn]
+	enemyPawns := pos.PieceBB[color^1][Pawn]
+
+	if MiniorOutpostMasks[color][sq]&enemyPawns == 0 &&
+		PawnAttacks[color^1][sq]&usPawns != 0 &&
+		FlipRank[color][RankOf(sq)] >= Rank5 {
+
+		eval.MGScores[color] += BishopOutpostBonusMG
+		eval.EGScores[color] += BishopOutpostBonusEG
+	}
 
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
@@ -518,7 +531,7 @@ func init() {
 		}
 		DoubledPawnMasks[Black][sq] = mask
 
-		// Create knight outpost masks & passed pawn masks.
+		// Create minior outpost masks & passed pawn masks.
 		knightMask := (fileBB & ClearFile[FileA]) << 1
 		knightMask |= (fileBB & ClearFile[FileH]) >> 1
 
@@ -534,7 +547,7 @@ func init() {
 			whiteFrontSpan &= ClearRank[r]
 		}
 
-		KnightOutpustMasks[White][sq] = whiteKnightMask
+		MiniorOutpostMasks[White][sq] = whiteKnightMask
 		PassedPawnMasks[White][sq] = whiteFrontSpan
 
 		blackKnightMask := knightMask
@@ -545,7 +558,7 @@ func init() {
 			blackFrontSpan &= ClearRank[r]
 		}
 
-		KnightOutpustMasks[Black][sq] = blackKnightMask
+		MiniorOutpostMasks[Black][sq] = blackKnightMask
 		PassedPawnMasks[Black][sq] = blackFrontSpan
 	}
 }
