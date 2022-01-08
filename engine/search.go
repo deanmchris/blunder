@@ -110,6 +110,8 @@ func (search *Search) Search() Move {
 	search.Timer.Start()
 
 	search.totalNodes = 0
+	totalTime := int64(0)
+
 	depth := uint8(0)
 	lastIterationScore := int16(0)
 
@@ -159,13 +161,15 @@ func (search *Search) Search() Move {
 
 		bestMove = pvLine.GetPVMove()
 		nps := uint64(float64(search.nodes) / float64(endTime.Seconds()))
+
 		search.totalNodes += search.nodes
+		totalTime += endTime.Milliseconds()
 
 		fmt.Printf(
 			"info depth %d score %s nodes %d nps %d time %d pv %s\n",
 			depth, getMateOrCPScore(score),
 			search.nodes, nps,
-			endTime.Milliseconds(),
+			totalTime,
 			pvLine,
 		)
 
