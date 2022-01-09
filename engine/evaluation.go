@@ -36,7 +36,7 @@ var MiniorOutpostMasks [2][64]Bitboard
 
 var PieceValueMG [6]int16 = [6]int16{83, 328, 365, 473, 968}
 var PieceValueEG [6]int16 = [6]int16{98, 273, 303, 522, 976}
-var PieceMobilityMG [4]int16 = [4]int16{3, 4, 5, 1}
+var PieceMobilityMG [4]int16 = [4]int16{2, 3, 4, 1}
 var PieceMobilityEG [4]int16 = [4]int16{4, 4, 3, 7}
 
 var PassedPawnBonusMG [8]int16 = [8]int16{0, 9, 4, 1, 13, 48, 109, 0}
@@ -362,7 +362,7 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 	moves := KnightMoves[sq] & ^usBB
 	mobility := int16(moves.CountBits())
 
-	eval.MGScores[color] += (mobility - 4) * PieceMobilityMG[Knight-1]
+	eval.MGScores[color] += (mobility - 2) * PieceMobilityMG[Knight-1]
 	eval.EGScores[color] += (mobility - 4) * PieceMobilityEG[Knight-1]
 
 	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
@@ -396,7 +396,7 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 	moves := genBishopMoves(sq, allBB) & ^usBB
 	mobility := int16(moves.CountBits())
 
-	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Bishop-1]
+	eval.MGScores[color] += (mobility - 3) * PieceMobilityMG[Bishop-1]
 	eval.EGScores[color] += (mobility - 7) * PieceMobilityEG[Bishop-1]
 
 	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
@@ -420,7 +420,7 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 	moves := genRookMoves(sq, allBB) & ^usBB
 	mobility := int16(moves.CountBits())
 
-	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Rook-1]
+	eval.MGScores[color] += (mobility - 3) * PieceMobilityMG[Rook-1]
 	eval.EGScores[color] += (mobility - 7) * PieceMobilityEG[Rook-1]
 
 	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
@@ -443,7 +443,7 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 	moves := (genBishopMoves(sq, allBB) | genRookMoves(sq, allBB)) & ^usBB
 	mobility := int16(moves.CountBits())
 
-	eval.MGScores[color] += (mobility - 14) * PieceMobilityMG[Queen-1]
+	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Queen-1]
 	eval.EGScores[color] += (mobility - 14) * PieceMobilityEG[Queen-1]
 
 	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing

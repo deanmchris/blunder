@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 8.0.0"
+	EngineName   = "Blunder 8.1.0"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
@@ -101,6 +101,7 @@ func RunCommLoop() {
 	fmt.Println("Engine:", EngineName)
 	fmt.Println("Email:", EngineEmail)
 	fmt.Printf("Hash size: %d MB\n\n", DefaultTTSize)
+	fmt.Print("\nType \"help\" for a list of possible commands.\n\n")
 
 	reader := bufio.NewReader(os.Stdin)
 	var inter UCIInterface
