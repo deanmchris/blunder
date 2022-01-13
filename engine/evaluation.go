@@ -34,13 +34,13 @@ var DoubledPawnMasks [2][64]Bitboard
 var PassedPawnMasks [2][64]Bitboard
 var MiniorOutpostMasks [2][64]Bitboard
 
-var PieceValueMG [6]int16 = [6]int16{83, 328, 365, 473, 968}
-var PieceValueEG [6]int16 = [6]int16{98, 273, 303, 522, 976}
-var PieceMobilityMG [4]int16 = [4]int16{2, 3, 4, 1}
-var PieceMobilityEG [4]int16 = [4]int16{4, 4, 3, 7}
+var PieceValueMG = [6]int16{83, 328, 365, 473, 968}
+var PieceValueEG = [6]int16{98, 273, 303, 522, 976}
+var PieceMobilityMG = [4]int16{2, 3, 4, 1}
+var PieceMobilityEG = [4]int16{4, 4, 3, 7}
 
-var PassedPawnBonusMG [8]int16 = [8]int16{0, 9, 4, 1, 13, 48, 109, 0}
-var PassedPawnBonusEG [8]int16 = [8]int16{0, 1, 5, 25, 50, 103, 149, 0}
+var PassedPawnBonusMG = [8]int16{0, 9, 4, 1, 13, 48, 109, 0}
+var PassedPawnBonusEG = [8]int16{0, 1, 5, 25, 50, 103, 149, 0}
 
 var IsolatedPawnPenatlyMG int16 = 19
 var IsolatedPawnPenatlyEG int16 = 5
@@ -60,7 +60,7 @@ var QueenAttackOuterRing int16 = 1
 var QueenAttackInnerRing int16 = 3
 var SemiOpenFileNextToKingPenalty int16 = 2
 
-var KingAttackTable [100]int16 = [100]int16{
+var KingAttackTable = [100]int16{
 	0, 0, 1, 2, 4, 6, 9, 12, 16, 20, 25, 30, 36,
 	42, 49, 56, 64, 72, 81, 90, 100, 110, 121, 132,
 	144, 156, 169, 182, 196, 210, 225, 240, 256, 272,
@@ -73,7 +73,7 @@ var KingAttackTable [100]int16 = [100]int16{
 	1260, 1260, 1260, 1260, 1260, 1260, 1260, 1260, 1260,
 }
 
-var InitKingSafety [64]uint16 = [64]uint16{
+var InitKingSafety = [64]uint16{
 	16, 16, 16, 16, 16, 16, 16, 16,
 	16, 16, 16, 16, 16, 16, 16, 16,
 	16, 16, 16, 16, 16, 16, 16, 16,
@@ -84,7 +84,7 @@ var InitKingSafety [64]uint16 = [64]uint16{
 	2, 0, 2, 4, 4, 2, 0, 2,
 }
 
-var PhaseValues [6]int16 = [6]int16{
+var PhaseValues = [6]int16{
 	PawnPhase,
 	KnightPhase,
 	BishopPhase,
@@ -92,7 +92,7 @@ var PhaseValues [6]int16 = [6]int16{
 	QueenPhase,
 }
 
-var PSQT_MG [6][64]int16 = [6][64]int16{
+var PSQT_MG = [6][64]int16{
 
 	// Piece-square table for pawns
 	{
@@ -167,7 +167,7 @@ var PSQT_MG [6][64]int16 = [6][64]int16{
 	},
 }
 
-var PSQT_EG [6][64]int16 = [6][64]int16{
+var PSQT_EG = [6][64]int16{
 
 	// Piece-square table for pawns
 	{
@@ -244,7 +244,7 @@ var PSQT_EG [6][64]int16 = [6][64]int16{
 }
 
 // Flip white's perspective to black
-var FlipSq [2][64]int = [2][64]int{
+var FlipSq = [2][64]int{
 	{
 		0, 1, 2, 3, 4, 5, 6, 7,
 		8, 9, 10, 11, 12, 13, 14, 15,
@@ -268,7 +268,7 @@ var FlipSq [2][64]int = [2][64]int{
 	},
 }
 
-var FlipRank [2][8]int = [2][8]int{
+var FlipRank = [2][8]int{
 	{Rank8, Rank7, Rank6, Rank5, Rank4, Rank3, Rank2, Rank1},
 	{Rank1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8},
 }
@@ -323,20 +323,17 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 	file := FileOf(sq)
 	doubled := false
 
-	// Evaluate isolated pawns.
 	if IsolatedPawnMasks[file]&usPawns == 0 {
 		eval.MGScores[color] -= IsolatedPawnPenatlyMG
 		eval.EGScores[color] -= IsolatedPawnPenatlyEG
 	}
 
-	// Evaluate doubled pawns.
 	if DoubledPawnMasks[color][sq]&usPawns != 0 {
 		doubled = true
 		eval.MGScores[color] -= DoubledPawnPenatlyMG
 		eval.EGScores[color] -= DoubledPawnPenatlyEG
 	}
 
-	// Evaluate passed pawns.
 	if PassedPawnMasks[color][sq]&enemyPawns == 0 && !doubled {
 		eval.MGScores[color] += PassedPawnBonusMG[FlipRank[color][RankOf(sq)]]
 		eval.EGScores[color] += PassedPawnBonusEG[FlipRank[color][RankOf(sq)]]
@@ -409,7 +406,6 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 	}
 }
 
-// Evaluate the score of a rook.
 func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Rook] + PSQT_MG[Rook][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Rook] + PSQT_EG[Rook][FlipSq[color][sq]]
