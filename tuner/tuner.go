@@ -13,7 +13,7 @@ import (
 
 const (
 	NumCores   = 8
-	NumWeights = 815
+	NumWeights = 817
 	KPrecision = 10
 	Report     = 10
 
@@ -84,14 +84,16 @@ func loadWeights() (weights []int16) {
 
 	weights[806] = engine.KnightOutpostBonusMG
 	weights[807] = engine.KnightOutpostBonusEG
+	weights[808] = engine.BishopOutpostBonusMG
+	weights[809] = engine.BishopOutpostBonusEG
 
-	weights[808] = engine.MinorAttackOuterRing
-	weights[809] = engine.MinorAttackInnerRing
-	weights[810] = engine.RookAttackOuterRing
-	weights[811] = engine.RookAttackInnerRing
-	weights[812] = engine.QueenAttackOuterRing
-	weights[813] = engine.QueenAttackInnerRing
-	weights[814] = engine.SemiOpenFileNextToKingPenalty
+	weights[810] = engine.MinorAttackOuterRing
+	weights[811] = engine.MinorAttackInnerRing
+	weights[812] = engine.RookAttackOuterRing
+	weights[813] = engine.RookAttackInnerRing
+	weights[814] = engine.QueenAttackOuterRing
+	weights[815] = engine.QueenAttackInnerRing
+	weights[816] = engine.SemiOpenFileNextToKingPenalty
 
 	return weights
 }
@@ -171,14 +173,16 @@ func mapWeights(weights []int16) {
 
 	engine.KnightOutpostBonusMG = weights[806]
 	engine.KnightOutpostBonusEG = weights[807]
+	engine.BishopOutpostBonusMG = weights[808]
+	engine.BishopOutpostBonusEG = weights[809]
 
-	engine.MinorAttackOuterRing = weights[808]
-	engine.MinorAttackInnerRing = weights[809]
-	engine.RookAttackOuterRing = weights[810]
-	engine.RookAttackInnerRing = weights[811]
-	engine.QueenAttackOuterRing = weights[812]
-	engine.QueenAttackInnerRing = weights[813]
-	engine.SemiOpenFileNextToKingPenalty = weights[814]
+	engine.MinorAttackOuterRing = weights[810]
+	engine.MinorAttackInnerRing = weights[811]
+	engine.RookAttackOuterRing = weights[812]
+	engine.RookAttackInnerRing = weights[813]
+	engine.QueenAttackOuterRing = weights[814]
+	engine.QueenAttackInnerRing = weights[815]
+	engine.SemiOpenFileNextToKingPenalty = weights[816]
 }
 
 func evaluate(pos engine.Position) int16 {
@@ -297,6 +301,8 @@ func printParameters() {
 
 	fmt.Println("\nMG Knight Outpost Bonus:", engine.KnightOutpostBonusMG)
 	fmt.Println("EG Knight Outpost Bonus:", engine.KnightOutpostBonusEG)
+	fmt.Println("MG Bishop Outpost Bonus:", engine.BishopOutpostBonusMG)
+	fmt.Println("EG Bishop Outpost Bonus:", engine.BishopOutpostBonusEG)
 
 	fmt.Println("\nMinor Attacking Outer Ring:", engine.MinorAttackOuterRing)
 	fmt.Println("Minor Attacking Inner Ring:", engine.MinorAttackInnerRing)
