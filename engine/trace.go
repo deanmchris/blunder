@@ -27,6 +27,7 @@ type Trace struct {
 	MGScores [2]int16
 	EGScores [2]int16
 
+	KingSq           [2]uint8
 	KingZones        [2]KingZone
 	KingAttackPoints [2]uint16
 	KingAttackers    [2]uint8
@@ -65,8 +66,14 @@ type Scores struct {
 
 func evaluatePosTrace(pos *Position) {
 	var trace Trace
-	trace.KingZones[White] = KingZones[pos.PieceBB[White][King].Msb()]
-	trace.KingZones[Black] = KingZones[pos.PieceBB[Black][King].Msb()]
+	whiteKingSq := pos.PieceBB[White][King].Msb()
+	blackKingSq := pos.PieceBB[Black][King].Msb()
+
+	trace.KingZones[White] = KingZones[whiteKingSq]
+	trace.KingZones[Black] = KingZones[blackKingSq]
+
+	trace.KingSq[White] = whiteKingSq
+	trace.KingSq[Black] = blackKingSq
 
 	phase := TotalPhase
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
@@ -297,6 +304,20 @@ func evalBishopTrace(pos *Position, color, sq uint8, trace *Trace) {
 func evalRookTrace(pos *Position, color, sq uint8, trace *Trace) {
 	trace.AddEvalTerm(Material, PieceValueMG[Rook], PieceValueEG[Rook], color)
 	trace.AddEvalTerm(Positional, PSQT_MG[Rook][FlipSq[color][sq]], PSQT_EG[Rook][FlipSq[color][sq]], color)
+
+	enemyPawns := pos.PieceBB[color^1][Pawn]
+	if FlipRank[color][RankOf(sq)] == Rank7 &&
+		(MaskRank[Rank7]&enemyPawns != 0 || FlipRank[color][RankOf(trace.KingSq[color^1])] >= Rank7) {
+		trace.MGScores[color] += RookOnTheSeventhBonusMG
+		trace.EGScores[color] += RookOnTheSeventhBonusEG
+
+		trace.AddEvalTerm(
+			Positional,
+			RookOnTheSeventhBonusMG,
+			RookOnTheSeventhBonusEG,
+			color,
+		)
+	}
 
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]

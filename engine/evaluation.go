@@ -53,6 +53,9 @@ var KnightOutpostBonusEG int16 = 8
 var BishopOutpostBonusMG int16 = 20
 var BishopOutpostBonusEG int16 = 10
 
+var RookOnTheSeventhBonusMG int16 = 5
+var RookOnTheSeventhBonusEG int16 = 10
+
 var MinorAttackOuterRing int16 = 1
 var MinorAttackInnerRing int16 = 3
 var RookAttackOuterRing int16 = 1
@@ -420,8 +423,8 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 	enemyPawns := pos.PieceBB[color^1][Pawn]
 	if FlipRank[color][RankOf(sq)] == Rank7 &&
 		(MaskRank[Rank7]&enemyPawns != 0 || FlipRank[color][RankOf(eval.KingSq[color^1])] >= Rank7) {
-		eval.MGScores[color] += 5
-		eval.EGScores[color] += 10
+		eval.MGScores[color] += RookOnTheSeventhBonusMG
+		eval.EGScores[color] += RookOnTheSeventhBonusEG
 	}
 
 	usBB := pos.SideBB[color]
