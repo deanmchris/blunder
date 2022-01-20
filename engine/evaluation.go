@@ -18,6 +18,7 @@ type Eval struct {
 	MGScores [2]int16
 	EGScores [2]int16
 
+	KingSq           [2]uint8
 	KingZones        [2]KingZone
 	KingAttackPoints [2]uint16
 	KingAttackers    [2]uint8
@@ -277,8 +278,14 @@ var FlipRank = [2][8]int{
 // more positive if it's good for the side to move, otherwise more negative).
 func EvaluatePos(pos *Position) int16 {
 	var eval Eval
-	eval.KingZones[White] = KingZones[pos.PieceBB[White][King].Msb()]
-	eval.KingZones[Black] = KingZones[pos.PieceBB[Black][King].Msb()]
+	whiteKingSq := pos.PieceBB[White][King].Msb()
+	blackKingSq := pos.PieceBB[Black][King].Msb()
+
+	eval.KingZones[White] = KingZones[whiteKingSq]
+	eval.KingZones[Black] = KingZones[blackKingSq]
+
+	eval.KingSq[White] = whiteKingSq
+	eval.KingSq[Black] = blackKingSq
 
 	phase := TotalPhase
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
@@ -409,6 +416,13 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Rook] + PSQT_MG[Rook][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Rook] + PSQT_EG[Rook][FlipSq[color][sq]]
+
+	enemyPawns := pos.PieceBB[color^1][Pawn]
+	if FlipRank[color][RankOf(sq)] == Rank7 &&
+		(MaskRank[Rank7]&enemyPawns != 0 || FlipRank[color][RankOf(eval.KingSq[color^1])] >= Rank7) {
+		eval.MGScores[color] += 5
+		eval.EGScores[color] += 10
+	}
 
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
