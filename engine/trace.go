@@ -27,7 +27,6 @@ type Trace struct {
 	MGScores [2]int16
 	EGScores [2]int16
 
-	KingSq           [2]uint8
 	KingZones        [2]KingZone
 	KingAttackPoints [2]uint16
 	KingAttackers    [2]uint8
@@ -66,14 +65,8 @@ type Scores struct {
 
 func evaluatePosTrace(pos *Position) {
 	var trace Trace
-	whiteKingSq := pos.PieceBB[White][King].Msb()
-	blackKingSq := pos.PieceBB[Black][King].Msb()
-
-	trace.KingZones[White] = KingZones[whiteKingSq]
-	trace.KingZones[Black] = KingZones[blackKingSq]
-
-	trace.KingSq[White] = whiteKingSq
-	trace.KingSq[Black] = blackKingSq
+	trace.KingZones[White] = KingZones[pos.PieceBB[White][King].Msb()]
+	trace.KingZones[Black] = KingZones[pos.PieceBB[Black][King].Msb()]
 
 	phase := TotalPhase
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
@@ -238,7 +231,7 @@ func evalKnightTrace(pos *Position, color, sq uint8, trace *Trace) {
 	usPawns := pos.PieceBB[color][Pawn]
 	enemyPawns := pos.PieceBB[color^1][Pawn]
 
-	if MiniorOutpostMasks[color][sq]&enemyPawns == 0 &&
+	if KnightOutpustMasks[color][sq]&enemyPawns == 0 &&
 		PawnAttacks[color^1][sq]&usPawns != 0 &&
 		FlipRank[color][RankOf(sq)] >= Rank5 {
 		trace.AddEvalTerm(Positional, KnightOutpostBonusMG, KnightOutpostBonusEG, color)
@@ -269,15 +262,6 @@ func evalBishopTrace(pos *Position, color, sq uint8, trace *Trace) {
 	trace.AddEvalTerm(Material, PieceValueMG[Bishop], PieceValueEG[Bishop], color)
 	trace.AddEvalTerm(Positional, PSQT_MG[Bishop][FlipSq[color][sq]], PSQT_EG[Bishop][FlipSq[color][sq]], color)
 
-	usPawns := pos.PieceBB[color][Pawn]
-	enemyPawns := pos.PieceBB[color^1][Pawn]
-
-	if MiniorOutpostMasks[color][sq]&enemyPawns == 0 &&
-		PawnAttacks[color^1][sq]&usPawns != 0 &&
-		FlipRank[color][RankOf(sq)] >= Rank5 {
-		trace.AddEvalTerm(Positional, BishopOutpostBonusMG, BishopOutpostBonusEG, color)
-	}
-
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
 
@@ -304,20 +288,6 @@ func evalBishopTrace(pos *Position, color, sq uint8, trace *Trace) {
 func evalRookTrace(pos *Position, color, sq uint8, trace *Trace) {
 	trace.AddEvalTerm(Material, PieceValueMG[Rook], PieceValueEG[Rook], color)
 	trace.AddEvalTerm(Positional, PSQT_MG[Rook][FlipSq[color][sq]], PSQT_EG[Rook][FlipSq[color][sq]], color)
-
-	enemyPawns := pos.PieceBB[color^1][Pawn]
-	if FlipRank[color][RankOf(sq)] == Rank7 &&
-		(MaskRank[Rank7]&enemyPawns != 0 || FlipRank[color][RankOf(trace.KingSq[color^1])] >= Rank7) {
-		trace.MGScores[color] += RookOnTheSeventhBonusMG
-		trace.EGScores[color] += RookOnTheSeventhBonusEG
-
-		trace.AddEvalTerm(
-			Positional,
-			RookOnTheSeventhBonusMG,
-			RookOnTheSeventhBonusEG,
-			color,
-		)
-	}
 
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]

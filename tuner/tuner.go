@@ -13,7 +13,7 @@ import (
 
 const (
 	NumCores   = 8
-	NumWeights = 819
+	NumWeights = 815
 	KPrecision = 10
 	Report     = 10
 
@@ -84,19 +84,14 @@ func loadWeights() (weights []int16) {
 
 	weights[806] = engine.KnightOutpostBonusMG
 	weights[807] = engine.KnightOutpostBonusEG
-	weights[808] = engine.BishopOutpostBonusMG
-	weights[809] = engine.BishopOutpostBonusEG
 
-	weights[810] = engine.RookOnTheSeventhBonusMG
-	weights[811] = engine.RookOnTheSeventhBonusEG
-
-	weights[812] = engine.MinorAttackOuterRing
-	weights[813] = engine.MinorAttackInnerRing
-	weights[814] = engine.RookAttackOuterRing
-	weights[815] = engine.RookAttackInnerRing
-	weights[816] = engine.QueenAttackOuterRing
-	weights[817] = engine.QueenAttackInnerRing
-	weights[818] = engine.SemiOpenFileNextToKingPenalty
+	weights[808] = engine.MinorAttackOuterRing
+	weights[809] = engine.MinorAttackInnerRing
+	weights[810] = engine.RookAttackOuterRing
+	weights[811] = engine.RookAttackInnerRing
+	weights[812] = engine.QueenAttackOuterRing
+	weights[813] = engine.QueenAttackInnerRing
+	weights[814] = engine.SemiOpenFileNextToKingPenalty
 
 	return weights
 }
@@ -176,19 +171,14 @@ func mapWeights(weights []int16) {
 
 	engine.KnightOutpostBonusMG = weights[806]
 	engine.KnightOutpostBonusEG = weights[807]
-	engine.BishopOutpostBonusMG = weights[808]
-	engine.BishopOutpostBonusEG = weights[809]
 
-	engine.RookOnTheSeventhBonusMG = weights[810]
-	engine.RookOnTheSeventhBonusEG = weights[811]
-
-	engine.MinorAttackOuterRing = weights[812]
-	engine.MinorAttackInnerRing = weights[813]
-	engine.RookAttackOuterRing = weights[814]
-	engine.RookAttackInnerRing = weights[815]
-	engine.QueenAttackOuterRing = weights[816]
-	engine.QueenAttackInnerRing = weights[817]
-	engine.SemiOpenFileNextToKingPenalty = weights[818]
+	engine.MinorAttackOuterRing = weights[808]
+	engine.MinorAttackInnerRing = weights[809]
+	engine.RookAttackOuterRing = weights[810]
+	engine.RookAttackInnerRing = weights[811]
+	engine.QueenAttackOuterRing = weights[812]
+	engine.QueenAttackInnerRing = weights[813]
+	engine.SemiOpenFileNextToKingPenalty = weights[814]
 }
 
 func evaluate(pos engine.Position) int16 {
@@ -307,11 +297,6 @@ func printParameters() {
 
 	fmt.Println("\nMG Knight Outpost Bonus:", engine.KnightOutpostBonusMG)
 	fmt.Println("EG Knight Outpost Bonus:", engine.KnightOutpostBonusEG)
-	fmt.Println("MG Bishop Outpost Bonus:", engine.BishopOutpostBonusMG)
-	fmt.Println("EG Bishop Outpost Bonus:", engine.BishopOutpostBonusEG)
-
-	fmt.Println("\nMG Rook On Seventh Bonus:", engine.RookOnTheSeventhBonusMG)
-	fmt.Println("EG Rook On Seventh Bonus:", engine.RookOnTheSeventhBonusEG)
 
 	fmt.Println("\nMinor Attacking Outer Ring:", engine.MinorAttackOuterRing)
 	fmt.Println("Minor Attacking Inner Ring:", engine.MinorAttackInnerRing)

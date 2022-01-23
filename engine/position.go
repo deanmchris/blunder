@@ -604,9 +604,6 @@ func (pos *Position) EndgameIsDrawn() bool {
 			whiteBishopSq := pos.PieceBB[White][Bishop].Msb()
 			blackBishopSq := pos.PieceBB[Black][Bishop].Msb()
 			return sqIsDark(whiteBishopSq) == sqIsDark(blackBishopSq)
-		} else if miniors == 2 && (whiteKnights == 2 || blackKnights == 2) {
-			// KNNvK => draw
-			return true
 		}
 	}
 	return false

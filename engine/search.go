@@ -19,7 +19,7 @@ const (
 
 	MaxHistoryScore int32 = int32(MvvLvaOffset) - int32((MaxKillers+1)*KillerMoveScore)
 
-	StaticNullMovePruningBaseMargin int16 = 150
+	StaticNullMovePruningBaseMargin int16 = 120
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
 	WindowSize                      int16 = 25

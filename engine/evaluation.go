@@ -18,7 +18,6 @@ type Eval struct {
 	MGScores [2]int16
 	EGScores [2]int16
 
-	KingSq           [2]uint8
 	KingZones        [2]KingZone
 	KingAttackPoints [2]uint16
 	KingAttackers    [2]uint8
@@ -33,11 +32,11 @@ var KingZones [64]KingZone
 var IsolatedPawnMasks [8]Bitboard
 var DoubledPawnMasks [2][64]Bitboard
 var PassedPawnMasks [2][64]Bitboard
-var MiniorOutpostMasks [2][64]Bitboard
+var KnightOutpustMasks [2][64]Bitboard
 
 var PieceValueMG = [6]int16{83, 328, 365, 473, 968}
 var PieceValueEG = [6]int16{98, 273, 303, 522, 976}
-var PieceMobilityMG = [4]int16{2, 3, 4, 1}
+var PieceMobilityMG = [4]int16{3, 4, 5, 1}
 var PieceMobilityEG = [4]int16{4, 4, 3, 7}
 
 var PassedPawnBonusMG = [8]int16{0, 9, 4, 1, 13, 48, 109, 0}
@@ -50,11 +49,6 @@ var DoubledPawnPenatlyEG int16 = 17
 
 var KnightOutpostBonusMG int16 = 41
 var KnightOutpostBonusEG int16 = 8
-var BishopOutpostBonusMG int16 = 20
-var BishopOutpostBonusEG int16 = 10
-
-var RookOnTheSeventhBonusMG int16 = 5
-var RookOnTheSeventhBonusEG int16 = 10
 
 var MinorAttackOuterRing int16 = 1
 var MinorAttackInnerRing int16 = 3
@@ -281,14 +275,8 @@ var FlipRank = [2][8]int{
 // more positive if it's good for the side to move, otherwise more negative).
 func EvaluatePos(pos *Position) int16 {
 	var eval Eval
-	whiteKingSq := pos.PieceBB[White][King].Msb()
-	blackKingSq := pos.PieceBB[Black][King].Msb()
-
-	eval.KingZones[White] = KingZones[whiteKingSq]
-	eval.KingZones[Black] = KingZones[blackKingSq]
-
-	eval.KingSq[White] = whiteKingSq
-	eval.KingSq[Black] = blackKingSq
+	eval.KingZones[White] = KingZones[pos.PieceBB[White][King].Msb()]
+	eval.KingZones[Black] = KingZones[pos.PieceBB[Black][King].Msb()]
 
 	phase := TotalPhase
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
@@ -357,7 +345,7 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 	usPawns := pos.PieceBB[color][Pawn]
 	enemyPawns := pos.PieceBB[color^1][Pawn]
 
-	if MiniorOutpostMasks[color][sq]&enemyPawns == 0 &&
+	if KnightOutpustMasks[color][sq]&enemyPawns == 0 &&
 		PawnAttacks[color^1][sq]&usPawns != 0 &&
 		FlipRank[color][RankOf(sq)] >= Rank5 {
 
@@ -369,7 +357,7 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 	moves := KnightMoves[sq] & ^usBB
 	mobility := int16(moves.CountBits())
 
-	eval.MGScores[color] += (mobility - 2) * PieceMobilityMG[Knight-1]
+	eval.MGScores[color] += (mobility - 4) * PieceMobilityMG[Knight-1]
 	eval.EGScores[color] += (mobility - 4) * PieceMobilityEG[Knight-1]
 
 	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
@@ -386,24 +374,13 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Bishop] + PSQT_MG[Bishop][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Bishop] + PSQT_EG[Bishop][FlipSq[color][sq]]
 
-	usPawns := pos.PieceBB[color][Pawn]
-	enemyPawns := pos.PieceBB[color^1][Pawn]
-
-	if MiniorOutpostMasks[color][sq]&enemyPawns == 0 &&
-		PawnAttacks[color^1][sq]&usPawns != 0 &&
-		FlipRank[color][RankOf(sq)] >= Rank5 {
-
-		eval.MGScores[color] += BishopOutpostBonusMG
-		eval.EGScores[color] += BishopOutpostBonusEG
-	}
-
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
 
 	moves := genBishopMoves(sq, allBB) & ^usBB
 	mobility := int16(moves.CountBits())
 
-	eval.MGScores[color] += (mobility - 3) * PieceMobilityMG[Bishop-1]
+	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Bishop-1]
 	eval.EGScores[color] += (mobility - 7) * PieceMobilityEG[Bishop-1]
 
 	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
@@ -420,20 +397,13 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Rook] + PSQT_MG[Rook][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Rook] + PSQT_EG[Rook][FlipSq[color][sq]]
 
-	enemyPawns := pos.PieceBB[color^1][Pawn]
-	if FlipRank[color][RankOf(sq)] == Rank7 &&
-		(MaskRank[Rank7]&enemyPawns != 0 || FlipRank[color][RankOf(eval.KingSq[color^1])] >= Rank7) {
-		eval.MGScores[color] += RookOnTheSeventhBonusMG
-		eval.EGScores[color] += RookOnTheSeventhBonusEG
-	}
-
 	usBB := pos.SideBB[color]
 	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
 
 	moves := genRookMoves(sq, allBB) & ^usBB
 	mobility := int16(moves.CountBits())
 
-	eval.MGScores[color] += (mobility - 3) * PieceMobilityMG[Rook-1]
+	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Rook-1]
 	eval.EGScores[color] += (mobility - 7) * PieceMobilityEG[Rook-1]
 
 	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
@@ -456,7 +426,7 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 	moves := (genBishopMoves(sq, allBB) | genRookMoves(sq, allBB)) & ^usBB
 	mobility := int16(moves.CountBits())
 
-	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Queen-1]
+	eval.MGScores[color] += (mobility - 14) * PieceMobilityMG[Queen-1]
 	eval.EGScores[color] += (mobility - 14) * PieceMobilityEG[Queen-1]
 
 	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
@@ -544,7 +514,7 @@ func init() {
 		}
 		DoubledPawnMasks[Black][sq] = mask
 
-		// Create minior outpost masks & passed pawn masks.
+		// Create knight outpost masks & passed pawn masks.
 		knightMask := (fileBB & ClearFile[FileA]) << 1
 		knightMask |= (fileBB & ClearFile[FileH]) >> 1
 
@@ -560,7 +530,7 @@ func init() {
 			whiteFrontSpan &= ClearRank[r]
 		}
 
-		MiniorOutpostMasks[White][sq] = whiteKnightMask
+		KnightOutpustMasks[White][sq] = whiteKnightMask
 		PassedPawnMasks[White][sq] = whiteFrontSpan
 
 		blackKnightMask := knightMask
@@ -571,7 +541,7 @@ func init() {
 			blackFrontSpan &= ClearRank[r]
 		}
 
-		MiniorOutpostMasks[Black][sq] = blackKnightMask
+		KnightOutpustMasks[Black][sq] = blackKnightMask
 		PassedPawnMasks[Black][sq] = blackFrontSpan
 	}
 }
