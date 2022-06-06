@@ -16,27 +16,6 @@ const (
 	NoEPFile = 8
 )
 
-// An implementation of a xorshift pseudo-random number
-// generator for 64 bit numbers, based on the implementation
-// by Stockfish:
-//
-// https://github.com/official-stockfish/Stockfish/blob/master/src/misc.h#L146
-//
-type PseduoRandomGenerator struct {
-	state uint64
-}
-
-func (prng *PseduoRandomGenerator) Seed(seed uint64) {
-	prng.state = seed
-}
-
-func (prng *PseduoRandomGenerator) Random64() uint64 {
-	prng.state ^= prng.state >> 12
-	prng.state ^= prng.state << 25
-	prng.state ^= prng.state >> 27
-	return prng.state * 2685821657736338717
-}
-
 // A constant which will be a singleton of the _Zobrist struct below,
 // since only one instance is ever needed.
 var Zobrist _Zobrist
@@ -60,6 +39,7 @@ type _Zobrist struct {
 	sideToMoveRand64     uint64
 }
 
+// Populate the zobrist arrays with random 64-bit numbers.
 func (zobrist *_Zobrist) init() {
 	var prng PseduoRandomGenerator
 	prng.Seed(ZobristSeedValue)
@@ -81,24 +61,34 @@ func (zobrist *_Zobrist) init() {
 	zobrist.sideToMoveRand64 = prng.Random64()
 }
 
+// Get the unique random number corresponding to the piece type, piece color, and square
+// given.
 func (zobrist *_Zobrist) PieceNumber(pieceType, pieceColor uint8, sq uint8) uint64 {
 	return zobrist.pieceSqRand64[(uint16(pieceType)*2+uint16(pieceColor))*64+uint16(sq)]
 }
 
+// Get the unique random number corresponding to the en passant square
+// given.
 func (zobrist *_Zobrist) EPNumber(epSq uint8) uint64 {
 	return zobrist.epFileRand64[fileOfEP(epSq)]
 }
 
+// Get the unique random number corresponding to castling bits permutation
+// given.
 func (zobrist *_Zobrist) CastlingNumber(castlingRights uint8) uint64 {
 	return zobrist.castlingRightsRand64[castlingRights]
 }
 
+// Get the unique random number corresponding to the side to move given.
 func (zobrist *_Zobrist) SideToMoveNumber(sideToMove uint8) uint64 {
 	return zobrist.sideToMoveRand64
 }
 
+// Generate a zobrist hash from scratch for the given position.
+// Useful for creating hashs when loading in FEN strings and
+// debugging zobrist hashing itself.
 func (zobrist *_Zobrist) GenHash(pos *Position) (hash uint64) {
-	for sq := 0; sq < 64; sq++ {
+	for sq := uint8(0); sq < 64; sq++ {
 		piece := pos.Squares[sq]
 		if piece.Type != NoType {
 			hash ^= zobrist.PieceNumber(piece.Type, piece.Color, uint8(sq))

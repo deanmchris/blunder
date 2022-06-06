@@ -12,6 +12,8 @@ var PieceValues [7]int16 = [7]int16{
 	0,
 }
 
+// Peform a static exchange evaluation on target square of the move given,
+// and return a score of the move from the perspective of the side to move.
 func (pos *Position) See(move Move) int16 {
 	toSq := move.ToSq()
 	frSQ := move.FromSq()
@@ -23,12 +25,12 @@ func (pos *Position) See(move Move) int16 {
 	sideToMove := pos.SideToMove ^ 1
 
 	seenBB := Bitboard(0)
-	occupiedBB := pos.SideBB[White] | pos.SideBB[Black]
+	occupiedBB := pos.Sides[White] | pos.Sides[Black]
 	attackerBB := SquareBB[frSQ]
 
 	attadef := pos.allAttackers(toSq, occupiedBB)
-	maxXray := occupiedBB & ^(pos.PieceBB[White][Knight] | pos.PieceBB[White][King] |
-		pos.PieceBB[Black][Knight] | pos.PieceBB[Black][King])
+	maxXray := occupiedBB & ^(pos.Pieces[White][Knight] | pos.Pieces[White][King] |
+		pos.Pieces[Black][Knight] | pos.Pieces[Black][King])
 
 	gain[depth] = PieceValues[target]
 
@@ -59,29 +61,6 @@ func (pos *Position) See(move Move) int16 {
 	return gain[0]
 }
 
-func (pos *Position) minAttacker(attadef Bitboard, color uint8, attacker *uint8) Bitboard {
-	for *attacker = Pawn; *attacker <= King; *attacker++ {
-		subset := attadef & pos.PieceBB[color][*attacker]
-		if subset != 0 {
-			return subset & -subset
-		}
-	}
-	return 0
-}
-
-func (pos *Position) considerXrays(sq uint8, occupiedBB Bitboard) (attackers Bitboard) {
-	attackingBishops := pos.PieceBB[White][Bishop] | pos.PieceBB[Black][Bishop]
-	attackingRooks := pos.PieceBB[White][Rook] | pos.PieceBB[Black][Rook]
-	attackingQueens := pos.PieceBB[White][Queen] | pos.PieceBB[Black][Queen]
-
-	intercardinalRays := genBishopMoves(sq, occupiedBB)
-	cardinalRaysRays := genRookMoves(sq, occupiedBB)
-
-	attackers |= intercardinalRays & (attackingBishops | attackingQueens)
-	attackers |= cardinalRaysRays & (attackingRooks | attackingQueens)
-	return attackers
-}
-
 func (pos *Position) allAttackers(sq uint8, occupiedBB Bitboard) (attackers Bitboard) {
 	attackers |= pos.attackersForSide(White, sq, occupiedBB)
 	attackers |= pos.attackersForSide(Black, sq, occupiedBB)
@@ -89,12 +68,12 @@ func (pos *Position) allAttackers(sq uint8, occupiedBB Bitboard) (attackers Bitb
 }
 
 func (pos *Position) attackersForSide(attackerColor, sq uint8, occupiedBB Bitboard) (attackers Bitboard) {
-	attackingBishops := pos.PieceBB[attackerColor][Bishop]
-	attackingRooks := pos.PieceBB[attackerColor][Rook]
-	attackingQueens := pos.PieceBB[attackerColor][Queen]
-	attackingKnights := pos.PieceBB[attackerColor][Knight]
-	attackingKing := pos.PieceBB[attackerColor][King]
-	attackingPawns := pos.PieceBB[attackerColor][Pawn]
+	attackingBishops := pos.Pieces[attackerColor][Bishop]
+	attackingRooks := pos.Pieces[attackerColor][Rook]
+	attackingQueens := pos.Pieces[attackerColor][Queen]
+	attackingKnights := pos.Pieces[attackerColor][Knight]
+	attackingKing := pos.Pieces[attackerColor][King]
+	attackingPawns := pos.Pieces[attackerColor][Pawn]
 
 	intercardinalRays := genBishopMoves(sq, occupiedBB)
 	cardinalRaysRays := genRookMoves(sq, occupiedBB)
@@ -107,9 +86,26 @@ func (pos *Position) attackersForSide(attackerColor, sq uint8, occupiedBB Bitboa
 	return attackers
 }
 
-func max(a, b int16) int16 {
-	if a > b {
-		return a
+func (pos *Position) considerXrays(sq uint8, occupiedBB Bitboard) (attackers Bitboard) {
+	attackingBishops := pos.Pieces[White][Bishop] | pos.Pieces[Black][Bishop]
+	attackingRooks := pos.Pieces[White][Rook] | pos.Pieces[Black][Rook]
+	attackingQueens := pos.Pieces[White][Queen] | pos.Pieces[Black][Queen]
+
+	intercardinalRays := genBishopMoves(sq, occupiedBB)
+	cardinalRaysRays := genRookMoves(sq, occupiedBB)
+
+	attackers |= intercardinalRays & (attackingBishops | attackingQueens)
+	attackers |= cardinalRaysRays & (attackingRooks | attackingQueens)
+	return attackers
+}
+
+func (pos *Position) minAttacker(attadef Bitboard, color uint8, attacker *uint8) Bitboard {
+	for *attacker = Pawn; *attacker <= King; *attacker++ {
+		subset := attadef & pos.Pieces[color][*attacker]
+		if subset != 0 {
+			// Bit-twidling to return a single bit if there are multiple bits.
+			return subset & -subset
+		}
 	}
-	return b
+	return 0
 }

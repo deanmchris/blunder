@@ -11,17 +11,8 @@ import (
 	"time"
 )
 
-const (
-	DefaultBookMoveDelay = 2
-)
-
 type UCIInterface struct {
-	Search      Search
-	OpeningBook map[uint64][]PolyglotEntry
-
-	OptionUseBook       bool
-	OptionBookPath      string
-	OptionBookMoveDelay int
+	Search Search
 }
 
 func (inter *UCIInterface) Reset() {
@@ -35,11 +26,7 @@ func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Printf("\noption name Hash type spin default 64 min 1 max 32000\n")
 	fmt.Print("option name Clear Hash type button\n")
 	fmt.Print("option name Clear History type button\n")
-	fmt.Print("option name UseBook type check default false\n")
-	fmt.Print("option name BookPath type string default\n")
-	fmt.Print("option name BookMoveDelay type spin default 2 min 0 max 10\n")
-	fmt.Print("option name MiddleGameContempt type spin default 25 min 0 max 100\n")
-	fmt.Print("option name EndGameContempt type spin default 0 min 0 max 100\n")
+	fmt.Print("option name Clear Killers type button\n")
 	fmt.Print("\nAvailable UCI commands:\n")
 
 	fmt.Print("    * uci\n    * isready\n    * ucinewgame")
@@ -64,7 +51,8 @@ func (inter *UCIInterface) positionCommandResponse(command string) {
 	// Load in the fen string describing the position,
 	// or load in the starting position.
 	args := strings.TrimPrefix(command, "position ")
-	var fenString string
+	fenString := ""
+
 	if strings.HasPrefix(args, "startpos") {
 		args = strings.TrimPrefix(args, "startpos ")
 		fenString = FENStartPosition
@@ -77,13 +65,14 @@ func (inter *UCIInterface) positionCommandResponse(command string) {
 
 	// Set the board to the appropriate position and make
 	// the moves that have occured if any to update the position.
-	inter.Search.Pos.LoadFEN(fenString)
+	inter.Search.Setup(fenString)
 	if strings.HasPrefix(args, "moves") {
 		args = strings.TrimSuffix(strings.TrimPrefix(args, "moves"), " ")
 		if args != "" {
 			for _, moveAsString := range strings.Fields(args) {
-				move := UCIMoveToInternalMove(&inter.Search.Pos, moveAsString)
+				move := moveFromCoord(&inter.Search.Pos, moveAsString)
 				inter.Search.Pos.DoMove(move)
+				inter.Search.AddHistory(inter.Search.Pos.Hash)
 
 				// Decrementing the history counter here makes
 				// sure that no state is saved on the position's
@@ -120,63 +109,19 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 		size, err := strconv.Atoi(value)
 		if err == nil {
 			inter.Search.TT.Unitialize()
-			inter.Search.TT.Resize(uint64(size))
+			inter.Search.TT.Resize(uint64(size), SearchEntrySize)
 		}
 	case "Clear Hash":
 		inter.Search.TT.Clear()
 	case "Clear History":
 		inter.Search.ClearHistoryTable()
-	case "UseBook":
-		if value == "true" {
-			inter.OptionUseBook = true
-		} else if value == "false" {
-			inter.OptionUseBook = false
-		}
-	case "BookPath":
-		var err error
-		inter.OpeningBook, err = LoadPolyglotFile(value)
-
-		if err == nil {
-			fmt.Println("Opening book loaded...")
-		} else {
-			fmt.Println("Failed to load opening book...")
-		}
-	case "BookMoveDelay":
-		size, err := strconv.Atoi(value)
-		if err == nil {
-			inter.OptionBookMoveDelay = size
-		}
-	case "MiddleGameContempt":
-		contempt, err := strconv.Atoi(value)
-		if err == nil {
-			MiddleGameDraw = int16(contempt)
-		}
-	case "EndGameContempt":
-		contempt, err := strconv.Atoi(value)
-		if err == nil {
-			EndGameDraw = int16(contempt)
-		}
+	case "Clear Killers":
+		inter.Search.ClearKillers()
 	}
 }
 
 // Respond to the command "go"
 func (inter *UCIInterface) goCommandResponse(command string) {
-	if inter.OptionUseBook {
-		if entries, ok := inter.OpeningBook[GenPolyglotHash(&inter.Search.Pos)]; ok {
-
-			// To allow opening variety, randomly select a move from an entry matching
-			// the current position.
-			entry := entries[rand.Intn(len(entries))]
-			move := UCIMoveToInternalMove(&inter.Search.Pos, entry.Move)
-
-			if inter.Search.Pos.MoveIsPseduoLegal(move) {
-				time.Sleep(time.Duration(inter.OptionBookMoveDelay) * time.Second)
-				fmt.Printf("bestmove %v\n", move)
-				return
-			}
-		}
-	}
-
 	command = strings.TrimPrefix(command, "go")
 	command = strings.TrimPrefix(command, " ")
 	fields := strings.Fields(command)
@@ -186,11 +131,9 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 		colorPrefix = "w"
 	}
 
-	// Parse the time left, increment, and moves to go from the command parameters.
+	// Parse the go command arguments.
 	timeLeft, increment, movesToGo := int(InfiniteTime), int(NoValue), int(NoValue)
-	specifiedDepth := uint64(MaxPly)
-	specifiedNodes := uint64(math.MaxUint64)
-	searchTime := uint64(NoValue)
+	maxDepth, maxNodeCount, moveTime := uint64(MaxDepth), uint64(math.MaxUint64), uint64(NoValue)
 
 	for index, field := range fields {
 		if strings.HasPrefix(field, colorPrefix) {
@@ -202,29 +145,23 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 		} else if field == "movestogo" {
 			movesToGo, _ = strconv.Atoi(fields[index+1])
 		} else if field == "depth" {
-			specifiedDepth, _ = strconv.ParseUint(fields[index+1], 10, 8)
+			maxDepth, _ = strconv.ParseUint(fields[index+1], 10, 8)
 		} else if field == "nodes" {
-			specifiedNodes, _ = strconv.ParseUint(fields[index+1], 10, 64)
+			maxNodeCount, _ = strconv.ParseUint(fields[index+1], 10, 64)
 		} else if field == "movetime" {
-			searchTime, _ = strconv.ParseUint(fields[index+1], 10, 64)
+			moveTime, _ = strconv.ParseUint(fields[index+1], 10, 64)
 		}
 	}
 
-	// Set the timeLeft to NoValue if we're already given a move time
-	// to use via movetime.
-	if searchTime != uint64(NoValue) {
-		timeLeft = int(NoValue)
-	}
-
 	// Setup the timer with the go command time control information.
-	inter.Search.Timer.SetHardTimeForMove(int64(searchTime))
-	inter.Search.Timer.TimeLeft = int64(timeLeft)
-	inter.Search.Timer.Increment = int64(increment)
-	inter.Search.Timer.MovesToGo = int64(movesToGo)
-
-	// Setup user defined search options if given.
-	inter.Search.SpecifiedDepth = uint8(specifiedDepth)
-	inter.Search.SpecifiedNodes = specifiedNodes
+	inter.Search.Timer.Setup(
+		int64(timeLeft),
+		int64(increment),
+		int64(moveTime),
+		int16(movesToGo),
+		uint8(maxDepth),
+		maxNodeCount,
+	)
 
 	// Report the best move found by the engine to the GUI.
 	bestMove := inter.Search.Search()
@@ -242,10 +179,8 @@ func (inter *UCIInterface) UCILoop() {
 	inter.uciCommandResponse()
 	inter.Reset()
 
-	inter.Search.TT.Resize(DefaultTTSize)
-	inter.Search.Pos.LoadFEN(FENStartPosition)
-	inter.OpeningBook = make(map[uint64][]PolyglotEntry)
-	inter.OptionBookMoveDelay = DefaultBookMoveDelay
+	inter.Search.TT.Resize(DefaultTTSize, SearchEntrySize)
+	inter.Search.Setup(FENStartPosition)
 
 	for {
 		command, _ := reader.ReadString('\n')
@@ -258,8 +193,7 @@ func (inter *UCIInterface) UCILoop() {
 		} else if strings.HasPrefix(command, "setoption") {
 			inter.setOptionCommandResponse(command)
 		} else if strings.HasPrefix(command, "ucinewgame") {
-			inter.Search.TT.Clear()
-			inter.Search.ClearHistoryTable()
+			inter.Search.Reset()
 		} else if strings.HasPrefix(command, "position") {
 			inter.positionCommandResponse(command)
 		} else if strings.HasPrefix(command, "go") {

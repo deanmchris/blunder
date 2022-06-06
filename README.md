@@ -9,7 +9,7 @@ History
 
 The inspiration for Blunder started near the beginning of 2021. Me and many of my friends had recently started playing chess more seriously, and having a couple of years of programming knowledge, I imagined it would be fun to create my own chess playing program. I started a very rough first version, written in Python, but soon abandonded it, as I realized writing a chess engine was a much more daunting project then I had first anticpated. 
 
-With my intial failure, I started doing more research and discovered the rich field of chess programming, and the many helpful people that are a part of it. About 5 months and ten attempts later, I released the first version of Blunder! And I've been working to improve Blunder ever since. As for the programming language switch, though Python is an amazing language (I think anyway), and the first language I learned, it's simply not fast enough for the purpose of writing a relatively strong chess engine. So instead of writing another C/C++ chess engine, I decided to give Go a try, and I've enjoyed working with its tools.
+With my intial failure, I started doing more research and discovered the rich field of computer programming, and the many helpful people that are a part of it. About 5 months and ten attempts later, I released the first version of Blunder! And I've been working to improve Blunder ever since. As for the programming language switch, though Python is an amazing language (I think anyway), and the first language I learned, it's simply not fast enough for the purpose of writing a relatively strong chess engine. So instead of writing another C/C++ chess engine, I decided to give Go a try, and I've enjoyed working with its tools.
 
 I've also [started a blog](https://algerbrex.github.io/) to track and write about the development of Blunder.
 
@@ -20,22 +20,22 @@ When discussing an engine's (or human chess player's) strength, it's important t
 
 With that said, several people have been kind enough to test various versions of Blunder, and a summary of the rating list and their ratings for the versions are listed below:
 
-| Version     | Estimated Rating (Elo) | CCRL Blitz Rating (Elo) | Bruce's Bullet Rating List (ELo) | CCRL 40/15 Rating (Elo) | 
-| ----------- | -----------------------|-------------------------|----------------------------------|-------------------------|
-| 1.0.0       | 1400                   | -                       | -                                | -                       |
-| 2.0.0       | 1570                   | -                       | -                                | -                       |
-| 3.0.0       | 1782                   | -                       | -                                | -                       |
-| 4.0.0       | 1832                   | 1734                    | -                                | -                       |
-| 5.0.0       | 2000                   | 2080                    | 2174                             | -                       |
-| 6.0.0       | 2200                   | -                       | 2248                             | -                       |
-| 6.1.0       | 2200                   | 2155                    | 2226                             | -                       |
-| 7.0.0       | 2280                   | -                       | 2374                             | -                       |
-| 7.1.0       | 2395                   | -                       | 2455                             | -                       |
-| 7.2.0       | 2395                   | 2425                    | 2472                             | -                       |
-| 7.3.0       | 2450                   | -                       | 2499                             | -                       |
-| 7.4.0       | 2510                   | 2532                    | 2554                             | -                       |
-| 7.5.0       | 2540                   | -                       | 2593                             | -                       |
-| 7.6.0       | 2620                   | -                       | 2638                             | 2624                    |
+| Version     | Estimated Rating (Elo) | CCRL Blitz Rating (Elo) | Bruce's Bullet Rating List (ELo) |
+| ----------- | -----------------------|-------------------------|----------------------------------|
+| 1.0.0       | 1400                   | -                       | -                                |
+| 2.0.0       | 1570                   | -                       | -                                |
+| 3.0.0       | 1782                   | -                       | -                                |
+| 4.0.0       | 1832                   | 1734                    | -                                |
+| 5.0.0       | 2000                   | 2080                    | 2174                             |
+| 6.0.0       | 2200                   | -                       | 2248                             |
+| 6.1.0       | 2200                   | 2155                    | 2226                             |
+| 7.0.0       | 2280                   | -                       | 2374                             |
+| 7.1.0       | 2395                   | -                       | 2455                             |
+| 7.2.0       | 2395                   | 2425                    | 2472                             |
+| 7.3.0       | 2450                   | -                       | 2499                             |
+| 7.4.0       | 2510                   | 2532                    | 2554                             |
+| 7.5.0       | 2540                   | ?                       | 2593                             |
+| 7.6.0       | 2620                   | 2631                    | 2658                             |
 
 * [CCRL Blitz Rating List](http://ccrl.chessdom.com/ccrl/404/)
 * [Bruce's Bullet Rating List](https://e4e6.com/)
@@ -127,7 +127,7 @@ Features
  see `docs/credits.md`:
  
  ```
- My girlfriend, Marcel Vanthoor, Hart Gert Muller, Sven Schüle, J.V. Merlino, Niels Abildskov, 
+ My girlfriend, Marcel Vanthoor, Harm-Geert Müller, Sven Schüle, J.V. Merlino, Niels Abildskov, 
  Maksim Korzh, Erik Madsen, Pedro Duran, Nihar Karve, Rhys Rustad Elliott, Lithander, 
  Jonatan Pettersson, Rein Halbersma, Tony Mokonen, SmallChess, Richard Allbert, Spirch, and
  the Stockfish Developers.
@@ -139,7 +139,7 @@ Features
  Resources
  ---------
  
- This list is by no means exhaustive, but here are some of the main resources that I've found and continue to find helpful while developing Blunder:
+ This list is by no means exhaustive, but here are some of the main resources that I've found and cotinue to find helpful while developing Blunder:
  
 * [The Chess Programming Wiki](https://www.chessprogramming.org/Main_Page)
 * [The Chess Stack Exchange site](https://chess.stackexchange.com/)

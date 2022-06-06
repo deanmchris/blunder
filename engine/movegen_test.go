@@ -26,10 +26,11 @@ type PerftTest struct {
 	DepthValues [MaxPerftDepth]uint64
 }
 
+// Load the perft test suite
 func loadPerftSuite() (perftTests []PerftTest) {
 	wd, _ := os.Getwd()
 	parentFolder := filepath.Dir(wd)
-	filePath := filepath.Join(parentFolder, "/testdata/perftsuite.epd")
+	filePath := filepath.Join(parentFolder, "/perft_suite/perft_suite.epd")
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -61,6 +62,17 @@ func loadPerftSuite() (perftTests []PerftTest) {
 	return perftTests
 }
 
+// Pad a string into the center
+func padToCenter(s string, fill string, w int) string {
+	spaceLeft := w - len(s)
+	extraFill := ""
+	if spaceLeft%2 != 0 {
+		extraFill = fill
+	}
+	return strings.Repeat(fill, spaceLeft/2) + extraFill + s + strings.Repeat(fill, spaceLeft/2)
+}
+
+// Print a row in the perft test output
 func printPerftTestRow(fen, depth, expected, moves, correct string) {
 	fmt.Printf(
 		"| %s | %s | %s | %s | %s |\n",
@@ -72,20 +84,24 @@ func printPerftTestRow(fen, depth, expected, moves, correct string) {
 	)
 }
 
+// Print a row separator in the perft test output
 func printPerftTestRowSeparator() {
 	fmt.Println("+" + strings.Repeat("-", 86) + "+" + "--------+------------+------------+----------+")
 }
 
+// Test blunder against the perft suite
 func TestMovegen(t *testing.T) {
 	printPerftTestRowSeparator()
 	printPerftTestRow("position", "depth", "expected", "moves", "correct")
 	printPerftTestRowSeparator()
 
-	var pos Position
-	var totalNodes uint64
+	pos := Position{}
+	TT := TransTable[PerftEntry]{}
+	totalNodes := uint64(0)
 	testsPassed := true
 
 	perftTests := loadPerftSuite()
+	TT.Resize(DefaultTTSize, PerftEntrySize)
 	start := time.Now()
 
 	for _, perftTest := range perftTests {
@@ -96,10 +112,10 @@ func TestMovegen(t *testing.T) {
 				continue
 			}
 
-			result := Perft(&pos, uint8(depth)+1)
+			result := Perft(&pos, uint8(depth)+1, &TT)
 			totalNodes += result
 
-			var correct string
+			correct := ""
 			if nodeCount == result {
 				correct = "yes"
 			} else {

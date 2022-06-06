@@ -14,10 +14,7 @@
  * SmallChess
 
 And some people who I'd like to thank especially:
-
- * My girlfriend, for supporting me throughout the process of creating Blunder, and being willing to listen when
-   I start ranting on about the lastest bug I've encounterd, or sharing in my excitement when I explain to her
-   a new feature I just figured out.
+ * My girlfriend, for supporting me throughout the process of creating Blunder, and being willing to listen when I start ranting on about the lastest bug I've encounterd, or sharing in my excitement when I explain to her a new feature I just figured out.
  * Marcel Vanthoor (author of [Rustic](https://github.com/mvanthoor/rustic)), for spending time
    answering my many questions about a whole range of chess programming topics on [Talkchess](http://talkchess.com/forum3/index.php). I'd also like to thank him for the code structure I use to score killer moves and update nodes in the search.
  * Harm-Geert Müller ([author of a variety of different chess engines and tools](https://home.hccnet.nl/h.g.muller/chess.html), including the popular Qperft),
@@ -41,6 +38,8 @@ And some people who I'd like to thank especially:
   * Robert Hyatt & co., the developers of [Crafty](https://www.chessprogramming.org/Crafty), for providing me with new ideas to try and inspiration.
   * justNo4b (author of [Drofa](https://github.com/justNo4b/Drofa)) for the changelog's he creates for every 
   version, which contain lists of excellent ideas to experiment with.
+  * The authors of [Koivisto](https://github.com/Luecx/Koivisto) for giving me the idea to store zobrist hashes on the
+  board state stack, thereby speeding up the do move/undo move.
 
  
  These credits will be updated from time to time as a remember or encounter more people who help, or have helped,
