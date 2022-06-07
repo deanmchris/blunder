@@ -45,14 +45,6 @@ func max[Int constraints.Integer](a, b Int) Int {
 	return b
 }
 
-// Get the minimum between two integers.
-func min[Int constraints.Integer](a, b Int) Int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // An implementation of a xorshift pseudo-random number
 // generator for 64 bit numbers, based on the implementation
 // by Stockfish.

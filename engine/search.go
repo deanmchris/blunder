@@ -48,8 +48,6 @@ const (
 	LateMoveReduction               int8  = 2
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
-	SingularMoveMargin              int16 = 300
-	SingularMoveReduction           int8  = 2
 )
 
 // Futility margins

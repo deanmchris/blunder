@@ -127,7 +127,7 @@ func genPawnMoves(pos *Position, moves *MoveList, targets Bitboard) {
 		for pawnPush != 0 {
 			to := pawnPush.PopBit()
 			if isPromoting(pos.SideToMove, to) {
-				makePromotionMoves(pos, from, to, moves)
+				makePromotionMoves(from, to, moves)
 				continue
 			}
 			moves.AddMove(NewMove(from, to, Quiet, NoFlag))
@@ -143,7 +143,7 @@ func genPawnMoves(pos *Position, moves *MoveList, targets Bitboard) {
 				moves.AddMove(NewMove(from, to, Attack, AttackEP))
 			} else if toBB&enemyBB != 0 {
 				if isPromoting(pos.SideToMove, to) {
-					makePromotionMoves(pos, from, to, moves)
+					makePromotionMoves(from, to, moves)
 					continue
 				}
 				moves.AddMove(NewMove(from, to, Attack, NoFlag))
@@ -162,7 +162,7 @@ func isPromoting(usColor, toSq uint8) bool {
 }
 
 // Generate promotion moves for pawns
-func makePromotionMoves(pos *Position, from, to uint8, moves *MoveList) {
+func makePromotionMoves(from, to uint8, moves *MoveList) {
 	moves.AddMove(NewMove(from, to, Promotion, KnightPromotion))
 	moves.AddMove(NewMove(from, to, Promotion, BishopPromotion))
 	moves.AddMove(NewMove(from, to, Promotion, RookPromotion))
