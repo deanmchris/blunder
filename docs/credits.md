@@ -39,7 +39,7 @@ And some people who I'd like to thank especially:
   * justNo4b (author of [Drofa](https://github.com/justNo4b/Drofa)) for the changelog's he creates for every 
   version, which contain lists of excellent ideas to experiment with.
   * The authors of [Koivisto](https://github.com/Luecx/Koivisto) for giving me the idea to store zobrist hashes on the
-  board state stack, thereby speeding up the do move/undo move.
+  board state stack, thereby speeding up the do move/undo move, and also for helping me to understand and implement singular-move extensions.
 
  
  These credits will be updated from time to time as a remember or encounter more people who help, or have helped,

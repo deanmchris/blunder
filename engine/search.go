@@ -48,8 +48,7 @@ const (
 	LateMoveReduction               int8  = 2
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
-	SingularMoveMargin              int16 = 300
-	SingularMoveReduction           int8  = 2
+	SingularMoveMargin              int16 = 250
 )
 
 // Futility margins
@@ -173,7 +172,7 @@ func (search *Search) Search() Move {
 		pvLine.Clear()
 
 		startTime := time.Now()
-		score := search.negamax(int8(depth), 0, alpha, beta, &pvLine, true)
+		score := search.negamax(int8(depth), 0, alpha, beta, &pvLine, true, NullMove)
 		endTime := time.Since(startTime)
 
 		if search.Timer.Stop {
@@ -218,7 +217,7 @@ func getMateOrCPScore(score int16) string {
 }
 
 // The primary negamax function.
-func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *PVLine, doNull bool) int16 {
+func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *PVLine, doNull bool, ignoreMove Move) int16 {
 	// Update the number of nodes searched.
 	search.nodes++
 
@@ -283,11 +282,10 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// a hit, return the score and stop searching.                          //
 	// =====================================================================//
 
-	ttScore, shouldUse := search.TT.Probe(search.Pos.Hash).Get(
-		search.Pos.Hash, ply, uint8(depth), alpha, beta, &ttMove,
-	)
+	entry := search.TT.Probe(search.Pos.Hash)
+	ttScore, shouldUse := entry.Get(search.Pos.Hash, ply, uint8(depth), alpha, beta, &ttMove)
 
-	if shouldUse && !isRoot {
+	if shouldUse && !isRoot && ignoreMove.Equal(NullMove) {
 		return ttScore
 	}
 
@@ -321,11 +319,10 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		search.AddHistory(search.Pos.Hash)
 
 		R := 3 + depth/6
-		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &childPVLine, false)
+		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &PVLine{}, false, NullMove)
 
 		search.RemoveHistory()
 		search.Pos.UndoNullMove()
-		childPVLine.Clear()
 
 		if search.Timer.Stop {
 			return 0
@@ -363,6 +360,11 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		orderMoves(index, &moves)
 		move := moves.Moves[index]
 
+		// Don't get caught in an infinite loop via extensions.
+		if ignoreMove.Equal(move) {
+			continue
+		}
+
 		if !search.Pos.DoMove(move) {
 			search.Pos.UndoMove(move)
 			continue
@@ -382,6 +384,33 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			continue
 		}
 
+		// Singular move extension
+		extension := int8(0)
+
+		if depth >= 8 &&
+			!inCheck &&
+			!isRoot &&
+			ttMove.Equal(move) &&
+			legalMoves == 1 &&
+			entry.Depth >= uint8(depth-2) &&
+			abs(entry.Score) < Checkmate &&
+			entry.Flag != AlphaFlag {
+
+			scoreToBeat := entry.Score - SingularMoveMargin - int16(depth*2)
+
+			search.Pos.UndoMove(move)
+			score := search.negamax(depth/2, ply, scoreToBeat-1, scoreToBeat, &PVLine{}, true, move)
+			search.Pos.DoMove(move)
+
+			if score < scoreToBeat {
+				extension++
+			} else if score >= beta {
+				// Multi-cut pruning
+				search.Pos.UndoMove(move)
+				return score
+			}
+		}
+
 		search.AddHistory(search.Pos.Hash)
 
 		// =====================================================================//
@@ -397,7 +426,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 		score := int16(0)
 		if legalMoves == 1 {
-			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
+			score = -search.negamax(depth-1+extension, ply+1, -beta, -alpha, &childPVLine, true, NullMove)
 		} else {
 			tactical := inCheck || move.MoveType() == Attack
 			reduction := int8(0)
@@ -406,15 +435,15 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 				reduction = 2
 			}
 
-			score = -search.negamax(depth-1-reduction, ply+1, -(alpha + 1), -alpha, &childPVLine, true)
+			score = -search.negamax(depth-1-reduction+extension, ply+1, -(alpha + 1), -alpha, &childPVLine, true, NullMove)
 
 			if score > alpha && reduction > 0 {
-				score = -search.negamax(depth-1-reduction, ply+1, -beta, -alpha, &childPVLine, true)
+				score = -search.negamax(depth-1-reduction+extension, ply+1, -beta, -alpha, &childPVLine, true, NullMove)
 				if score > alpha {
-					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
+					score = -search.negamax(depth-1+extension, ply+1, -beta, -alpha, &childPVLine, true, NullMove)
 				}
 			} else if score > alpha && score < beta {
-				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
+				score = -search.negamax(depth-1+extension, ply+1, -beta, -alpha, &childPVLine, true, NullMove)
 			}
 		}
 
@@ -468,8 +497,10 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		return search.contempt()
 	}
 
-	// If we're not out of time, store the result of the search for this position.
-	if !search.Timer.Stop {
+	// If we're not out of time, and we haven't skipped moves
+	// because of extensions, then store the result of the
+	// search for this position.
+	if !search.Timer.Stop && ignoreMove.Equal(NullMove) {
 		search.TT.Probe(search.Pos.Hash).Set(
 			search.Pos.Hash, ply, uint8(depth), bestScore, ttFlag, bestMove,
 		)
