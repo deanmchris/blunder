@@ -1,6 +1,9 @@
 package main
 
-import "blunder/engine"
+import (
+	"blunder/engine"
+	"blunder/tuner"
+)
 
 func init() {
 	engine.InitBitboards()
@@ -9,7 +12,9 @@ func init() {
 }
 
 func main() {
-	engine.RunCommLoop()
+	tuner.Tune("C:\\Users\\deanm\\Desktop\\data\\quiet-labeled.epd", 100)
+
+	// engine.RunCommLoop()
 
 	/*var search engine.Search
 	search.Setup(engine.FENKiwiPete)
