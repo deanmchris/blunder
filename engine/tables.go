@@ -82,7 +82,7 @@ var MaskAntidiagonal = [15]Bitboard{
 	0x8000000000000000,
 }
 
-func init() {
+func InitTables() {
 	// Generate useful masking lookup tables.
 
 	for i := uint8(0); i < 8; i++ {

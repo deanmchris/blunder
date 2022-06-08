@@ -124,7 +124,7 @@ func fileOfEP(sq uint8) uint8 {
 	return PossibleEPFiles[sq]
 }
 
-func init() {
+func InitZobrist() {
 	Zobrist = _Zobrist{}
 	Zobrist.init()
 }

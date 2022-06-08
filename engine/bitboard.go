@@ -81,7 +81,7 @@ func (bitboard Bitboard) String() (bitboardAsString string) {
 }
 
 // Initalize the bitboard constants.
-func init() {
+func InitBitboards() {
 	var sq uint8
 	for sq = 0; sq < 65; sq++ {
 		SquareBB[sq] = 0x8000000000000000 >> sq
