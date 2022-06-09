@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	NumPositions = 600000
-	BatchSize    = 10000
+	NumPositions = 700000
+	BatchSize    = 50000
 	NumWeights   = 778
 	KPrecision   = 10
 	LearningRate = 1.0
@@ -115,7 +115,7 @@ func getCoefficents(pos *engine.Position) (coefficents [NumWeights]float64) {
 		egIndex := 384 + mgIndex
 		sign := float64(1)
 
-		if piece.Color != stm {
+		if piece.Color != engine.White {
 			sign = -1
 		}
 
@@ -154,7 +154,14 @@ func computePartialDerivate(weights [NumWeights]float64, weightIdx int, batch []
 	return sum / NumWeights * 2
 }
 
-func prettyPrintPSQT(msg string, psqt []float64) {
+func convertFloatSiceToInt(slice []float64) (ints []int16) {
+	for _, float := range slice {
+		ints = append(ints, int16(float))
+	}
+	return ints
+}
+
+func prettyPrintPSQT(msg string, psqt []int16) {
 	fmt.Print("\n")
 	fmt.Println(msg)
 	for sq := 0; sq < 64; sq++ {
@@ -167,22 +174,22 @@ func prettyPrintPSQT(msg string, psqt []float64) {
 }
 
 func printParameters() {
-	prettyPrintPSQT("MG Pawn PST:", Weights[0:64])
-	prettyPrintPSQT("MG Knight PST:", Weights[64:128])
-	prettyPrintPSQT("MG Bishop PST:", Weights[128:192])
-	prettyPrintPSQT("MG Rook PST:", Weights[192:256])
-	prettyPrintPSQT("MG Queen PST:", Weights[256:320])
-	prettyPrintPSQT("MG King PST:", Weights[320:384])
+	prettyPrintPSQT("MG Pawn PST:", convertFloatSiceToInt(Weights[0:64]))
+	prettyPrintPSQT("MG Knight PST:", convertFloatSiceToInt(Weights[64:128]))
+	prettyPrintPSQT("MG Bishop PST:", convertFloatSiceToInt(Weights[128:192]))
+	prettyPrintPSQT("MG Rook PST:", convertFloatSiceToInt(Weights[192:256]))
+	prettyPrintPSQT("MG Queen PST:", convertFloatSiceToInt(Weights[256:320]))
+	prettyPrintPSQT("MG King PST:", convertFloatSiceToInt(Weights[320:384]))
 
-	prettyPrintPSQT("EG Pawn PST:", Weights[384:448])
-	prettyPrintPSQT("EG Knight PST:", Weights[448:512])
-	prettyPrintPSQT("EG Bishop PST:", Weights[512:576])
-	prettyPrintPSQT("EG Rook PST:", Weights[576:640])
-	prettyPrintPSQT("EG Queen PST:", Weights[640:704])
-	prettyPrintPSQT("EG King PST:", Weights[704:768])
+	prettyPrintPSQT("EG Pawn PST:", convertFloatSiceToInt(Weights[384:448]))
+	prettyPrintPSQT("EG Knight PST:", convertFloatSiceToInt(Weights[448:512]))
+	prettyPrintPSQT("EG Bishop PST:", convertFloatSiceToInt(Weights[512:576]))
+	prettyPrintPSQT("EG Rook PST:", convertFloatSiceToInt(Weights[576:640]))
+	prettyPrintPSQT("EG Queen PST:", convertFloatSiceToInt(Weights[640:704]))
+	prettyPrintPSQT("EG King PST:", convertFloatSiceToInt(Weights[704:768]))
 
-	fmt.Println("\nMG Piece Values:", Weights[768:773])
-	fmt.Println("EG Piece Values:", Weights[773:778])
+	fmt.Println("\nMG Piece Values:", convertFloatSiceToInt(Weights[768:773]))
+	fmt.Println("EG Piece Values:", convertFloatSiceToInt(Weights[773:778]))
 	fmt.Println()
 }
 
