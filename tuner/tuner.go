@@ -12,35 +12,25 @@ import (
 )
 
 const (
-	NumPositions = 700000
-	BatchSize    = 50000
-	NumWeights   = 778
-	KPrecision   = 10
-	LearningRate = 1.0
-
-	ScalingFactor float64 = 0.01
-	Draw          float64 = 0.5
-	WhiteWin      float64 = 1.0
-	BlackWin      float64 = 0.0
+	KPrecision         = 10
+	Draw       float64 = 0.5
+	WhiteWin   float64 = 1.0
+	BlackWin   float64 = 0.0
 )
 
 // A struct object to hold data concering a position loaded from the training file.
 // Each position consists of a position board object and the outcome of the game
 // the position was from.
 type Entry struct {
-	Coefficents [NumWeights]float64
+	Coefficents []float64
 	Outcome     float64
 }
 
-// A global variable to hold the positions loaded from the training file.
-var Entries []Entry
-
-// The weights to be adjusted during the tuning process.
-var Weights [NumWeights]float64
-
 // Load the weights for tuning from the current evaluation terms.
-func loadWeights() (weights [NumWeights]float64) {
-	tempWeights := make([]int16, NumWeights)
+func loadWeights(numWeights int) (weights []float64) {
+	tempWeights := make([]int16, numWeights)
+	weights = make([]float64, numWeights)
+
 	copy(tempWeights[0:64], engine.PSQT_MG[engine.Pawn][:])
 	copy(tempWeights[64:128], engine.PSQT_MG[engine.Knight][:])
 	copy(tempWeights[128:192], engine.PSQT_MG[engine.Bishop][:])
@@ -66,7 +56,7 @@ func loadWeights() (weights [NumWeights]float64) {
 }
 
 // Load the given number of positions from the training set file.
-func loadEntries(infile string, numPositions int) (entries []Entry) {
+func loadEntries(infile string, numPositions int, numWeights int) (entries []Entry) {
 	file, err := os.Open(infile)
 	if err != nil {
 		panic(err)
@@ -90,7 +80,7 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 
 		pos := engine.Position{}
 		pos.LoadFEN(fen)
-		entries = append(entries, Entry{Coefficents: getCoefficents(&pos), Outcome: outcome})
+		entries = append(entries, Entry{Coefficents: getCoefficents(&pos, numWeights), Outcome: outcome})
 	}
 
 	fmt.Printf("Done loading %d positions...\n", numPositions)
@@ -99,13 +89,14 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 
 // Get the evaluation coefficents of the position so it can be used to calculate
 // the evaluation.
-func getCoefficents(pos *engine.Position) (coefficents [NumWeights]float64) {
+func getCoefficents(pos *engine.Position, numWeights int) (coefficents []float64) {
 	phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
 	mgPhase := 256 - phase
 	egPhase := phase
 
 	stm := pos.SideToMove
 	allBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
+	coefficents = make([]float64, numWeights)
 
 	for allBB != 0 {
 		sq := allBB.PopBit()
@@ -136,22 +127,70 @@ func getCoefficents(pos *engine.Position) (coefficents [NumWeights]float64) {
 }
 
 // Evaluate the position from the training set file.
-func evaluate(weights, coefficents [NumWeights]float64) (score float64) {
-	for i := 0; i < NumWeights; i++ {
+func evaluate(weights, coefficents []float64) (score float64) {
+	for i := 0; i < len(weights); i++ {
 		score += weights[i] * coefficents[i] / 256
 	}
 	return score
 }
 
-func computePartialDerivate(weights [NumWeights]float64, weightIdx int, batch []Entry) (sum float64) {
-	for i := 0; i < BatchSize; i++ {
-		score := evaluate(weights, batch[i].Coefficents)
-		eTerm := math.Exp(-ScalingFactor * score)
-		eTerm = eTerm / (math.Pow(1+eTerm, 2))
-		eTerm *= batch[i].Coefficents[weightIdx]
-		sum += -eTerm
+func computeGradient(entries []Entry, weights []float64, scalingFactor float64) (gradients []float64) {
+	N := float64(len(entries))
+	numWeights := len(weights)
+	gradients = make([]float64, numWeights)
+
+	for i := 0; i < len(entries); i++ {
+		score := evaluate(weights, entries[i].Coefficents)
+		sigmoid := 1 / (1 + math.Exp(-scalingFactor*score))
+		err := entries[i].Outcome - sigmoid
+		term := -2 * scalingFactor / N * err * (1 - sigmoid) * sigmoid
+
+		for k := 0; k < numWeights; k++ {
+			gradients[k] += term * entries[i].Coefficents[k]
+		}
 	}
-	return sum / NumWeights * 2
+
+	return gradients
+}
+
+func meanSquaredError(entries []Entry, weights []float64, scalingFactor float64) (errSum float64) {
+	for i := 0; i < len(entries); i++ {
+		score := evaluate(weights, entries[i].Coefficents)
+		sigmoid := 1 / (1 + math.Exp(-scalingFactor*score))
+		errSum += math.Pow(entries[i].Outcome-sigmoid, 2)
+	}
+	return errSum / float64(len(entries))
+}
+
+// Credit to Andrew Grant (author of the chess engine Ethereal), for
+// this specfic implementation of computing an appropriate scaling value
+// for the logistic function.
+func findScalingFactor(entries []Entry, weights []float64) float64 {
+	start, end, step := float64(0), float64(10), float64(1)
+	err := float64(0)
+
+	curr := start
+	best := meanSquaredError(entries, weights, start)
+
+	for i := 0; i < KPrecision; i++ {
+		curr = start - step
+		for curr < end {
+			curr = curr + step
+			err = meanSquaredError(entries, weights, curr)
+			if err <= best {
+				best = err
+				start = curr
+			}
+		}
+
+		fmt.Printf("Best K of %f on iteration %d\n", start, i)
+
+		end = start + step
+		start = start - step
+		step = step / 10.0
+	}
+
+	return start
 }
 
 func convertFloatSiceToInt(slice []float64) (ints []int16) {
@@ -173,56 +212,41 @@ func prettyPrintPSQT(msg string, psqt []int16) {
 	fmt.Print("\n")
 }
 
-func printParameters() {
-	prettyPrintPSQT("MG Pawn PST:", convertFloatSiceToInt(Weights[0:64]))
-	prettyPrintPSQT("MG Knight PST:", convertFloatSiceToInt(Weights[64:128]))
-	prettyPrintPSQT("MG Bishop PST:", convertFloatSiceToInt(Weights[128:192]))
-	prettyPrintPSQT("MG Rook PST:", convertFloatSiceToInt(Weights[192:256]))
-	prettyPrintPSQT("MG Queen PST:", convertFloatSiceToInt(Weights[256:320]))
-	prettyPrintPSQT("MG King PST:", convertFloatSiceToInt(Weights[320:384]))
+func printParameters(weights []float64) {
+	prettyPrintPSQT("MG Pawn PST:", convertFloatSiceToInt(weights[0:64]))
+	prettyPrintPSQT("MG Knight PST:", convertFloatSiceToInt(weights[64:128]))
+	prettyPrintPSQT("MG Bishop PST:", convertFloatSiceToInt(weights[128:192]))
+	prettyPrintPSQT("MG Rook PST:", convertFloatSiceToInt(weights[192:256]))
+	prettyPrintPSQT("MG Queen PST:", convertFloatSiceToInt(weights[256:320]))
+	prettyPrintPSQT("MG King PST:", convertFloatSiceToInt(weights[320:384]))
 
-	prettyPrintPSQT("EG Pawn PST:", convertFloatSiceToInt(Weights[384:448]))
-	prettyPrintPSQT("EG Knight PST:", convertFloatSiceToInt(Weights[448:512]))
-	prettyPrintPSQT("EG Bishop PST:", convertFloatSiceToInt(Weights[512:576]))
-	prettyPrintPSQT("EG Rook PST:", convertFloatSiceToInt(Weights[576:640]))
-	prettyPrintPSQT("EG Queen PST:", convertFloatSiceToInt(Weights[640:704]))
-	prettyPrintPSQT("EG King PST:", convertFloatSiceToInt(Weights[704:768]))
+	prettyPrintPSQT("EG Pawn PST:", convertFloatSiceToInt(weights[384:448]))
+	prettyPrintPSQT("EG Knight PST:", convertFloatSiceToInt(weights[448:512]))
+	prettyPrintPSQT("EG Bishop PST:", convertFloatSiceToInt(weights[512:576]))
+	prettyPrintPSQT("EG Rook PST:", convertFloatSiceToInt(weights[576:640]))
+	prettyPrintPSQT("EG Queen PST:", convertFloatSiceToInt(weights[640:704]))
+	prettyPrintPSQT("EG King PST:", convertFloatSiceToInt(weights[704:768]))
 
-	fmt.Println("\nMG Piece Values:", convertFloatSiceToInt(Weights[768:773]))
-	fmt.Println("EG Piece Values:", convertFloatSiceToInt(Weights[773:778]))
+	fmt.Println("\nMG Piece Values:", convertFloatSiceToInt(weights[768:773]))
+	fmt.Println("EG Piece Values:", convertFloatSiceToInt(weights[773:778]))
 	fmt.Println()
 }
 
-func Tune(infile string, epochs int) {
-	Weights = loadWeights()
-	Entries = loadEntries(infile, NumPositions)
+func Tune(infile string, epochs int, numWeights, numPositions int, learningRate float64) {
+	weights := loadWeights(numWeights)
+	entries := loadEntries(infile, numPositions, numWeights)
+	scalingFactor := findScalingFactor(entries, weights)
 
-	batches := [NumPositions / BatchSize][]Entry{}
-	index := 0
-
-	for batchStart := 0; batchStart < NumPositions; batchStart += BatchSize {
-		batches[index] = Entries[batchStart : batchStart+BatchSize]
-		index++
-	}
-
-	fmt.Printf("%d batches partitioned...\n", NumPositions/BatchSize)
+	fmt.Printf("K-value computed: %f ...\n", scalingFactor)
 
 	for i := 0; i < epochs; i++ {
-		for k, batch := range batches {
-			copyWeights := Weights
-			for j := 0; j < NumWeights; j++ {
-				Weights[j] += LearningRate * computePartialDerivate(copyWeights, j, batch)
-			}
-
-			fmt.Printf("Batch %d/%d completed\n", k+1, NumPositions/BatchSize)
-			if k%10 == 0 && k > 0 {
-				printParameters()
-			}
+		gradients := computeGradient(entries, weights, scalingFactor)
+		for k, gradient := range gradients {
+			weights[k] += learningRate * gradient
 		}
 
 		fmt.Printf("Epoch number %d completed\n", i+1)
-		if i > 0 && i%10 == 0 {
-			printParameters()
-		}
 	}
+
+	printParameters(weights)
 }

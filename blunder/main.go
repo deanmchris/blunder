@@ -12,7 +12,7 @@ func init() {
 }
 
 func main() {
-	tuner.Tune("C:\\Users\\deanm\\Desktop\\data\\quiet-labeled.epd", 100)
+	tuner.Tune("C:\\Users\\deanm\\Desktop\\data\\quiet-labeled.epd", 100, 778, 100000, 0.1)
 
 	// engine.RunCommLoop()
 
