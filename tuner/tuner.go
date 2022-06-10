@@ -7,8 +7,10 @@ import (
 	"bufio"
 	"fmt"
 	"math"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -18,11 +20,20 @@ const (
 	BlackWin   float64 = 0.0
 )
 
+// An object to hold the feature coefficents of a positon, as well
+// as the index of the weight the feature corresponds to. Structuring
+// in the coefficent array in this manner allows for a sparse array,
+// which is much more efficent and less memory intensive.
+type Coefficent struct {
+	Idx   uint16
+	Value float64
+}
+
 // A struct object to hold data concering a position loaded from the training file.
 // Each position consists of a position board object and the outcome of the game
 // the position was from.
 type Entry struct {
-	Coefficents []float64
+	Coefficents []Coefficent
 	Outcome     float64
 }
 
@@ -89,14 +100,13 @@ func loadEntries(infile string, numPositions int, numWeights int) (entries []Ent
 
 // Get the evaluation coefficents of the position so it can be used to calculate
 // the evaluation.
-func getCoefficents(pos *engine.Position, numWeights int) (coefficents []float64) {
+func getCoefficents(pos *engine.Position, numWeights int) (coefficents []Coefficent) {
 	phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
 	mgPhase := 256 - phase
 	egPhase := phase
 
-	stm := pos.SideToMove
 	allBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
-	coefficents = make([]float64, numWeights)
+	tempCoefficents := make([]float64, numWeights)
 
 	for allBB != 0 {
 		sq := allBB.PopBit()
@@ -110,26 +120,33 @@ func getCoefficents(pos *engine.Position, numWeights int) (coefficents []float64
 			sign = -1
 		}
 
-		coefficents[mgIndex] += sign * float64(mgPhase)
-		coefficents[egIndex] += sign * float64(egPhase)
+		tempCoefficents[mgIndex] += sign * float64(mgPhase)
+		tempCoefficents[egIndex] += sign * float64(egPhase)
 	}
 
 	for piece := 0; piece <= 4; piece++ {
-		coefficents[768+piece] = float64(
-			(pos.Pieces[stm][piece].CountBits() - pos.Pieces[stm^1][piece].CountBits()),
+		tempCoefficents[768+piece] = float64(
+			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
 		) * float64(mgPhase)
-		coefficents[768+piece+5] = float64(
-			(pos.Pieces[stm][piece].CountBits() - pos.Pieces[stm^1][piece].CountBits()),
+		tempCoefficents[768+piece+5] = float64(
+			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
 		) * float64(egPhase)
+	}
+
+	for i, coefficent := range tempCoefficents {
+		if coefficent != 0 {
+			coefficents = append(coefficents, Coefficent{Idx: uint16(i), Value: coefficent})
+		}
 	}
 
 	return coefficents
 }
 
 // Evaluate the position from the training set file.
-func evaluate(weights, coefficents []float64) (score float64) {
-	for i := 0; i < len(weights); i++ {
-		score += weights[i] * coefficents[i] / 256
+func evaluate(weights []float64, coefficents []Coefficent) (score float64) {
+	for i := range coefficents {
+		coefficent := &coefficents[i]
+		score += weights[coefficent.Idx] * coefficent.Value / 256
 	}
 	return score
 }
@@ -139,58 +156,19 @@ func computeGradient(entries []Entry, weights []float64, scalingFactor float64) 
 	numWeights := len(weights)
 	gradients = make([]float64, numWeights)
 
-	for i := 0; i < len(entries); i++ {
+	for i := range entries {
 		score := evaluate(weights, entries[i].Coefficents)
 		sigmoid := 1 / (1 + math.Exp(-scalingFactor*score))
 		err := entries[i].Outcome - sigmoid
 		term := -2 * scalingFactor / N * err * (1 - sigmoid) * sigmoid
 
-		for k := 0; k < numWeights; k++ {
-			gradients[k] += term * entries[i].Coefficents[k]
+		for k := range entries[i].Coefficents {
+			coefficent := &entries[i].Coefficents[k]
+			gradients[coefficent.Idx] += term * coefficent.Value
 		}
 	}
 
 	return gradients
-}
-
-func meanSquaredError(entries []Entry, weights []float64, scalingFactor float64) (errSum float64) {
-	for i := 0; i < len(entries); i++ {
-		score := evaluate(weights, entries[i].Coefficents)
-		sigmoid := 1 / (1 + math.Exp(-scalingFactor*score))
-		errSum += math.Pow(entries[i].Outcome-sigmoid, 2)
-	}
-	return errSum / float64(len(entries))
-}
-
-// Credit to Andrew Grant (author of the chess engine Ethereal), for
-// this specfic implementation of computing an appropriate scaling value
-// for the logistic function.
-func findScalingFactor(entries []Entry, weights []float64) float64 {
-	start, end, step := float64(0), float64(10), float64(1)
-	err := float64(0)
-
-	curr := start
-	best := meanSquaredError(entries, weights, start)
-
-	for i := 0; i < KPrecision; i++ {
-		curr = start - step
-		for curr < end {
-			curr = curr + step
-			err = meanSquaredError(entries, weights, curr)
-			if err <= best {
-				best = err
-				start = curr
-			}
-		}
-
-		fmt.Printf("Best K of %f on iteration %d\n", start, i)
-
-		end = start + step
-		start = start - step
-		step = step / 10.0
-	}
-
-	return start
 }
 
 func convertFloatSiceToInt(slice []float64) (ints []int16) {
@@ -232,12 +210,19 @@ func printParameters(weights []float64) {
 	fmt.Println()
 }
 
-func Tune(infile string, epochs int, numWeights, numPositions int, learningRate float64) {
+func fuzzWeights(weights []float64, max, min int) (fuzzedWeights []float64) {
+	fuzzedWeights = weights
+	rand.Seed(time.Now().UnixNano())
+	for i := range weights {
+		fuzzedWeights[i] += float64(rand.Intn(max-min+1) + min)
+	}
+	return fuzzedWeights
+}
+
+func Tune(infile string, epochs int, numWeights, numPositions int, learningRate float64, scalingFactor float64) {
 	weights := loadWeights(numWeights)
 	entries := loadEntries(infile, numPositions, numWeights)
-	scalingFactor := findScalingFactor(entries, weights)
-
-	fmt.Printf("K-value computed: %f ...\n", scalingFactor)
+	weights = fuzzWeights(weights, 20, -20)
 
 	for i := 0; i < epochs; i++ {
 		gradients := computeGradient(entries, weights, scalingFactor)
