@@ -158,6 +158,18 @@ SPRT: llr 2.95 (100.2%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
 
+Re-tune Evaluation Using Gradient Descent Tuner
+-----------------------------------------------
+```
+Score of Blunder 8.0.0-evaluation-tuning vs Blunder 8.0.0: 541 - 339 - 284  [0.587] 1164
+...      Blunder 8.0.0-evaluation-tuning playing White: 268 - 173 - 141  [0.582] 582
+...      Blunder 8.0.0-evaluation-tuning playing Black: 273 - 166 - 143  [0.592] 582
+...      White vs Black: 434 - 446 - 284  [0.495] 1164
+Elo difference: 60.9 +/- 17.5, LOS: 100.0 %, DrawRatio: 24.4 %
+SPRT: llr 2.96 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
+
 Estimated ELO: ~2450
 
 - Late-move pruning/move-count based pruning
