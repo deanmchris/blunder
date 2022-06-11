@@ -7,17 +7,14 @@ import (
 	"bufio"
 	"fmt"
 	"math"
-	"math/rand"
 	"os"
 	"strings"
-	"time"
 )
 
 const (
-	KPrecision         = 10
-	Draw       float64 = 0.5
-	WhiteWin   float64 = 1.0
-	BlackWin   float64 = 0.0
+	Draw     float64 = 0.5
+	WhiteWin float64 = 1.0
+	BlackWin float64 = 0.0
 )
 
 // An object to hold the feature coefficents of a positon, as well
@@ -152,15 +149,14 @@ func evaluate(weights []float64, coefficents []Coefficent) (score float64) {
 }
 
 func computeGradient(entries []Entry, weights []float64, scalingFactor float64) (gradients []float64) {
-	N := float64(len(entries))
 	numWeights := len(weights)
 	gradients = make([]float64, numWeights)
 
 	for i := range entries {
 		score := evaluate(weights, entries[i].Coefficents)
-		sigmoid := 1 / (1 + math.Exp(-scalingFactor*score))
+		sigmoid := 1 / (1 + math.Exp(-(scalingFactor * score)))
 		err := entries[i].Outcome - sigmoid
-		term := -2 * scalingFactor / N * err * (1 - sigmoid) * sigmoid
+		term := -2 * scalingFactor * err * (1 - sigmoid) * sigmoid
 
 		for k := range entries[i].Coefficents {
 			coefficent := &entries[i].Coefficents[k]
@@ -171,6 +167,16 @@ func computeGradient(entries []Entry, weights []float64, scalingFactor float64) 
 	return gradients
 }
 
+func computeMSE(entries []Entry, weights []float64, scalingFactor float64) (errSum float64) {
+	for i := range entries {
+		score := evaluate(weights, entries[i].Coefficents)
+		sigmoid := 1 / (1 + math.Exp(-(scalingFactor * score)))
+		err := entries[i].Outcome - sigmoid
+		errSum += math.Pow(err, 2)
+	}
+	return errSum / float64(len(entries))
+}
+
 func convertFloatSiceToInt(slice []float64) (ints []int16) {
 	for _, float := range slice {
 		ints = append(ints, int16(float))
@@ -178,60 +184,60 @@ func convertFloatSiceToInt(slice []float64) (ints []int16) {
 	return ints
 }
 
-func prettyPrintPSQT(msg string, psqt []int16) {
-	fmt.Print("\n")
-	fmt.Println(msg)
+func printSlice(name string, slice []int16) {
+	fmt.Print(name + ": {")
+	for _, integer := range slice {
+		fmt.Printf("%d, ", integer)
+	}
+	fmt.Print("}\n")
+}
+
+func prettyPrintPSQT(name string, psqt []int16) {
+	fmt.Print("{\n")
+	fmt.Print("    // ", name, "\n    ")
 	for sq := 0; sq < 64; sq++ {
-		if sq%8 == 0 {
-			fmt.Println()
+		if sq > 0 && sq%8 == 0 {
+			fmt.Print("\n    ")
 		}
 		fmt.Print(psqt[sq], ", ")
 	}
-	fmt.Print("\n")
+	fmt.Print("\n}\n")
 }
 
 func printParameters(weights []float64) {
-	prettyPrintPSQT("MG Pawn PST:", convertFloatSiceToInt(weights[0:64]))
-	prettyPrintPSQT("MG Knight PST:", convertFloatSiceToInt(weights[64:128]))
-	prettyPrintPSQT("MG Bishop PST:", convertFloatSiceToInt(weights[128:192]))
-	prettyPrintPSQT("MG Rook PST:", convertFloatSiceToInt(weights[192:256]))
-	prettyPrintPSQT("MG Queen PST:", convertFloatSiceToInt(weights[256:320]))
-	prettyPrintPSQT("MG King PST:", convertFloatSiceToInt(weights[320:384]))
+	prettyPrintPSQT("MG Pawn PST", convertFloatSiceToInt(weights[0:64]))
+	prettyPrintPSQT("MG Knight PST", convertFloatSiceToInt(weights[64:128]))
+	prettyPrintPSQT("MG Bishop PST", convertFloatSiceToInt(weights[128:192]))
+	prettyPrintPSQT("MG Rook PST", convertFloatSiceToInt(weights[192:256]))
+	prettyPrintPSQT("MG Queen PST", convertFloatSiceToInt(weights[256:320]))
+	prettyPrintPSQT("MG King PST", convertFloatSiceToInt(weights[320:384]))
 
-	prettyPrintPSQT("EG Pawn PST:", convertFloatSiceToInt(weights[384:448]))
-	prettyPrintPSQT("EG Knight PST:", convertFloatSiceToInt(weights[448:512]))
-	prettyPrintPSQT("EG Bishop PST:", convertFloatSiceToInt(weights[512:576]))
-	prettyPrintPSQT("EG Rook PST:", convertFloatSiceToInt(weights[576:640]))
-	prettyPrintPSQT("EG Queen PST:", convertFloatSiceToInt(weights[640:704]))
-	prettyPrintPSQT("EG King PST:", convertFloatSiceToInt(weights[704:768]))
+	prettyPrintPSQT("EG Pawn PST", convertFloatSiceToInt(weights[384:448]))
+	prettyPrintPSQT("EG Knight PST", convertFloatSiceToInt(weights[448:512]))
+	prettyPrintPSQT("EG Bishop PST", convertFloatSiceToInt(weights[512:576]))
+	prettyPrintPSQT("EG Rook PST", convertFloatSiceToInt(weights[576:640]))
+	prettyPrintPSQT("EG Queen PST", convertFloatSiceToInt(weights[640:704]))
+	prettyPrintPSQT("EG King PST", convertFloatSiceToInt(weights[704:768]))
 
-	fmt.Println("\nMG Piece Values:", convertFloatSiceToInt(weights[768:773]))
-	fmt.Println("EG Piece Values:", convertFloatSiceToInt(weights[773:778]))
+	printSlice("\nMG Piece Values", convertFloatSiceToInt(weights[768:773]))
+	printSlice("EG Piece Values", convertFloatSiceToInt(weights[773:778]))
 	fmt.Println()
-}
-
-func fuzzWeights(weights []float64, max, min int) (fuzzedWeights []float64) {
-	fuzzedWeights = weights
-	rand.Seed(time.Now().UnixNano())
-	for i := range weights {
-		fuzzedWeights[i] += float64(rand.Intn(max-min+1) + min)
-	}
-	return fuzzedWeights
 }
 
 func Tune(infile string, epochs int, numWeights, numPositions int, learningRate float64, scalingFactor float64) {
 	weights := loadWeights(numWeights)
 	entries := loadEntries(infile, numPositions, numWeights)
-	weights = fuzzWeights(weights, 20, -20)
 
+	fmt.Println("Best error before tuning:", computeMSE(entries, weights, scalingFactor))
 	for i := 0; i < epochs; i++ {
 		gradients := computeGradient(entries, weights, scalingFactor)
 		for k, gradient := range gradients {
-			weights[k] += learningRate * gradient
+			weights[k] -= learningRate * gradient
 		}
 
 		fmt.Printf("Epoch number %d completed\n", i+1)
 	}
 
+	fmt.Println("Best error after tuning:", computeMSE(entries, weights, scalingFactor))
 	printParameters(weights)
 }
