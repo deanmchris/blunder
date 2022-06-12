@@ -170,6 +170,18 @@ SPRT: llr 2.96 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
 
+Re-tune Evaluation WIth Bug-Fixed Tuner
+-----------------------------------------------
+```
+Score of Blunder 8.0.0-v1 vs Blunder 8.0.0-v2: 485 - 492 - 442  [0.498] 1419
+...      Blunder 8.0.0-v1 playing White: 256 - 237 - 217  [0.513] 710
+...      Blunder 8.0.0-v1 playing Black: 229 - 255 - 225  [0.482] 709
+...      White vs Black: 511 - 466 - 442  [0.516] 1419
+Elo difference: -1.7 +/- 15.0, LOS: 41.1 %, DrawRatio: 31.1 %
+SPRT: llr -0.322 (-10.9%), lbound -2.94, ubound 2.94
+Finished match
+```
+
 Estimated ELO: ~2450
 
 - Late-move pruning/move-count based pruning

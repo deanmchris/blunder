@@ -12,6 +12,11 @@ import (
 )
 
 const (
+	Iterations    = 2000
+	NumWeights    = 778
+	LearningRate  = 1000000
+	ScalingFactor = 0.5
+
 	Draw     float64 = 0.5
 	WhiteWin float64 = 1.0
 	BlackWin float64 = 0.0

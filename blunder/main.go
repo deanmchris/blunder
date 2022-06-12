@@ -2,6 +2,7 @@ package main
 
 import (
 	"blunder/engine"
+	"blunder/tuner"
 )
 
 func init() {
@@ -11,7 +12,10 @@ func init() {
 }
 
 func main() {
-	// tuner.Tune("C:\\Users\\deanm\\Desktop\\data\\quiet-labeled.epd", 500, 778, 725000, 0.01, 0.5)
+	tuner.Tune(
+		"C:\\Users\\deanm\\Desktop\\data\\quiet-labeled.epd",
+		tuner.Iterations, tuner.NumWeights, 725000, tuner.LearningRate, tuner.ScalingFactor,
+	)
 
 	engine.RunCommLoop()
 	// https://www.desmos.com/calculator/ineaark3nk
