@@ -2,23 +2,21 @@ package main
 
 import (
 	"blunder/engine"
-	"blunder/tuner"
 )
 
 func init() {
 	engine.InitBitboards()
 	engine.InitTables()
 	engine.InitZobrist()
-	engine.InitEvalBitboards()
 }
 
 func main() {
-	tuner.Tune(
+	/*tuner.Tune(
 		"C:\\Users\\deanm\\Desktop\\data\\quiet-labeled.epd",
 		tuner.Iterations, tuner.NumWeights, 725000, 50000, tuner.ScalingFactor,
-	)
+	)*/
 
-	//engine.RunCommLoop()
+	engine.RunCommLoop()
 	// https://www.desmos.com/calculator/ineaark3nk
 
 	/*var search engine.Search
@@ -59,7 +57,7 @@ func main() {
 		cutechess-cli.exe ^
 		-srand %RANDOM% ^
 		-engine cmd=blunder.exe stderr=log.txt ^
-		-engine cmd=blunder-7.4.0.exe ^
+		-engine cmd=blunder-old.exe ^
 		-openings file=C:\%HOMEPATH%\Desktop\misc\2moves_v2a.pgn format=pgn order=random ^
 		-each option.Hash=32 tc=inf/10+0.1 proto=uci ^
 		-games 2 -rounds 1000 -repeat 2 ^

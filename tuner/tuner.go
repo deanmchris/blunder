@@ -13,7 +13,7 @@ import (
 
 const (
 	Iterations    = 2000
-	NumWeights    = 782
+	NumWeights    = 780
 	LearningRate  = 1000000
 	ScalingFactor = 0.5
 
@@ -61,10 +61,8 @@ func loadWeights(numWeights int) (weights []float64) {
 	copy(tempWeights[768:773], engine.PieceValueMG[:])
 	copy(tempWeights[773:778], engine.PieceValueEG[:])
 
-	tempWeights[778] = engine.IsolatedPawnPenaltyMG
-	tempWeights[779] = engine.IsolatedPawnPenaltyEG
-	tempWeights[780] = engine.DoubledPawnPenaltyMG
-	tempWeights[781] = engine.DoubledPawnPenaltyEG
+	tempWeights[778] = engine.BishopPairBonusMG
+	tempWeights[779] = engine.BishopPairBonusEG
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -115,26 +113,9 @@ func getCoefficents(pos *engine.Position, numWeights int) (coefficents []Coeffic
 	allBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
 	tempCoefficents := make([]float64, numWeights)
 
-	isolatedPawnsCnt := [2]float64{}
-	doubledPawnsCnt := [2]float64{}
-
 	for allBB != 0 {
 		sq := allBB.PopBit()
 		piece := pos.Squares[sq]
-
-		if piece.Type == engine.Pawn {
-			usPawns := pos.Pieces[piece.Color][engine.Pawn]
-
-			// Count isolated pawns
-			if engine.IsolatedPawnMasks[engine.FileOf(sq)]&usPawns == 0 {
-				isolatedPawnsCnt[piece.Color]++
-			}
-
-			// Count doubled pawns.
-			if engine.DoubledPawnMasks[piece.Color][sq]&usPawns != 0 {
-				doubledPawnsCnt[piece.Color]++
-			}
-		}
 
 		mgIndex := uint16(piece.Type)*64 + uint16(engine.FlipSq[piece.Color][sq])
 		egIndex := 384 + mgIndex
@@ -157,10 +138,18 @@ func getCoefficents(pos *engine.Position, numWeights int) (coefficents []Coeffic
 		) * float64(egPhase)
 	}
 
-	tempCoefficents[778] = (isolatedPawnsCnt[engine.White] - isolatedPawnsCnt[engine.Black]) * float64(mgPhase)
-	tempCoefficents[779] = (isolatedPawnsCnt[engine.White] - isolatedPawnsCnt[engine.Black]) * float64(egPhase)
-	tempCoefficents[780] = (doubledPawnsCnt[engine.White] - doubledPawnsCnt[engine.Black]) * float64(mgPhase)
-	tempCoefficents[781] = (doubledPawnsCnt[engine.White] - doubledPawnsCnt[engine.Black]) * float64(egPhase)
+	if pos.Pieces[engine.White][engine.Bishop].CountBits() >= 2 {
+		tempCoefficents[778] += 1
+		tempCoefficents[779] += 1
+	}
+
+	if pos.Pieces[engine.Black][engine.Bishop].CountBits() >= 2 {
+		tempCoefficents[778] -= 1
+		tempCoefficents[779] -= 1
+	}
+
+	tempCoefficents[778] *= float64(mgPhase)
+	tempCoefficents[779] *= float64(egPhase)
 
 	for i, coefficent := range tempCoefficents {
 		if coefficent != 0 {
@@ -290,10 +279,8 @@ func printParameters(weights []float64) {
 	printSlice("\nMG Piece Values", convertFloatSiceToInt(weights[768:773]))
 	printSlice("EG Piece Values", convertFloatSiceToInt(weights[773:778]))
 
-	fmt.Println("\nIsolated Pawn Penalty MG:", weights[778])
-	fmt.Println("\nIsolated Pawn Penalty EG:", weights[779])
-	fmt.Println("\nDoubled Pawn Penalty MG:", weights[780])
-	fmt.Println("\nDoubled Pawn Penalty EG:", weights[781])
+	fmt.Println("\nBishop Pair Bonus MG:", weights[778])
+	fmt.Println("\nBishop Pair Bonus EG:", weights[779])
 	fmt.Println()
 }
 
@@ -306,14 +293,7 @@ func Tune(infile string, epochs int, numWeights, numPositions int, learningRate 
 		gradients := computeGradient(entries, weights, scalingFactor)
 		for k, gradient := range gradients {
 			weights[k] -= learningRate * gradient
-			/*if k >= 778 {
-				fmt.Println("G:", gradient*learningRate)
-			}*/
-			if k >= 778 && weights[k] < 0 {
-				weights[k] = 0
-			}
 		}
-		// panic("")
 
 		fmt.Printf("Epoch number %d completed\n", i+1)
 

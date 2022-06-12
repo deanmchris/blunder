@@ -182,6 +182,18 @@ SPRT: llr -0.322 (-10.9%), lbound -2.94, ubound 2.94
 Finished match
 ```
 
+Add Evaluation Term for Having The Bishop Pair
+----------------------------------------------
+```
+Score of Blunder 8.0.0-bishop-pair-eval vs Blunder 8.0.0: 774 - 678 - 548  [0.524] 2000
+...      Blunder 8.0.0-bishop-pair-eval playing White: 395 - 327 - 278  [0.534] 1000
+...      Blunder 8.0.0-bishop-pair-eval playing Black: 379 - 351 - 270  [0.514] 1000
+...      White vs Black: 746 - 706 - 548  [0.510] 2000
+Elo difference: 16.7 +/- 13.0, LOS: 99.4 %, DrawRatio: 27.4 %
+SPRT: llr 1.25 (42.4%), lbound -2.94, ubound 2.94
+Finished match
+```
+
 Estimated ELO: ~2450
 
 - Late-move pruning/move-count based pruning
