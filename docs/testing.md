@@ -194,11 +194,14 @@ SPRT: llr 1.25 (42.4%), lbound -2.94, ubound 2.94
 Finished match
 ```
 
-Estimated ELO: ~2450
-
-- Late-move pruning/move-count based pruning
-- Aspiration windows
-- Contempt
-- Incrementally update PSQT
-
-Unexplained crash vs madchess.
+Aspiration Windows
+------------------
+```
+Score of Blunder 8.0.0-aspiration-window vs Blunder 8.0.0: 662 - 532 - 806  [0.532] 2000
+...      Blunder 8.0.0-aspiration-window playing White: 360 - 263 - 377  [0.548] 1000
+...      Blunder 8.0.0-aspiration-window playing Black: 302 - 269 - 429  [0.516] 1000
+...      White vs Black: 629 - 565 - 806  [0.516] 2000
+Elo difference: 22.6 +/- 11.8, LOS: 100.0 %, DrawRatio: 40.3 %
+SPRT: llr 2.18 (74.1%), lbound -2.94, ubound 2.94
+Finished match
+```

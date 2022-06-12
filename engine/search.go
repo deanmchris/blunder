@@ -48,6 +48,7 @@ const (
 	LateMoveReduction               int8  = 2
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
+	WindowSize                      int16 = 35
 )
 
 // Futility margins
@@ -180,6 +181,16 @@ func (search *Search) Search() Move {
 			}
 			break
 		}
+
+		if score <= alpha || score >= beta {
+			alpha = -Inf
+			beta = Inf
+			depth--
+			continue
+		}
+
+		alpha = score - WindowSize
+		beta = score + WindowSize
 
 		bestMove = pvLine.GetPVMove()
 		nps := uint64(float64(search.nodes) / float64(endTime.Seconds()))
