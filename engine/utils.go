@@ -14,18 +14,18 @@ func coordinateToPos(coordinate string) uint8 {
 
 // Convert a position number to a string board coordinate.
 func posToCoordinate(pos uint8) string {
-	file := fileOf(pos)
-	rank := rankOf(pos)
+	file := FileOf(pos)
+	rank := RankOf(pos)
 	return string(rune('a'+file)) + string(rune('0'+rank+1))
 }
 
 // Given a board square, return it's file.
-func fileOf(sq uint8) uint8 {
+func FileOf(sq uint8) uint8 {
 	return sq % 8
 }
 
 // Given a board square, return it's rank.
-func rankOf(sq uint8) uint8 {
+func RankOf(sq uint8) uint8 {
 	return sq / 8
 }
 

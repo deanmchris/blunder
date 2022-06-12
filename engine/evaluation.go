@@ -13,6 +13,22 @@ const (
 	Inf int16 = 10000
 )
 
+type Eval struct {
+	MGScores [2]int16
+	EGScores [2]int16
+}
+
+var IsolatedPawnMasks [8]Bitboard
+var DoubledPawnMasks [2][64]Bitboard
+
+var IsolatedPawnPenaltyMG int16 = 15
+var IsolatedPawnPenaltyEG int16 = 15
+var DoubledPawnPenaltyMG int16 = 15
+var DoubledPawnPenaltyEG int16 = 15
+
+var PieceValueMG = [6]int16{146, 523, 541, 694, 1341}
+var PieceValueEG = [6]int16{208, 360, 363, 692, 1381}
+
 var PhaseValues = [6]int16{
 	PawnPhase,
 	KnightPhase,
@@ -20,9 +36,6 @@ var PhaseValues = [6]int16{
 	RookPhase,
 	QueenPhase,
 }
-
-var PieceValueMG = [6]int16{146, 523, 541, 694, 1341}
-var PieceValueEG = [6]int16{208, 360, 363, 692, 1381}
 
 var PSQT_MG = [6][64]int16{
 	{
@@ -190,13 +203,64 @@ var FlipSq [2][64]int = [2][64]int{
 // Evaluate a position and give a score, from the perspective of the side to move (
 // more positive if it's good for the side to move, otherwise more negative).
 func evaluatePos(pos *Position) int16 {
-	mgScores := pos.MGScores
-	egScores := pos.EGScores
+	eval := Eval{MGScores: pos.MGScores, EGScores: pos.EGScores}
 	phase := pos.Phase
 
-	mgScore := mgScores[pos.SideToMove] - mgScores[pos.SideToMove^1]
-	egScore := egScores[pos.SideToMove] - egScores[pos.SideToMove^1]
+	pawnBB := pos.Pieces[White][Pawn] | pos.Pieces[Black][Pawn]
+	for pawnBB != 0 {
+		sq := pawnBB.PopBit()
+		piece := pos.Squares[sq]
+		evalPawn(pos, piece.Color, sq, &eval)
+	}
+
+	mgScore := eval.MGScores[pos.SideToMove] - eval.MGScores[pos.SideToMove^1]
+	egScore := eval.EGScores[pos.SideToMove] - eval.EGScores[pos.SideToMove^1]
 
 	phase = (phase*256 + (TotalPhase / 2)) / TotalPhase
 	return int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
+}
+
+// Evaluate the score of a pawn.
+func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
+	usPawns := pos.Pieces[color][Pawn]
+
+	// Evaluate isolated pawns.
+	if IsolatedPawnMasks[FileOf(sq)]&usPawns == 0 {
+		eval.MGScores[color] -= IsolatedPawnPenaltyMG
+		eval.EGScores[color] -= IsolatedPawnPenaltyEG
+	}
+
+	// Evaluate doubled pawns.
+	if DoubledPawnMasks[color][sq]&usPawns != 0 {
+		eval.MGScores[color] -= DoubledPawnPenaltyMG
+		eval.EGScores[color] -= DoubledPawnPenaltyEG
+	}
+}
+
+func InitEvalBitboards() {
+	for file := FileA; file <= FileH; file++ {
+		// Create isolated pawn masks.
+		fileBB := MaskFile[file]
+		mask := (fileBB & ClearFile[FileA]) << 1
+		mask |= (fileBB & ClearFile[FileH]) >> 1
+		IsolatedPawnMasks[file] = mask
+	}
+
+	for sq := uint8(0); sq < 64; sq++ {
+		// Create doubled pawns masks.
+		fileBB := MaskFile[FileOf(sq)]
+		rank := int(RankOf(sq))
+
+		mask := fileBB
+		for r := 0; r <= rank; r++ {
+			mask &= ClearRank[r]
+		}
+		DoubledPawnMasks[White][sq] = mask
+
+		mask = fileBB
+		for r := 7; r >= rank; r-- {
+			mask &= ClearRank[r]
+		}
+		DoubledPawnMasks[Black][sq] = mask
+	}
 }

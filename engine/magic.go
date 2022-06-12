@@ -125,8 +125,8 @@ func genRookMovesHQ(sq uint8, occupied Bitboard, genMask bool) Bitboard {
 	sliderBB := uint64(slider)
 	occupiedBB := uint64(occupied)
 
-	fileMask := uint64(MaskFile[fileOf(sliderPos)])
-	rankMask := uint64(MaskRank[rankOf(sliderPos)])
+	fileMask := uint64(MaskFile[FileOf(sliderPos)])
+	rankMask := uint64(MaskRank[RankOf(sliderPos)])
 
 	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & rankMask)) - (2 * bits.Reverse64(sliderBB)))
 	lhs := (occupiedBB & rankMask) - 2*sliderBB
@@ -154,8 +154,8 @@ func genBishopMovesHQ(sq uint8, occupied Bitboard, genMask bool) Bitboard {
 	sliderBB := uint64(slider)
 	occupiedBB := uint64(occupied)
 
-	diagonalMask := uint64(MaskDiagonal[fileOf(sliderPos)-rankOf(sliderPos)+7])
-	antidiagonalMask := uint64(MaskAntidiagonal[14-(rankOf(sliderPos)+fileOf(sliderPos))])
+	diagonalMask := uint64(MaskDiagonal[FileOf(sliderPos)-RankOf(sliderPos)+7])
+	antidiagonalMask := uint64(MaskAntidiagonal[14-(RankOf(sliderPos)+FileOf(sliderPos))])
 
 	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & diagonalMask)) - (2 * bits.Reverse64(sliderBB)))
 	lhs := (occupiedBB & diagonalMask) - 2*sliderBB
@@ -196,7 +196,7 @@ func genRookMagics() {
 		}
 
 		searching := true
-		prng.Seed(MagicSeeds[rankOf(sq)])
+		prng.Seed(MagicSeeds[RankOf(sq)])
 
 		for searching {
 			possible_magic := prng.SparseRandom64()
@@ -240,7 +240,7 @@ func genBishopMagics() {
 		}
 
 		searching := true
-		prng.Seed(MagicSeeds[rankOf(sq)])
+		prng.Seed(MagicSeeds[RankOf(sq)])
 
 		for searching {
 			possible_magic := prng.SparseRandom64()
