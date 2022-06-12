@@ -148,7 +148,43 @@ func evaluate(weights []float64, coefficents []Coefficent) (score float64) {
 	return score
 }
 
+func computeGradientNumerically(entries []Entry, weights []float64, scalingFactor float64, epsilon float64) (gradients []float64) {
+	N := float64(len(entries))
+	gradients = make([]float64, len(weights))
+	epsilonAddedErrSums := make([]float64, len(entries))
+	epsilonSubtractedErrSums := make([]float64, len(entries))
+
+	for i := range entries {
+		for k := range weights {
+			weights[k] += epsilon
+
+			score := evaluate(weights, entries[i].Coefficents)
+			sigmoid := 1 / (1 + math.Exp(-(scalingFactor * score)))
+			err := entries[i].Outcome - sigmoid
+			epsilonAddedErrSums[k] += math.Pow(err, 2)
+
+			weights[k] -= epsilon * 2
+
+			score = evaluate(weights, entries[i].Coefficents)
+			sigmoid = 1 / (1 + math.Exp(-(scalingFactor * score)))
+			err = entries[i].Outcome - sigmoid
+			epsilonSubtractedErrSums[k] += math.Pow(err, 2)
+
+			weights[k] += epsilon
+		}
+	}
+
+	for i := range gradients {
+		errEpsilonAdded := epsilonAddedErrSums[i] / N
+		errEpsilonSubtracted := epsilonSubtractedErrSums[i] / N
+		gradients[i] = (1 / (2 * epsilon)) * (errEpsilonAdded - errEpsilonSubtracted)
+	}
+
+	return gradients
+}
+
 func computeGradient(entries []Entry, weights []float64, scalingFactor float64) (gradients []float64) {
+	N := float64(len(entries))
 	numWeights := len(weights)
 	gradients = make([]float64, numWeights)
 
@@ -156,11 +192,11 @@ func computeGradient(entries []Entry, weights []float64, scalingFactor float64) 
 		score := evaluate(weights, entries[i].Coefficents)
 		sigmoid := 1 / (1 + math.Exp(-(scalingFactor * score)))
 		err := entries[i].Outcome - sigmoid
-		term := -2 * scalingFactor * err * (1 - sigmoid) * sigmoid
+		term := -2 * scalingFactor / N * err * (1 - sigmoid) * sigmoid
 
 		for k := range entries[i].Coefficents {
 			coefficent := &entries[i].Coefficents[k]
-			gradients[coefficent.Idx] += term * coefficent.Value
+			gradients[coefficent.Idx] += term * coefficent.Value / 256
 		}
 	}
 
@@ -236,6 +272,10 @@ func Tune(infile string, epochs int, numWeights, numPositions int, learningRate 
 		}
 
 		fmt.Printf("Epoch number %d completed\n", i+1)
+
+		if i%100 == 0 && i > 0 {
+			fmt.Println("Best error:", computeMSE(entries, weights, scalingFactor))
+		}
 	}
 
 	fmt.Println("Best error after tuning:", computeMSE(entries, weights, scalingFactor))
