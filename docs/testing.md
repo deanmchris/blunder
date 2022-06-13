@@ -205,3 +205,15 @@ Elo difference: 22.6 +/- 11.8, LOS: 100.0 %, DrawRatio: 40.3 %
 SPRT: llr 2.18 (74.1%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Dynamic Time Management Via Aspiration Windows
+----------------------------------------------
+```
+Score of Blunder 8.0.0-dynamic-tc vs Blunder 8.0.0: 638 - 539 - 823  [0.525] 2000
+...      Blunder 8.0.0-dynamic-tc playing White: 352 - 259 - 389  [0.546] 1000
+...      Blunder 8.0.0-dynamic-tc playing Black: 286 - 280 - 434  [0.503] 1000
+...      White vs Black: 632 - 545 - 823  [0.522] 2000
+Elo difference: 17.2 +/- 11.7, LOS: 99.8 %, DrawRatio: 41.1 %
+SPRT: llr 1.6 (54.4%), lbound -2.94, ubound 2.94
+Finished match
+```

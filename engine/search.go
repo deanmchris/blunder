@@ -157,6 +157,7 @@ func (search *Search) Search() Move {
 	bestMove := NullMove
 
 	search.totalNodes = 0
+	timeExtended := false
 	depth := uint8(0)
 	alpha := -Inf
 	beta := Inf
@@ -197,6 +198,19 @@ func (search *Search) Search() Move {
 			alpha = -Inf
 			beta = Inf
 			depth--
+
+			// If we get a score outside of the bounds we expect,
+			// spend a little more time in the position to make
+			// sure we aren't missing anything.
+			if depth >= 6 && !timeExtended {
+				search.Timer.Update(search.Timer.TimeForMove * 13 / 10)
+
+				// Make sure we don't repeatedly keep extending the search time if
+				// we encounter subsequent fail lows at the root. Extending the search
+				// time once is enough.
+				timeExtended = true
+			}
+
 			continue
 		}
 
