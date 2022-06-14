@@ -12,10 +12,10 @@ import (
 
 // gen_data.go generates training data for the texel tuner from the PGNs of games played.
 
-var OutcomeToResult []string = []string{
-	"1-0",
-	"0-1",
-	"1/2-1/2",
+var OutcomeToResult = [3]float64{
+	1.0,
+	0.0,
+	0.5,
 }
 
 // Given an infile containg the PGNs, extract quiet positions from the files,
@@ -62,14 +62,14 @@ func GenTrainingData(infile, outfile string, minimumElo, minimumYear int) {
 				continue
 			}
 
-			if engine.Abs(qeval-eval) > 50 {
+			if engine.Abs(qeval-eval) > 25 {
 				continue
 			}
 
 			fields := strings.Fields(search.Pos.GenFEN())
 			result := OutcomeToResult[pgn.Outcome]
 
-			fens = append(fens, fmt.Sprintf("%s %s %s %s c9 \"%s\";\n", fields[0], fields[1], fields[2], fields[3], result))
+			fens = append(fens, fmt.Sprintf("%s %s %s %s 0 1 %f\n", fields[0], fields[1], fields[2], fields[3], result))
 			numPositions++
 		}
 	}

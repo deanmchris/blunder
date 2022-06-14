@@ -88,12 +88,12 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 		fields := strings.Fields(line)
 
 		fen := fields[0] + " " + fields[1] + " - - 0 1"
-		result := fields[5]
+		result := fields[6]
 
 		outcome := Draw
-		if result == "\"1-0\";" {
+		if result == "1.0" {
 			outcome = WhiteWin
-		} else if result == "\"0-1\";" {
+		} else if result == "0.0" {
 			outcome = BlackWin
 		}
 
