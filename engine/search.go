@@ -42,7 +42,7 @@ const (
 	Draw int16 = 0
 
 	// Pruning constants
-	NullMoveReduction               int8  = 2
+	NMR_Depth_Limit                 int8  = 2
 	StaticNullMovePruningBaseMargin int16 = 120
 	FutilityPruningBaseMargin       int16 = 200
 	LateMoveReduction               int8  = 2
@@ -351,7 +351,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// this branch.                                                         //
 	// =====================================================================//
 
-	if doNull && !inCheck && !isPVNode && depth >= NullMoveReduction+1 {
+	if doNull && !inCheck && !isPVNode && depth >= NMR_Depth_Limit {
 		search.Pos.DoNullMove()
 		search.AddHistory(search.Pos.Hash)
 
@@ -700,4 +700,9 @@ func orderMoves(currIndex uint8, moves *MoveList) {
 	tempMove := moves.Moves[currIndex]
 	moves.Moves[currIndex] = moves.Moves[bestIndex]
 	moves.Moves[bestIndex] = tempMove
+}
+
+// A helper method to determine if a move is a pawn push.
+func isPawnPush(pos *Position, move Move) bool {
+	return pos.Squares[move.ToSq()].Type == Pawn && move.MoveType() == Quiet
 }
