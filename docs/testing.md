@@ -217,3 +217,15 @@ Elo difference: 17.2 +/- 11.7, LOS: 99.8 %, DrawRatio: 41.1 %
 SPRT: llr 1.6 (54.4%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Utilize The Fail-Soft Score in Static Null-Move Pruning
+-------------------------------------------------------
+```
+Score of Blunder 8.0.0-rnmp-tuning vs Blunder 8.0.0: 649 - 515 - 836  [0.533] 2000
+...      Blunder 8.0.0-rnmp-tuning playing White: 325 - 244 - 431  [0.540] 1000
+...      Blunder 8.0.0-rnmp-tuning playing Black: 324 - 271 - 405  [0.526] 1000
+...      White vs Black: 596 - 568 - 836  [0.507] 2000
+Elo difference: 23.3 +/- 11.6, LOS: 100.0 %, DrawRatio: 41.8 %
+SPRT: llr 2.32 (78.7%), lbound -2.94, ubound 2.94
+Finished match
+```

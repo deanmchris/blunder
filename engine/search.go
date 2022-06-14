@@ -338,7 +338,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		staticScore := evaluatePos(&search.Pos)
 		scoreMargin := StaticNullMovePruningBaseMargin * int16(depth)
 		if staticScore-scoreMargin >= beta {
-			return beta
+			return staticScore - scoreMargin
 		}
 	}
 
