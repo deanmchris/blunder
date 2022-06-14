@@ -701,8 +701,3 @@ func orderMoves(currIndex uint8, moves *MoveList) {
 	moves.Moves[currIndex] = moves.Moves[bestIndex]
 	moves.Moves[bestIndex] = tempMove
 }
-
-// A helper method to determine if a move is a pawn push.
-func isPawnPush(pos *Position, move Move) bool {
-	return pos.Squares[move.ToSq()].Type == Pawn && move.MoveType() == Quiet
-}
