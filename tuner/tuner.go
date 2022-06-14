@@ -40,9 +40,9 @@ type Entry struct {
 }
 
 // Load the weights for tuning from the current evaluation terms.
-func loadWeights(numWeights int) (weights []float64) {
-	tempWeights := make([]int16, numWeights)
-	weights = make([]float64, numWeights)
+func loadWeights() (weights []float64) {
+	tempWeights := make([]int16, NumWeights)
+	weights = make([]float64, NumWeights)
 
 	copy(tempWeights[0:64], engine.PSQT_MG[engine.Pawn][:])
 	copy(tempWeights[64:128], engine.PSQT_MG[engine.Knight][:])
@@ -72,7 +72,7 @@ func loadWeights(numWeights int) (weights []float64) {
 }
 
 // Load the given number of positions from the training set file.
-func loadEntries(infile string, numPositions int, numWeights int) (entries []Entry) {
+func loadEntries(infile string, numPositions int) (entries []Entry) {
 	file, err := os.Open(infile)
 	if err != nil {
 		panic(err)
@@ -96,7 +96,7 @@ func loadEntries(infile string, numPositions int, numWeights int) (entries []Ent
 
 		pos := engine.Position{}
 		pos.LoadFEN(fen)
-		entries = append(entries, Entry{Coefficents: getCoefficents(&pos, numWeights), Outcome: outcome})
+		entries = append(entries, Entry{Coefficents: getCoefficents(&pos), Outcome: outcome})
 	}
 
 	fmt.Printf("Done loading %d positions...\n", numPositions)
@@ -105,13 +105,13 @@ func loadEntries(infile string, numPositions int, numWeights int) (entries []Ent
 
 // Get the evaluation coefficents of the position so it can be used to calculate
 // the evaluation.
-func getCoefficents(pos *engine.Position, numWeights int) (coefficents []Coefficent) {
+func getCoefficents(pos *engine.Position) (coefficents []Coefficent) {
 	phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
 	mgPhase := 256 - phase
 	egPhase := phase
 
 	allBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
-	tempCoefficents := make([]float64, numWeights)
+	tempCoefficents := make([]float64, NumWeights)
 
 	for allBB != 0 {
 		sq := allBB.PopBit()
@@ -169,7 +169,7 @@ func evaluate(weights []float64, coefficents []Coefficent) (score float64) {
 	return score
 }
 
-func computeGradientNumerically(entries []Entry, weights []float64, scalingFactor float64, epsilon float64) (gradients []float64) {
+func computeGradientNumerically(entries []Entry, weights []float64, epsilon float64) (gradients []float64) {
 	N := float64(len(entries))
 	gradients = make([]float64, len(weights))
 	epsilonAddedErrSums := make([]float64, len(entries))
@@ -180,14 +180,14 @@ func computeGradientNumerically(entries []Entry, weights []float64, scalingFacto
 			weights[k] += epsilon
 
 			score := evaluate(weights, entries[i].Coefficents)
-			sigmoid := 1 / (1 + math.Exp(-(scalingFactor * score)))
+			sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 			err := entries[i].Outcome - sigmoid
 			epsilonAddedErrSums[k] += math.Pow(err, 2)
 
 			weights[k] -= epsilon * 2
 
 			score = evaluate(weights, entries[i].Coefficents)
-			sigmoid = 1 / (1 + math.Exp(-(scalingFactor * score)))
+			sigmoid = 1 / (1 + math.Exp(-(ScalingFactor * score)))
 			err = entries[i].Outcome - sigmoid
 			epsilonSubtractedErrSums[k] += math.Pow(err, 2)
 
@@ -204,16 +204,15 @@ func computeGradientNumerically(entries []Entry, weights []float64, scalingFacto
 	return gradients
 }
 
-func computeGradient(entries []Entry, weights []float64, scalingFactor float64) (gradients []float64) {
+func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
 	N := float64(len(entries))
-	numWeights := len(weights)
-	gradients = make([]float64, numWeights)
+	gradients = make([]float64, NumWeights)
 
 	for i := range entries {
 		score := evaluate(weights, entries[i].Coefficents)
-		sigmoid := 1 / (1 + math.Exp(-(scalingFactor * score)))
+		sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 		err := entries[i].Outcome - sigmoid
-		term := -2 * scalingFactor / N * err * (1 - sigmoid) * sigmoid
+		term := -2 * ScalingFactor / N * err * (1 - sigmoid) * sigmoid
 
 		for k := range entries[i].Coefficents {
 			coefficent := &entries[i].Coefficents[k]
@@ -224,10 +223,10 @@ func computeGradient(entries []Entry, weights []float64, scalingFactor float64) 
 	return gradients
 }
 
-func computeMSE(entries []Entry, weights []float64, scalingFactor float64) (errSum float64) {
+func computeMSE(entries []Entry, weights []float64) (errSum float64) {
 	for i := range entries {
 		score := evaluate(weights, entries[i].Coefficents)
-		sigmoid := 1 / (1 + math.Exp(-(scalingFactor * score)))
+		sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 		err := entries[i].Outcome - sigmoid
 		errSum += math.Pow(err, 2)
 	}
@@ -284,24 +283,21 @@ func printParameters(weights []float64) {
 	fmt.Println()
 }
 
-func Tune(infile string, epochs int, numWeights, numPositions int, learningRate float64, scalingFactor float64) {
-	weights := loadWeights(numWeights)
-	entries := loadEntries(infile, numPositions, numWeights)
+func Tune(infile string, epochs, numPositions int, learningRate float64) {
+	weights := loadWeights()
+	entries := loadEntries(infile, numPositions)
 
-	fmt.Println("Best error before tuning:", computeMSE(entries, weights, scalingFactor))
+	fmt.Println("Best error before tuning:", computeMSE(entries, weights))
+
 	for i := 0; i < epochs; i++ {
-		gradients := computeGradient(entries, weights, scalingFactor)
+		gradients := computeGradient(entries, weights)
 		for k, gradient := range gradients {
 			weights[k] -= learningRate * gradient
 		}
 
 		fmt.Printf("Epoch number %d completed\n", i+1)
-
-		if i%100 == 0 && i > 0 {
-			fmt.Println("Best error:", computeMSE(entries, weights, scalingFactor))
-		}
 	}
 
-	fmt.Println("Best error after tuning:", computeMSE(entries, weights, scalingFactor))
+	fmt.Println("Best error after tuning:", computeMSE(entries, weights))
 	printParameters(weights)
 }
