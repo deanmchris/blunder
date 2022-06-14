@@ -1,8 +1,20 @@
 package engine
 
-import "golang.org/x/exp/constraints"
+import (
+	"unicode"
+
+	"golang.org/x/exp/constraints"
+)
 
 // utils.go contains various utility functions used throughout the engine.
+
+var CharToPieceType = map[rune]uint8{
+	'N': Knight,
+	'B': Bishop,
+	'R': Rook,
+	'Q': Queen,
+	'K': King,
+}
 
 // Convert a string board coordinate to its position
 // number.
@@ -30,7 +42,7 @@ func RankOf(sq uint8) uint8 {
 }
 
 // Get the absolute value of an integer.
-func abs[Int constraints.Integer](n Int) Int {
+func Abs[Int constraints.Integer](n Int) Int {
 	if n < 0 {
 		return -n
 	}
@@ -70,4 +82,99 @@ func (prng *PseduoRandomGenerator) Random64() uint64 {
 // attacks.
 func (prng *PseduoRandomGenerator) SparseRandom64() uint64 {
 	return prng.Random64() & prng.Random64() & prng.Random64()
+}
+
+// Convert a move in short algebraic notation, to the long algebraic notation used
+// by the UCI protocol.
+func ConvertSANToLAN(pos *Position, moveStr string) Move {
+	if moveStr == "O-O" && pos.SideToMove == White {
+		return NewMove(E1, G1, Castle, NoFlag)
+	} else if moveStr == "O-O" && pos.SideToMove == Black {
+		return NewMove(E8, G8, Castle, NoFlag)
+	} else if moveStr == "O-O-O" && pos.SideToMove == White {
+		return NewMove(E1, C1, Castle, NoFlag)
+	} else if moveStr == "O-O-O" && pos.SideToMove == Black {
+		return NewMove(E8, C8, Castle, NoFlag)
+	}
+
+	coords := ""
+	pieceType := Pawn
+
+	for _, char := range moveStr {
+		switch char {
+		case 'N', 'B', 'R', 'Q', 'K':
+			pieceType = CharToPieceType[char]
+		case '1', '2', '3', '4', '5', '6', '7', '8':
+			coords += string(char)
+		case 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h':
+			coords += string(char)
+		}
+	}
+
+	moves := genMoves(pos)
+	matchingMove := NullMove
+
+	for i := 0; i < int(moves.Count); i++ {
+		move := moves.Moves[i]
+		moved := pos.Squares[move.FromSq()].Type
+		captured := pos.Squares[move.ToSq()].Type
+
+		if len(coords) == 2 {
+			if len(moveStr) == 4 && moveStr[2] == '=' {
+				promotionType := pieceType - 1
+				toSq := coordinateToPos(coords[0:2])
+				if move.ToSq() == toSq && move.MoveType() == Promotion && move.Flag() == promotionType {
+					matchingMove = move
+				}
+			} else {
+				toSq := coordinateToPos(coords)
+				if toSq == move.ToSq() && pieceType == moved {
+					matchingMove = move
+				}
+			}
+		} else if len(coords) == 3 {
+			if len(moveStr) == 6 && moveStr[4] == '=' {
+				promotionType := pieceType - 1
+				toSq := coordinateToPos(coords[1:])
+
+				if captured != NoType &&
+					move.MoveType() == Promotion &&
+					move.Flag() == promotionType &&
+					move.ToSq() == toSq {
+					matchingMove = move
+				}
+			} else {
+				toSq := coordinateToPos(coords[1:])
+				fileOrRank := coords[0]
+				moveCoords := move.String()
+
+				if unicode.IsLetter(rune(fileOrRank)) {
+					if toSq == move.ToSq() && fileOrRank == moveCoords[0] && moved == pieceType {
+						matchingMove = move
+					}
+				} else {
+					if toSq == move.ToSq() && fileOrRank == moveCoords[1] && moved == pieceType {
+						matchingMove = move
+					}
+				}
+			}
+		} else if len(coords) == 4 {
+			toSq := coordinateToPos(coords[0:2])
+			fromSq := coordinateToPos(coords[2:4])
+			if toSq == move.ToSq() && fromSq == move.FromSq() {
+				matchingMove = move
+			}
+		}
+
+		if matchingMove != NullMove {
+			if !pos.DoMove(matchingMove) {
+				pos.UndoMove(matchingMove)
+				continue
+			}
+			pos.UndoMove(matchingMove)
+			break
+		}
+	}
+
+	return matchingMove
 }

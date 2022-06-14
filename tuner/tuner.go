@@ -13,7 +13,7 @@ import (
 
 const (
 	Iterations    = 2000
-	NumWeights    = 780
+	NumWeights    = 790
 	LearningRate  = 1000000
 	ScalingFactor = 0.5
 
@@ -64,6 +64,9 @@ func loadWeights() (weights []float64) {
 	tempWeights[778] = engine.BishopPairBonusMG
 	tempWeights[779] = engine.BishopPairBonusEG
 
+	copy(tempWeights[780:785], engine.PieceMobilityMG[:])
+	copy(tempWeights[785:790], engine.PieceMobilityEG[:])
+
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
 	}
@@ -110,7 +113,8 @@ func getCoefficents(pos *engine.Position) (coefficents []Coefficent) {
 	mgPhase := 256 - phase
 	egPhase := phase
 
-	allBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
+	staticAllBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
+	allBB := staticAllBB
 	tempCoefficents := make([]float64, NumWeights)
 
 	for allBB != 0 {
@@ -127,6 +131,32 @@ func getCoefficents(pos *engine.Position) (coefficents []Coefficent) {
 
 		tempCoefficents[mgIndex] += sign * float64(mgPhase)
 		tempCoefficents[egIndex] += sign * float64(egPhase)
+
+		usBB := pos.Sides[piece.Color]
+		pieceType := uint16(piece.Type)
+
+		switch piece.Type {
+		case engine.Knight:
+			moves := engine.KnightMoves[sq] & ^usBB
+			mobility := float64(moves.CountBits())
+			tempCoefficents[780+pieceType] += (mobility - 4) * sign * float64(mgPhase)
+			tempCoefficents[785+pieceType] += (mobility - 4) * sign * float64(egPhase)
+		case engine.Bishop:
+			moves := engine.GenBishopMoves(sq, staticAllBB) & ^usBB
+			mobility := float64(moves.CountBits())
+			tempCoefficents[780+pieceType] += (mobility - 7) * sign * float64(mgPhase)
+			tempCoefficents[785+pieceType] += (mobility - 7) * sign * float64(egPhase)
+		case engine.Rook:
+			moves := engine.GenRookMoves(sq, staticAllBB) & ^usBB
+			mobility := float64(moves.CountBits())
+			tempCoefficents[780+pieceType] += (mobility - 7) * sign * float64(mgPhase)
+			tempCoefficents[785+pieceType] += (mobility - 7) * sign * float64(egPhase)
+		case engine.Queen:
+			moves := (engine.GenBishopMoves(sq, staticAllBB) | engine.GenRookMoves(sq, staticAllBB)) & ^usBB
+			mobility := float64(moves.CountBits())
+			tempCoefficents[780+pieceType] += (mobility - 14) * sign * float64(mgPhase)
+			tempCoefficents[785+pieceType] += (mobility - 14) * sign * float64(egPhase)
+		}
 	}
 
 	for piece := 0; piece <= 4; piece++ {
@@ -280,14 +310,17 @@ func printParameters(weights []float64) {
 
 	fmt.Println("\nBishop Pair Bonus MG:", weights[778])
 	fmt.Println("\nBishop Pair Bonus EG:", weights[779])
+
+	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:785]))
+	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[785:790]))
+
 	fmt.Println()
 }
 
 func Tune(infile string, epochs, numPositions int, learningRate float64) {
 	weights := loadWeights()
 	entries := loadEntries(infile, numPositions)
-
-	fmt.Println("Best error before tuning:", computeMSE(entries, weights))
+	beforeErr := computeMSE(entries, weights)
 
 	for i := 0; i < epochs; i++ {
 		gradients := computeGradient(entries, weights)
@@ -298,6 +331,7 @@ func Tune(infile string, epochs, numPositions int, learningRate float64) {
 		fmt.Printf("Epoch number %d completed\n", i+1)
 	}
 
-	fmt.Println("Best error after tuning:", computeMSE(entries, weights))
 	printParameters(weights)
+	fmt.Println("Best error before tuning:", beforeErr)
+	fmt.Println("Best error after tuning:", computeMSE(entries, weights))
 }

@@ -71,27 +71,27 @@ func genPieceMoves(pos *Position, piece, sq uint8, moves *MoveList, targets Bitb
 		kingMoves := (KingMoves[sq] & ^usBB) & targets
 		genMovesFromBB(pos, sq, kingMoves, enemyBB, moves)
 	case Bishop:
-		bishopMoves := (genBishopMoves(sq, usBB|enemyBB) & ^usBB) & targets
+		bishopMoves := (GenBishopMoves(sq, usBB|enemyBB) & ^usBB) & targets
 		genMovesFromBB(pos, sq, bishopMoves, enemyBB, moves)
 	case Rook:
-		rookMoves := (genRookMoves(sq, usBB|enemyBB) & ^usBB) & targets
+		rookMoves := (GenRookMoves(sq, usBB|enemyBB) & ^usBB) & targets
 		genMovesFromBB(pos, sq, rookMoves, enemyBB, moves)
 	case Queen:
-		bishopMoves := (genBishopMoves(sq, usBB|enemyBB) & ^usBB) & targets
-		rookMoves := (genRookMoves(sq, usBB|enemyBB) & ^usBB) & targets
+		bishopMoves := (GenBishopMoves(sq, usBB|enemyBB) & ^usBB) & targets
+		rookMoves := (GenRookMoves(sq, usBB|enemyBB) & ^usBB) & targets
 		genMovesFromBB(pos, sq, bishopMoves|rookMoves, enemyBB, moves)
 	}
 }
 
 // Generate rook moves.
-func genRookMoves(sq uint8, blockers Bitboard) Bitboard {
+func GenRookMoves(sq uint8, blockers Bitboard) Bitboard {
 	magic := &RookMagics[sq]
 	blockers &= magic.BlockerMask
 	return RookMoves[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
 }
 
 // Generate rook moves.
-func genBishopMoves(sq uint8, blockers Bitboard) Bitboard {
+func GenBishopMoves(sq uint8, blockers Bitboard) Bitboard {
 	magic := &BishopMagics[sq]
 	blockers &= magic.BlockerMask
 	return BishopMoves[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
@@ -227,8 +227,8 @@ func sqIsAttacked(pos *Position, usColor, sq uint8) bool {
 	enemyKing := pos.Pieces[usColor^1][King]
 	enemyPawns := pos.Pieces[usColor^1][Pawn]
 
-	intercardinalRays := genBishopMoves(sq, enemyBB|usBB)
-	cardinalRaysRays := genRookMoves(sq, enemyBB|usBB)
+	intercardinalRays := GenBishopMoves(sq, enemyBB|usBB)
+	cardinalRaysRays := GenRookMoves(sq, enemyBB|usBB)
 
 	if intercardinalRays&(enemyBishops|enemyQueens) != 0 {
 		return true

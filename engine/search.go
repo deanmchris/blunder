@@ -257,7 +257,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	search.nodes++
 
 	if ply >= MaxDepth {
-		return evaluatePos(&search.Pos)
+		return EvaluatePos(&search.Pos)
 	}
 
 	// Make sure we haven't gone pass the node count limit.
@@ -299,7 +299,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// score.
 	if depth <= 0 {
 		search.nodes--
-		return search.qsearch(alpha, beta, ply, pvLine)
+		return search.Qsearch(alpha, beta, ply, pvLine)
 	}
 
 	// Don't do any extra work if the current position is a draw. We
@@ -334,8 +334,8 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// fail-high and we can prune its branch.                               //
 	// =====================================================================//
 
-	if !inCheck && !isPVNode && abs(beta) < Checkmate {
-		staticScore := evaluatePos(&search.Pos)
+	if !inCheck && !isPVNode && Abs(beta) < Checkmate {
+		staticScore := EvaluatePos(&search.Pos)
 		scoreMargin := StaticNullMovePruningBaseMargin * int16(depth)
 		if staticScore-scoreMargin >= beta {
 			return staticScore - scoreMargin
@@ -366,7 +366,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			return 0
 		}
 
-		if score >= beta && abs(score) < Checkmate {
+		if score >= beta && Abs(score) < Checkmate {
 			return beta
 		}
 	}
@@ -380,7 +380,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if depth <= 8 && !isPVNode && !inCheck && alpha < Checkmate && beta < Checkmate {
-		staticScore := evaluatePos(&search.Pos)
+		staticScore := EvaluatePos(&search.Pos)
 		margin := FutilityMargins[depth]
 		canFutilityPrune = staticScore+margin <= alpha
 	}
@@ -519,7 +519,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 // a special form of negamax until the position is quiet (i.e there are no
 // winning tatical captures). Doing this is known as quiescence search, and
 // it makes the static evaluation much more accurate.
-func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine) int16 {
+func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine) int16 {
 	search.nodes++
 
 	if search.totalNodes+search.nodes >= search.Timer.MaxNodeCount {
@@ -534,7 +534,7 @@ func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine) i
 		return 0
 	}
 
-	bestScore := evaluatePos(&search.Pos)
+	bestScore := EvaluatePos(&search.Pos)
 
 	// If the score is greater than beta, what our opponet can
 	// already guarantee early in the search tree, then we
@@ -567,7 +567,7 @@ func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine) i
 			continue
 		}
 
-		score := -search.qsearch(-beta, -alpha, maxPly, &childPVLine)
+		score := -search.Qsearch(-beta, -alpha, maxPly, &childPVLine)
 		search.Pos.UndoMove(move)
 
 		if score > bestScore {
