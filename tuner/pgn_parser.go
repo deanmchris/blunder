@@ -21,6 +21,8 @@ const (
 	ResultTagPattern   = "\\[Result .*\\]"
 	WhiteEloTagPattern = "\\[WhiteElo .*\\]"
 	BlackEloTagPattern = "\\[BlackElo .*\\]"
+	VariantTagPattern  = "\\[Variant .*\\]"
+	DateTagPattern     = "\\[Date .*\\]"
 	TagPattern         = "\\[.*\\]"
 	MovePattern        = "([a-h]x)?([a-h][81]=[QRBN])|(([QRBNK])?([a-h])?([1-8])?(x)?[a-h][1-8])|(O-O-O)|(O-O)"
 )
@@ -33,7 +35,7 @@ type PGN struct {
 
 // Parse a file of PGNs. The file name is assumed to be the name of a
 // file in the blunder/tuner directory.
-func parsePGNs(filename string, minimumElo int) (pgns []PGN, skipped int) {
+func parsePGNs(filename string, minimumElo, minimumYear int) (pgns []PGN, skipped int) {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
@@ -64,6 +66,8 @@ func parsePGNs(filename string, minimumElo int) (pgns []PGN, skipped int) {
 	resultTagRegex, _ := regexp.Compile(ResultTagPattern)
 	whiteEloTagRegex, _ := regexp.Compile(WhiteEloTagPattern)
 	blackEloTagRegex, _ := regexp.Compile(BlackEloTagPattern)
+	variantTagRegex, _ := regexp.Compile(VariantTagPattern)
+	dateTagRegex, _ := regexp.Compile(DateTagPattern)
 	tagRegex, _ := regexp.Compile(TagPattern)
 	moveRegex, _ := regexp.Compile(MovePattern)
 
@@ -71,6 +75,38 @@ func parsePGNs(filename string, minimumElo int) (pgns []PGN, skipped int) {
 		var fen string
 		var outcome uint8
 		var moves []engine.Move
+
+		// Skip any chess variants
+		variantTag := variantTagRegex.FindString(chunk)
+		if variantTag != "" {
+			log.Println("invalid pgn skipped: chess variant")
+			skipped++
+			continue
+		}
+
+		dateTag := dateTagRegex.FindString(chunk)
+		if dateTag == "" {
+			log.Println("invalid pgn skipped: no date")
+			skipped++
+			continue
+		} else {
+			dateStr := strings.Fields(dateTag)[1]
+			dateStr = strings.TrimPrefix(dateStr, "\"")
+			dateStr = strings.TrimSuffix(dateStr, "\"]")
+
+			year, err := strconv.Atoi(dateStr[0:4])
+			if err != nil {
+				log.Println("invalid pgn skipped: date in unexpected format")
+				skipped++
+				continue
+			}
+
+			if year < minimumYear {
+				log.Println("unwanted pgn skipped: too old")
+				skipped++
+				continue
+			}
+		}
 
 		fenTag := fenTagRegex.FindString(chunk)
 		if fenTag == "" {

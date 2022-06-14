@@ -20,7 +20,7 @@ var OutcomeToResult []string = []string{
 
 // Given an infile containg the PGNs, extract quiet positions from the files,
 // and write them to the given outfile.
-func GenTrainingData(infile, outfile string, minimumElo int) {
+func GenTrainingData(infile, outfile string, minimumElo, minimumYear int) {
 	file, err := os.OpenFile(outfile, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		panic(err)
@@ -37,7 +37,7 @@ func GenTrainingData(infile, outfile string, minimumElo int) {
 		math.MaxUint64,
 	)
 
-	pgns, skipped := parsePGNs(infile, minimumElo)
+	pgns, skipped := parsePGNs(infile, minimumElo, minimumYear)
 	numPositions := 0
 	fens := []string{}
 
@@ -47,7 +47,7 @@ func GenTrainingData(infile, outfile string, minimumElo int) {
 		fmt.Printf("Extracting positions from game %d\n", i+1)
 
 		search.Pos.LoadFEN(pgn.Fen)
-		for j, move := range pgn.Moves {
+		for moveCnt, move := range pgn.Moves {
 			search.Pos.DoMove(move)
 			search.Pos.StatePly--
 
@@ -58,7 +58,7 @@ func GenTrainingData(infile, outfile string, minimumElo int) {
 				continue
 			}
 
-			if (len(pgn.Moves) - j) <= 10 {
+			if (len(pgn.Moves) - moveCnt) <= 10 {
 				continue
 			}
 
