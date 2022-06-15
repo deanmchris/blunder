@@ -14,8 +14,9 @@ import (
 const (
 	Iterations    = 2000
 	NumWeights    = 780
-	LearningRate  = 1000000
-	ScalingFactor = 0.5
+	ScalingFactor = 0.01
+	Epsilon       = 0.00000001
+	LearningRate  = 0.5
 
 	Draw     float64 = 0.5
 	WhiteWin float64 = 1.0
@@ -85,12 +86,12 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 		fields := strings.Fields(line)
 
 		fen := fields[0] + " " + fields[1] + " - - 0 1"
-		result := fields[5]
+		result := fields[6]
 
 		outcome := Draw
-		if result == "\"1-0\";" {
+		if result == "[1.0]" {
 			outcome = WhiteWin
-		} else if result == "\"0-1\";" {
+		} else if result == "[0.0]" {
 			outcome = BlackWin
 		}
 
@@ -205,14 +206,17 @@ func computeGradientNumerically(entries []Entry, weights []float64, epsilon floa
 }
 
 func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
-	N := float64(len(entries))
 	gradients = make([]float64, NumWeights)
 
 	for i := range entries {
 		score := evaluate(weights, entries[i].Coefficents)
 		sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 		err := entries[i].Outcome - sigmoid
-		term := -2 * ScalingFactor / N * err * (1 - sigmoid) * sigmoid
+
+		// Note the gradient here is incomplete, and should inclue the -2k/N coefficent. However,
+		// algebraically this can be factored out of the equation and done only when we need to use
+		// the gradient. This saves time and accuracy.
+		term := err * (1 - sigmoid) * sigmoid
 
 		for k := range entries[i].Coefficents {
 			coefficent := &entries[i].Coefficents[k]
@@ -283,21 +287,28 @@ func printParameters(weights []float64) {
 	fmt.Println()
 }
 
-func Tune(infile string, epochs, numPositions int, learningRate float64) {
+func Tune(infile string, epochs, numPositions int) {
 	weights := loadWeights()
 	entries := loadEntries(infile, numPositions)
 
-	fmt.Println("Best error before tuning:", computeMSE(entries, weights))
+	gradientsSumsSquared := make([]float64, len(weights))
+	beforeErr := computeMSE(entries, weights)
 
-	for i := 0; i < epochs; i++ {
+	N := float64(numPositions)
+	learningRate := LearningRate
+
+	for epoch := 0; epoch < epochs; epoch++ {
 		gradients := computeGradient(entries, weights)
 		for k, gradient := range gradients {
-			weights[k] -= learningRate * gradient
+			leadingCoefficent := (-2 * ScalingFactor) / N
+			gradientsSumsSquared[k] += (leadingCoefficent * gradient) * (leadingCoefficent * gradient)
+			weights[k] += (leadingCoefficent * gradient) * (-learningRate / math.Sqrt(gradientsSumsSquared[k]+Epsilon))
 		}
 
-		fmt.Printf("Epoch number %d completed\n", i+1)
+		fmt.Printf("Epoch number %d completed\n", epoch+1)
 	}
 
-	fmt.Println("Best error after tuning:", computeMSE(entries, weights))
 	printParameters(weights)
+	fmt.Println("Best error before tuning:", beforeErr)
+	fmt.Println("Best error after tuning:", computeMSE(entries, weights))
 }
