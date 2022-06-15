@@ -15,7 +15,7 @@ const (
 	Iterations    = 2000
 	NumWeights    = 790
 	LearningRate  = 1000000
-	ScalingFactor = 0.5
+	ScalingFactor = 0.01
 
 	Draw     float64 = 0.5
 	WhiteWin float64 = 1.0
@@ -91,9 +91,9 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 		result := fields[6]
 
 		outcome := Draw
-		if result == "1.0" {
+		if result == "[1.0]" {
 			outcome = WhiteWin
-		} else if result == "0.0" {
+		} else if result == "[0.0]" {
 			outcome = BlackWin
 		}
 
@@ -322,13 +322,36 @@ func Tune(infile string, epochs, numPositions int, learningRate float64) {
 	entries := loadEntries(infile, numPositions)
 	beforeErr := computeMSE(entries, weights)
 
+	errors := []float64{beforeErr}
+	previousGradientsSquared := make([]float64, len(weights))
+	decayRate := 0.9
+
 	for i := 0; i < epochs; i++ {
 		gradients := computeGradient(entries, weights)
 		for k, gradient := range gradients {
-			weights[k] -= learningRate * gradient
+			sumOfGradientSquared := previousGradientsSquared[k]*decayRate + (gradient*gradient)*(1-decayRate)
+			delta := -learningRate * gradient / (math.Sqrt(sumOfGradientSquared) + 0.00000001)
+			weights[k] += delta
+			previousGradientsSquared[k] = sumOfGradientSquared
 		}
 
 		fmt.Printf("Epoch number %d completed\n", i+1)
+		if i%20 == 0 && i > 0 {
+			errors = append(errors, computeMSE(entries, weights))
+		}
+	}
+
+	errors = append(errors, computeMSE(entries, weights))
+	file, err := os.OpenFile("errors.txt", os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, err := range errors {
+		_, e := file.WriteString(fmt.Sprintf("%f\n", err))
+		if e != nil {
+			panic(e)
+		}
 	}
 
 	printParameters(weights)

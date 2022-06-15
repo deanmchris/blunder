@@ -51,8 +51,8 @@ func GenTrainingData(infile, outfile string, minimumElo, minimumYear int) {
 			search.Pos.DoMove(move)
 			search.Pos.StatePly--
 
-			eval := engine.EvaluatePos(&search.Pos)
-			qeval := search.Qsearch(-engine.Inf, engine.Inf, 0, &engine.PVLine{})
+			pvLine := engine.PVLine{}
+			search.Qsearch(-engine.Inf, engine.Inf, 0, &pvLine)
 
 			if search.Pos.InCheck() {
 				continue
@@ -62,11 +62,7 @@ func GenTrainingData(infile, outfile string, minimumElo, minimumYear int) {
 				continue
 			}
 
-			if engine.Abs(qeval-eval) > 25 {
-				continue
-			}
-
-			fields := strings.Fields(search.Pos.GenFEN())
+			fields := strings.Fields(GetFenFromPV(pvLine, &search.Pos))
 			result := OutcomeToResult[pgn.Outcome]
 
 			fens = append(fens, fmt.Sprintf("%s %s %s %s 0 1 %f\n", fields[0], fields[1], fields[2], fields[3], result))
@@ -87,4 +83,18 @@ func GenTrainingData(infile, outfile string, minimumElo, minimumYear int) {
 
 	fmt.Printf("%d positions succesfully extracted!\n", numPositions)
 	file.Close()
+}
+
+func GetFenFromPV(pvLine engine.PVLine, pos *engine.Position) (fen string) {
+	for _, move := range pvLine.Moves {
+		pos.DoMove(move)
+	}
+
+	fen = pos.GenFEN()
+
+	for i := len(pvLine.Moves) - 1; i >= 0; i-- {
+		pos.UndoMove(pvLine.Moves[i])
+	}
+
+	return fen
 }
