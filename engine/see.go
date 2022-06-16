@@ -75,8 +75,8 @@ func (pos *Position) attackersForSide(attackerColor, sq uint8, occupiedBB Bitboa
 	attackingKing := pos.Pieces[attackerColor][King]
 	attackingPawns := pos.Pieces[attackerColor][Pawn]
 
-	intercardinalRays := genBishopMoves(sq, occupiedBB)
-	cardinalRaysRays := genRookMoves(sq, occupiedBB)
+	intercardinalRays := GenBishopMoves(sq, occupiedBB)
+	cardinalRaysRays := GenRookMoves(sq, occupiedBB)
 
 	attackers |= intercardinalRays & (attackingBishops | attackingQueens)
 	attackers |= cardinalRaysRays & (attackingRooks | attackingQueens)
@@ -91,8 +91,8 @@ func (pos *Position) considerXrays(sq uint8, occupiedBB Bitboard) (attackers Bit
 	attackingRooks := pos.Pieces[White][Rook] | pos.Pieces[Black][Rook]
 	attackingQueens := pos.Pieces[White][Queen] | pos.Pieces[Black][Queen]
 
-	intercardinalRays := genBishopMoves(sq, occupiedBB)
-	cardinalRaysRays := genRookMoves(sq, occupiedBB)
+	intercardinalRays := GenBishopMoves(sq, occupiedBB)
+	cardinalRaysRays := GenRookMoves(sq, occupiedBB)
 
 	attackers |= intercardinalRays & (attackingBishops | attackingQueens)
 	attackers |= cardinalRaysRays & (attackingRooks | attackingQueens)

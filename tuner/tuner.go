@@ -13,7 +13,7 @@ import (
 
 const (
 	Iterations    = 2000
-	NumWeights    = 780
+	NumWeights    = 790
 	ScalingFactor = 0.01
 	Epsilon       = 0.00000001
 	LearningRate  = 0.5
@@ -65,6 +65,9 @@ func loadWeights() (weights []float64) {
 	tempWeights[778] = engine.BishopPairBonusMG
 	tempWeights[779] = engine.BishopPairBonusEG
 
+	copy(tempWeights[780:785], engine.PieceMobilityMG[:])
+	copy(tempWeights[785:790], engine.PieceMobilityEG[:])
+
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
 	}
@@ -112,6 +115,7 @@ func getCoefficents(pos *engine.Position) (coefficents []Coefficent) {
 	egPhase := phase
 
 	allBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
+	staticAllBB := allBB
 	tempCoefficents := make([]float64, NumWeights)
 
 	for allBB != 0 {
@@ -128,6 +132,32 @@ func getCoefficents(pos *engine.Position) (coefficents []Coefficent) {
 
 		tempCoefficents[mgIndex] += sign * float64(mgPhase)
 		tempCoefficents[egIndex] += sign * float64(egPhase)
+
+		usBB := pos.Sides[piece.Color]
+		pieceType := uint16(piece.Type)
+
+		switch piece.Type {
+		case engine.Knight:
+			moves := engine.KnightMoves[sq] & ^usBB
+			mobility := float64(moves.CountBits())
+			tempCoefficents[780+pieceType] += (mobility - 4) * sign * float64(mgPhase)
+			tempCoefficents[785+pieceType] += (mobility - 4) * sign * float64(egPhase)
+		case engine.Bishop:
+			moves := engine.GenBishopMoves(sq, staticAllBB) & ^usBB
+			mobility := float64(moves.CountBits())
+			tempCoefficents[780+pieceType] += (mobility - 7) * sign * float64(mgPhase)
+			tempCoefficents[785+pieceType] += (mobility - 7) * sign * float64(egPhase)
+		case engine.Rook:
+			moves := engine.GenRookMoves(sq, staticAllBB) & ^usBB
+			mobility := float64(moves.CountBits())
+			tempCoefficents[780+pieceType] += (mobility - 7) * sign * float64(mgPhase)
+			tempCoefficents[785+pieceType] += (mobility - 7) * sign * float64(egPhase)
+		case engine.Queen:
+			moves := (engine.GenBishopMoves(sq, staticAllBB) | engine.GenRookMoves(sq, staticAllBB)) & ^usBB
+			mobility := float64(moves.CountBits())
+			tempCoefficents[780+pieceType] += (mobility - 14) * sign * float64(mgPhase)
+			tempCoefficents[785+pieceType] += (mobility - 14) * sign * float64(egPhase)
+		}
 	}
 
 	for piece := 0; piece <= 4; piece++ {
@@ -215,7 +245,7 @@ func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
 
 		// Note the gradient here is incomplete, and should inclue the -2k/N coefficent. However,
 		// algebraically this can be factored out of the equation and done only when we need to use
-		// the gradient. This saves time and accuracy.
+		// the gradient. This saves time and accuracy. Thanks to Ethereal for this tweak.
 		term := err * (1 - sigmoid) * sigmoid
 
 		for k := range entries[i].Coefficents {
@@ -261,7 +291,7 @@ func prettyPrintPSQT(name string, psqt []int16) {
 		}
 		fmt.Print(psqt[sq], ", ")
 	}
-	fmt.Print("\n}\n")
+	fmt.Print("\n},\n")
 }
 
 func printParameters(weights []float64) {
@@ -284,6 +314,10 @@ func printParameters(weights []float64) {
 
 	fmt.Println("\nBishop Pair Bonus MG:", weights[778])
 	fmt.Println("\nBishop Pair Bonus EG:", weights[779])
+
+	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:785]))
+	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[785:790]))
+
 	fmt.Println()
 }
 

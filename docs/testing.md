@@ -229,3 +229,17 @@ Elo difference: 23.3 +/- 11.6, LOS: 100.0 %, DrawRatio: 41.8 %
 SPRT: llr 2.32 (78.7%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Add Basic Mobility Evaluation
+-----------------------------
+```
+Post-Convergence rating estimation
+done
+
+   # PLAYER                          : RATING    POINTS  PLAYED    (%)
+   1 Blunder 8.0.0-mobility          : 2513.8    1078.5    2000   53.9%
+   2 Blunder 8.0.0                   : 2486.2     921.5    2000   46.1%
+
+White advantage = 0.00
+Draw rate (equal opponents) = 50.00 %
+```
