@@ -16,15 +16,30 @@ const (
 type Eval struct {
 	MGScores [2]int16
 	EGScores [2]int16
+
+	KingZones        [2]KingZone
+	KingAttackPoints [2]uint16
+	KingAttackers    [2]uint8
 }
+
+type KingZone struct {
+	OuterRing Bitboard
+	InnerRing Bitboard
+}
+
+var KingZones [64]KingZone
 
 var BishopPairBonusMG int16 = 26
 var BishopPairBonusEG int16 = 44
 
 var PieceValueMG = [6]int16{96, 345, 356, 467, 963}
 var PieceValueEG = [6]int16{141, 251, 273, 491, 922}
-var PieceMobilityMG [5]int16 = [5]int16{0, 0, 4, 5, 0}
-var PieceMobilityEG [5]int16 = [5]int16{0, 0, 3, 2, 6}
+
+var PieceMobilityMG = [5]int16{0, 0, 4, 5, 0}
+var PieceMobilityEG = [5]int16{0, 0, 3, 2, 6}
+
+var OuterRingAttackPoints = [5]int16{0, 1, 1, 1, 1}
+var InnerRingAttackPoints = [5]int16{0, 1, 2, 2, 1}
 
 var PhaseValues = [6]int16{
 	PawnPhase,
@@ -199,11 +214,19 @@ var FlipSq [2][64]int = [2][64]int{
 
 // Evaluate a position and give a score, from the perspective of the side to move (
 // more positive if it's good for the side to move, otherwise more negative).
-func evaluatePos(pos *Position) int16 {
-	eval := Eval{MGScores: pos.MGScores, EGScores: pos.EGScores}
-	phase := pos.Phase
+func EvaluatePos(pos *Position) int16 {
+	eval := Eval{
+		MGScores: pos.MGScores,
+		EGScores: pos.EGScores,
+		KingZones: [2]KingZone{
+			KingZones[pos.Pieces[White][King].Msb()],
+			KingZones[pos.Pieces[Black][King].Msb()],
+		},
+	}
 
+	phase := pos.Phase
 	allBB := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
+
 	for allBB != 0 {
 		sq := allBB.PopBit()
 		piece := pos.Squares[sq]
@@ -222,13 +245,16 @@ func evaluatePos(pos *Position) int16 {
 
 	if pos.Pieces[White][Bishop].CountBits() >= 2 {
 		eval.MGScores[White] += BishopPairBonusMG
-		eval.MGScores[White] += BishopPairBonusEG
+		eval.EGScores[White] += BishopPairBonusEG
 	}
 
 	if pos.Pieces[Black][Bishop].CountBits() >= 2 {
 		eval.MGScores[Black] += BishopPairBonusMG
-		eval.MGScores[Black] += BishopPairBonusEG
+		eval.EGScores[Black] += BishopPairBonusEG
 	}
+
+	// evalKing(pos, White, pos.Pieces[White][King].Msb(), &eval)
+	// evalKing(pos, Black, pos.Pieces[Black][King].Msb(), &eval)
 
 	mgScore := eval.MGScores[pos.SideToMove] - eval.MGScores[pos.SideToMove^1]
 	egScore := eval.EGScores[pos.SideToMove] - eval.EGScores[pos.SideToMove^1]
@@ -245,6 +271,15 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 
 	eval.MGScores[color] += (mobility - 4) * PieceMobilityMG[Knight]
 	eval.EGScores[color] += (mobility - 4) * PieceMobilityEG[Knight]
+
+	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
+	innerRingAttacks := moves & eval.KingZones[color^1].InnerRing
+
+	if outerRingAttacks != 0 || innerRingAttacks != 0 {
+		eval.KingAttackers[color]++
+		eval.KingAttackPoints[color] += uint16(outerRingAttacks.CountBits()) * uint16(OuterRingAttackPoints[Knight])
+		eval.KingAttackPoints[color] += uint16(innerRingAttacks.CountBits()) * uint16(InnerRingAttackPoints[Knight])
+	}
 }
 
 // Evaluate the score of a bishop.
@@ -257,6 +292,15 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 
 	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Bishop]
 	eval.EGScores[color] += (mobility - 7) * PieceMobilityEG[Bishop]
+
+	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
+	innerRingAttacks := moves & eval.KingZones[color^1].InnerRing
+
+	if outerRingAttacks != 0 || innerRingAttacks != 0 {
+		eval.KingAttackers[color]++
+		eval.KingAttackPoints[color] += uint16(outerRingAttacks.CountBits()) * uint16(OuterRingAttackPoints[Bishop])
+		eval.KingAttackPoints[color] += uint16(innerRingAttacks.CountBits()) * uint16(InnerRingAttackPoints[Bishop])
+	}
 }
 
 // Evaluate the score of a rook.
@@ -269,6 +313,15 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 
 	eval.MGScores[color] += (mobility - 7) * PieceMobilityMG[Rook]
 	eval.EGScores[color] += (mobility - 7) * PieceMobilityEG[Rook]
+
+	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
+	innerRingAttacks := moves & eval.KingZones[color^1].InnerRing
+
+	if outerRingAttacks != 0 || innerRingAttacks != 0 {
+		eval.KingAttackers[color]++
+		eval.KingAttackPoints[color] += uint16(outerRingAttacks.CountBits()) * uint16(OuterRingAttackPoints[Rook])
+		eval.KingAttackPoints[color] += uint16(innerRingAttacks.CountBits()) * uint16(InnerRingAttackPoints[Rook])
+	}
 }
 
 // Evaluate the score of a queen.
@@ -281,4 +334,39 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 
 	eval.MGScores[color] += (mobility - 14) * PieceMobilityMG[Queen]
 	eval.EGScores[color] += (mobility - 14) * PieceMobilityEG[Queen]
+
+	outerRingAttacks := moves & eval.KingZones[color^1].OuterRing
+	innerRingAttacks := moves & eval.KingZones[color^1].InnerRing
+
+	if outerRingAttacks != 0 || innerRingAttacks != 0 {
+		eval.KingAttackers[color]++
+		eval.KingAttackPoints[color] += uint16(outerRingAttacks.CountBits()) * uint16(OuterRingAttackPoints[Queen])
+		eval.KingAttackPoints[color] += uint16(innerRingAttacks.CountBits()) * uint16(InnerRingAttackPoints[Queen])
+	}
+}
+
+// Evaluate the score of a king.
+func evalKing(pos *Position, color, sq uint8, eval *Eval) {
+	// Take all the king saftey points collected for the enemy,
+	// and see what kind of penatly we should get.
+	enemyPoints := eval.KingAttackPoints[color^1]
+	penatly := int16((enemyPoints * enemyPoints) / 2)
+	if eval.KingAttackers[color^1] >= 2 && pos.Pieces[color^1][Queen] != 0 {
+		eval.MGScores[color] -= penatly
+	}
+}
+
+func InitEvalBitboards() {
+	for sq := 0; sq < 64; sq++ {
+		// Create king zones.
+		sqBB := SquareBB[sq]
+		zone := ((sqBB & ClearFile[FileH]) >> 1) | ((sqBB & (ClearFile[FileG] & ClearFile[FileH])) >> 2)
+		zone |= ((sqBB & ClearFile[FileA]) << 1) | ((sqBB & (ClearFile[FileB] & ClearFile[FileA])) << 2)
+		zone |= sqBB
+
+		zone |= ((zone >> 8) | (zone >> 16))
+		zone |= ((zone << 8) | (zone << 16))
+
+		KingZones[sq] = KingZone{OuterRing: zone & ^(KingMoves[sq] | sqBB), InnerRing: KingMoves[sq] | sqBB}
+	}
 }

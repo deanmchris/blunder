@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 8.0.0-IID"
+	EngineName   = "Blunder 8.0.0-king-safety"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
@@ -149,7 +149,7 @@ func RunCommLoop() {
 		} else if command == "help\n" {
 			fmt.Print(HelpMessage)
 		} else if command == "eval\n" {
-			fmt.Println(evaluatePos(&inter.Search.Pos), "cp")
+			fmt.Println(EvaluatePos(&inter.Search.Pos), "cp")
 		} else if command == "quit\n" {
 			break
 		} else if command == "\n" {

@@ -111,84 +111,125 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 // the evaluation.
 func getCoefficents(pos *engine.Position) (coefficents []Coefficent) {
 	phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
-	mgPhase := 256 - phase
-	egPhase := phase
+	mgPhase := float64(256 - phase)
+	egPhase := float64(phase)
 
 	allBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
-	staticAllBB := allBB
-	tempCoefficents := make([]float64, NumWeights)
+	rawCoefficents := make([]float64, NumWeights)
 
 	for allBB != 0 {
 		sq := allBB.PopBit()
 		piece := pos.Squares[sq]
 
-		mgIndex := uint16(piece.Type)*64 + uint16(engine.FlipSq[piece.Color][sq])
-		egIndex := 384 + mgIndex
 		sign := float64(1)
-
 		if piece.Color != engine.White {
 			sign = -1
 		}
 
-		tempCoefficents[mgIndex] += sign * float64(mgPhase)
-		tempCoefficents[egIndex] += sign * float64(egPhase)
-
-		usBB := pos.Sides[piece.Color]
-		pieceType := uint16(piece.Type)
+		getPSQT_Coefficents(rawCoefficents, piece, sq, sign, mgPhase, egPhase)
 
 		switch piece.Type {
 		case engine.Knight:
-			moves := engine.KnightMoves[sq] & ^usBB
-			mobility := float64(moves.CountBits())
-			tempCoefficents[780+pieceType] += (mobility - 4) * sign * float64(mgPhase)
-			tempCoefficents[785+pieceType] += (mobility - 4) * sign * float64(egPhase)
+			getKnightCoefficents(pos, rawCoefficents, sq, mgPhase, egPhase, sign)
 		case engine.Bishop:
-			moves := engine.GenBishopMoves(sq, staticAllBB) & ^usBB
-			mobility := float64(moves.CountBits())
-			tempCoefficents[780+pieceType] += (mobility - 7) * sign * float64(mgPhase)
-			tempCoefficents[785+pieceType] += (mobility - 7) * sign * float64(egPhase)
+			getBishopCoefficents(pos, rawCoefficents, sq, mgPhase, egPhase, sign)
 		case engine.Rook:
-			moves := engine.GenRookMoves(sq, staticAllBB) & ^usBB
-			mobility := float64(moves.CountBits())
-			tempCoefficents[780+pieceType] += (mobility - 7) * sign * float64(mgPhase)
-			tempCoefficents[785+pieceType] += (mobility - 7) * sign * float64(egPhase)
+			getRookCoefficents(pos, rawCoefficents, sq, mgPhase, egPhase, sign)
 		case engine.Queen:
-			moves := (engine.GenBishopMoves(sq, staticAllBB) | engine.GenRookMoves(sq, staticAllBB)) & ^usBB
-			mobility := float64(moves.CountBits())
-			tempCoefficents[780+pieceType] += (mobility - 14) * sign * float64(mgPhase)
-			tempCoefficents[785+pieceType] += (mobility - 14) * sign * float64(egPhase)
+			getQueenCoefficents(pos, rawCoefficents, sq, mgPhase, egPhase, sign)
 		}
 	}
 
-	for piece := 0; piece <= 4; piece++ {
-		tempCoefficents[768+piece] = float64(
-			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
-		) * float64(mgPhase)
-		tempCoefficents[768+piece+5] = float64(
-			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
-		) * float64(egPhase)
-	}
+	getMaterialCoeffficents(pos, rawCoefficents, mgPhase, egPhase)
+	getBishopPairCoefficents(pos, rawCoefficents, mgPhase, egPhase)
 
-	if pos.Pieces[engine.White][engine.Bishop].CountBits() >= 2 {
-		tempCoefficents[778] += 1
-		tempCoefficents[779] += 1
-	}
-
-	if pos.Pieces[engine.Black][engine.Bishop].CountBits() >= 2 {
-		tempCoefficents[778] -= 1
-		tempCoefficents[779] -= 1
-	}
-
-	tempCoefficents[778] *= float64(mgPhase)
-	tempCoefficents[779] *= float64(egPhase)
-
-	for i, coefficent := range tempCoefficents {
+	for i, coefficent := range rawCoefficents {
 		if coefficent != 0 {
 			coefficents = append(coefficents, Coefficent{Idx: uint16(i), Value: coefficent})
 		}
 	}
 
 	return coefficents
+}
+
+// Get the piece square table coefficents of the position.
+func getPSQT_Coefficents(coefficents []float64, piece engine.Piece, sq uint8, sign, mgPhase, egPhase float64) {
+	mgIndex := uint16(piece.Type)*64 + uint16(engine.FlipSq[piece.Color][sq])
+	egIndex := 384 + mgIndex
+	coefficents[mgIndex] += sign * mgPhase
+	coefficents[egIndex] += sign * egPhase
+}
+
+// Get the material coefficents of the position.
+func getMaterialCoeffficents(pos *engine.Position, coefficents []float64, mgPhase, egPhase float64) {
+	for piece := 0; piece <= 4; piece++ {
+		coefficents[768+piece] = float64(
+			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
+		) * mgPhase
+		coefficents[768+piece+5] = float64(
+			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
+		) * egPhase
+	}
+}
+
+// Get the bishop pair coefficents of the position.
+func getBishopPairCoefficents(pos *engine.Position, coefficents []float64, mgPhase, egPhase float64) {
+	if pos.Pieces[engine.White][engine.Bishop].CountBits() >= 2 {
+		coefficents[778] += mgPhase
+		coefficents[779] += egPhase
+	}
+
+	if pos.Pieces[engine.Black][engine.Bishop].CountBits() >= 2 {
+		coefficents[778] -= mgPhase
+		coefficents[779] -= egPhase
+	}
+}
+
+// Get the coefficents of the position related to the given knight.
+func getKnightCoefficents(pos *engine.Position, coefficents []float64, sq uint8, mgPhase, egPhase, sign float64) {
+	piece := pos.Squares[sq]
+	usBB := pos.Sides[piece.Color]
+
+	moves := engine.KnightMoves[sq] & ^usBB
+	mobility := float64(moves.CountBits())
+	coefficents[780+uint16(piece.Type)] += (mobility - 4) * sign * mgPhase
+	coefficents[785+uint16(piece.Type)] += (mobility - 4) * sign * egPhase
+}
+
+// Get the coefficents of the position related to the given bishop.
+func getBishopCoefficents(pos *engine.Position, coefficents []float64, sq uint8, mgPhase, egPhase, sign float64) {
+	piece := pos.Squares[sq]
+	usBB := pos.Sides[piece.Color]
+	allBB := usBB | pos.Sides[piece.Color^1]
+
+	moves := engine.GenBishopMoves(sq, allBB) & ^usBB
+	mobility := float64(moves.CountBits())
+	coefficents[780+uint16(piece.Type)] += (mobility - 7) * sign * mgPhase
+	coefficents[785+uint16(piece.Type)] += (mobility - 7) * sign * egPhase
+}
+
+// Get the coefficents of the position related to the given rook.
+func getRookCoefficents(pos *engine.Position, coefficents []float64, sq uint8, mgPhase, egPhase, sign float64) {
+	piece := pos.Squares[sq]
+	usBB := pos.Sides[piece.Color]
+	allBB := usBB | pos.Sides[piece.Color^1]
+
+	moves := engine.GenRookMoves(sq, allBB) & ^usBB
+	mobility := float64(moves.CountBits())
+	coefficents[780+uint16(piece.Type)] += (mobility - 7) * sign * float64(mgPhase)
+	coefficents[785+uint16(piece.Type)] += (mobility - 7) * sign * float64(egPhase)
+}
+
+// Get the coefficents of the position related to the given queen.
+func getQueenCoefficents(pos *engine.Position, coefficents []float64, sq uint8, mgPhase, egPhase, sign float64) {
+	piece := pos.Squares[sq]
+	usBB := pos.Sides[piece.Color]
+	allBB := usBB | pos.Sides[piece.Color^1]
+
+	moves := (engine.GenBishopMoves(sq, allBB) | engine.GenRookMoves(sq, allBB)) & ^usBB
+	mobility := float64(moves.CountBits())
+	coefficents[780+uint16(piece.Type)] += (mobility - 14) * sign * float64(mgPhase)
+	coefficents[785+uint16(piece.Type)] += (mobility - 14) * sign * float64(egPhase)
 }
 
 // Evaluate the position from the training set file.
@@ -324,6 +365,14 @@ func printParameters(weights []float64) {
 func Tune(infile string, epochs, numPositions int, recordErrorRate bool) {
 	weights := loadWeights()
 	entries := loadEntries(infile, numPositions)
+
+	pos := engine.Position{}
+	pos.LoadFEN("5b2/1p3k2/p7/5bpp/P3p3/1P2P2P/2R2PP1/6K1 w - - 0 1")
+
+	fmt.Println(evaluate(weights, getCoefficents(&pos)))
+	fmt.Println(engine.EvaluatePos(&pos))
+
+	panic("")
 
 	gradientsSumsSquared := make([]float64, len(weights))
 	beforeErr := computeMSE(entries, weights)

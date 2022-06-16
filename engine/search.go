@@ -258,7 +258,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	search.nodes++
 
 	if ply >= MaxDepth {
-		return evaluatePos(&search.Pos)
+		return EvaluatePos(&search.Pos)
 	}
 
 	// Make sure we haven't gone pass the node count limit.
@@ -337,7 +337,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if !inCheck && !isPVNode && abs(beta) < Checkmate {
-		staticScore := evaluatePos(&search.Pos)
+		staticScore := EvaluatePos(&search.Pos)
 		scoreMargin := StaticNullMovePruningBaseMargin * int16(depth)
 		if staticScore-scoreMargin >= beta {
 			return staticScore - scoreMargin
@@ -382,7 +382,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if depth <= 8 && !isPVNode && !inCheck && alpha < Checkmate && beta < Checkmate {
-		staticScore := evaluatePos(&search.Pos)
+		staticScore := EvaluatePos(&search.Pos)
 		margin := FutilityMargins[depth]
 		canFutilityPrune = staticScore+margin <= alpha
 	}
@@ -551,7 +551,7 @@ func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine) i
 		return 0
 	}
 
-	bestScore := evaluatePos(&search.Pos)
+	bestScore := EvaluatePos(&search.Pos)
 
 	// If the score is greater than beta, what our opponet can
 	// already guarantee early in the search tree, then we
