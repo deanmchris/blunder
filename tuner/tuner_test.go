@@ -238,10 +238,10 @@ func TestTuner(t *testing.T) {
 				pos.String(), fen, normalEval, tunerEval,
 			)
 		} else {
-			/*t.Logf(
+			t.Logf(
 				"Pass for position %s: %f = ~%f",
 				fen, normalEval, tunerEval,
-			)*/
+			)
 		}
 	}
 }

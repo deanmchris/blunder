@@ -366,14 +366,6 @@ func Tune(infile string, epochs, numPositions int, recordErrorRate bool) {
 	weights := loadWeights()
 	entries := loadEntries(infile, numPositions)
 
-	pos := engine.Position{}
-	pos.LoadFEN("5b2/1p3k2/p7/5bpp/P3p3/1P2P2P/2R2PP1/6K1 w - - 0 1")
-
-	fmt.Println(evaluate(weights, getCoefficents(&pos)))
-	fmt.Println(engine.EvaluatePos(&pos))
-
-	panic("")
-
 	gradientsSumsSquared := make([]float64, len(weights))
 	beforeErr := computeMSE(entries, weights)
 
