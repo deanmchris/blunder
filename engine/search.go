@@ -49,6 +49,7 @@ const (
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
 	WindowSize                      int16 = 35
+	IID_Depth_Reduction             int8  = 2
 )
 
 // Futility margins
@@ -318,7 +319,8 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// a hit, return the score and stop searching.                          //
 	// =====================================================================//
 
-	ttScore, shouldUse := search.TT.Probe(search.Pos.Hash).Get(
+	entry := search.TT.Probe(search.Pos.Hash)
+	ttScore, shouldUse := entry.Get(
 		search.Pos.Hash, ply, uint8(depth), alpha, beta, &ttMove,
 	)
 
@@ -383,6 +385,21 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		staticScore := evaluatePos(&search.Pos)
 		margin := FutilityMargins[depth]
 		canFutilityPrune = staticScore+margin <= alpha
+	}
+
+	// =====================================================================//
+	// INTERNAL ITERATIVE DEEPENING: If we're in a situation where we have  //
+	// no PV move, it'll be more efficent to spend some time doing a quick, //
+	// reduced depth search to get a PV move that we can search first, in   //
+	// hopes of getting a quick beta-cutoff.          						//
+	// =====================================================================//
+
+	if depth >= 4 && (isPVNode || entry.Flag == BetaFlag) && ttMove.Equal(NullMove) {
+		search.negamax(depth-IID_Depth_Reduction-1, ply+1, -beta, -alpha, &childPVLine, true)
+		if len(childPVLine.Moves) > 0 {
+			ttMove = childPVLine.GetPVMove()
+			childPVLine.Clear()
+		}
 	}
 
 	moves := genMoves(&search.Pos)

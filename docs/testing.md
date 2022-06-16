@@ -243,3 +243,15 @@ done
 White advantage = 0.00
 Draw rate (equal opponents) = 50.00 %
 ```
+
+Add Internal Iterative Deepening
+--------------------------------
+```
+Score of Blunder 8.0.0-IID vs Blunder 8.0.0: 625 - 562 - 813  [0.516] 2000
+...      Blunder 8.0.0-IID playing White: 330 - 270 - 400  [0.530] 1000
+...      Blunder 8.0.0-IID playing Black: 295 - 292 - 413  [0.501] 1000
+...      White vs Black: 622 - 565 - 813  [0.514] 2000
+Elo difference: 10.9 +/- 11.7, LOS: 96.6 %, DrawRatio: 40.6 %
+SPRT: llr 0.888 (30.2%), lbound -2.94, ubound 2.94
+Finished match
+```
