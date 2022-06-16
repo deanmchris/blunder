@@ -13,7 +13,7 @@ import (
 
 const (
 	Iterations    = 2000
-	NumWeights    = 790
+	NumWeights    = 796
 	ScalingFactor = 0.01
 	Epsilon       = 0.00000001
 	LearningRate  = 0.5
@@ -59,14 +59,14 @@ func loadWeights() (weights []float64) {
 	copy(tempWeights[640:704], engine.PSQT_EG[engine.Queen][:])
 	copy(tempWeights[704:768], engine.PSQT_EG[engine.King][:])
 
-	copy(tempWeights[768:773], engine.PieceValueMG[:])
-	copy(tempWeights[773:778], engine.PieceValueEG[:])
+	copy(tempWeights[768:773], engine.PieceValueMG[0:5])
+	copy(tempWeights[773:778], engine.PieceValueEG[0:5])
 
 	tempWeights[778] = engine.BishopPairBonusMG
 	tempWeights[779] = engine.BishopPairBonusEG
 
-	copy(tempWeights[780:785], engine.PieceMobilityMG[:])
-	copy(tempWeights[785:790], engine.PieceMobilityEG[:])
+	copy(tempWeights[780:784], engine.PieceMobilityMG[1:5])
+	copy(tempWeights[784:788], engine.PieceMobilityEG[1:5])
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -166,7 +166,7 @@ func getMaterialCoeffficents(pos *engine.Position, coefficents []float64, mgPhas
 		coefficents[768+piece] = float64(
 			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
 		) * mgPhase
-		coefficents[768+piece+5] = float64(
+		coefficents[773+piece] = float64(
 			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
 		) * egPhase
 	}
@@ -192,8 +192,8 @@ func getKnightCoefficents(pos *engine.Position, coefficents []float64, sq uint8,
 
 	moves := engine.KnightMoves[sq] & ^usBB
 	mobility := float64(moves.CountBits())
-	coefficents[780+uint16(piece.Type)] += (mobility - 4) * sign * mgPhase
-	coefficents[785+uint16(piece.Type)] += (mobility - 4) * sign * egPhase
+	coefficents[780+uint16(piece.Type)-1] += (mobility - 4) * sign * mgPhase
+	coefficents[784+uint16(piece.Type)-1] += (mobility - 4) * sign * egPhase
 }
 
 // Get the coefficents of the position related to the given bishop.
@@ -204,8 +204,8 @@ func getBishopCoefficents(pos *engine.Position, coefficents []float64, sq uint8,
 
 	moves := engine.GenBishopMoves(sq, allBB) & ^usBB
 	mobility := float64(moves.CountBits())
-	coefficents[780+uint16(piece.Type)] += (mobility - 7) * sign * mgPhase
-	coefficents[785+uint16(piece.Type)] += (mobility - 7) * sign * egPhase
+	coefficents[780+uint16(piece.Type)-1] += (mobility - 7) * sign * mgPhase
+	coefficents[784+uint16(piece.Type)-1] += (mobility - 7) * sign * egPhase
 }
 
 // Get the coefficents of the position related to the given rook.
@@ -216,8 +216,8 @@ func getRookCoefficents(pos *engine.Position, coefficents []float64, sq uint8, m
 
 	moves := engine.GenRookMoves(sq, allBB) & ^usBB
 	mobility := float64(moves.CountBits())
-	coefficents[780+uint16(piece.Type)] += (mobility - 7) * sign * float64(mgPhase)
-	coefficents[785+uint16(piece.Type)] += (mobility - 7) * sign * float64(egPhase)
+	coefficents[780+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(mgPhase)
+	coefficents[784+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(egPhase)
 }
 
 // Get the coefficents of the position related to the given queen.
@@ -228,8 +228,8 @@ func getQueenCoefficents(pos *engine.Position, coefficents []float64, sq uint8, 
 
 	moves := (engine.GenBishopMoves(sq, allBB) | engine.GenRookMoves(sq, allBB)) & ^usBB
 	mobility := float64(moves.CountBits())
-	coefficents[780+uint16(piece.Type)] += (mobility - 14) * sign * float64(mgPhase)
-	coefficents[785+uint16(piece.Type)] += (mobility - 14) * sign * float64(egPhase)
+	coefficents[780+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(mgPhase)
+	coefficents[784+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(egPhase)
 }
 
 // Evaluate the position from the training set file.
@@ -356,8 +356,8 @@ func printParameters(weights []float64) {
 	fmt.Println("\nBishop Pair Bonus MG:", weights[778])
 	fmt.Println("\nBishop Pair Bonus EG:", weights[779])
 
-	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:785]))
-	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[785:790]))
+	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:784]))
+	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[784:788]))
 
 	fmt.Println()
 }
