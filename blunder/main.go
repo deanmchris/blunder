@@ -2,8 +2,6 @@ package main
 
 import (
 	"blunder/engine"
-	"blunder/tuner"
-	"os"
 )
 
 func init() {
@@ -13,7 +11,7 @@ func init() {
 }
 
 func main() {
-	homeDir, _ := os.UserHomeDir()
-	tuner.Tune(homeDir+"\\Desktop\\data\\quiet.epd", 50000, 10000)
-	// engine.RunCommLoop()
+	// homeDir, _ := os.UserHomeDir()
+	// tuner.Tune(homeDir+"\\Desktop\\data\\quiet.epd", 50000, 725000, true)
+	engine.RunCommLoop()
 }

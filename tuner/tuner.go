@@ -287,7 +287,7 @@ func printParameters(weights []float64) {
 	fmt.Println()
 }
 
-func Tune(infile string, epochs, numPositions int) {
+func Tune(infile string, epochs, numPositions int, recordErrorRate bool) {
 	weights := loadWeights()
 	entries := loadEntries(infile, numPositions)
 
@@ -296,6 +296,9 @@ func Tune(infile string, epochs, numPositions int) {
 
 	N := float64(numPositions)
 	learningRate := LearningRate
+
+	errors := []float64{beforeErr}
+	errorRecordingRate := epochs / 100
 
 	for epoch := 0; epoch < epochs; epoch++ {
 		gradients := computeGradient(entries, weights)
@@ -306,6 +309,27 @@ func Tune(infile string, epochs, numPositions int) {
 		}
 
 		fmt.Printf("Epoch number %d completed\n", epoch+1)
+
+		if recordErrorRate && epoch > 0 && epoch%errorRecordingRate == 0 {
+			errors = append(errors, computeMSE(entries, weights))
+		}
+	}
+
+	if recordErrorRate {
+		errors = append(errors, computeMSE(entries, weights))
+		file, err := os.Create("errors.txt")
+		if err != nil {
+			fmt.Println("Couldn't create \"errors.txt\" to store recored error rates")
+		} else {
+			fmt.Println("Storing error rates in errors.txt")
+		}
+
+		for _, err := range errors {
+			_, e := file.WriteString(fmt.Sprintf("%f\n", err))
+			if e != nil {
+				panic(e)
+			}
+		}
 	}
 
 	printParameters(weights)
