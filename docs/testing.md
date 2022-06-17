@@ -255,3 +255,15 @@ Elo difference: 10.9 +/- 11.7, LOS: 96.6 %, DrawRatio: 40.6 %
 SPRT: llr 0.888 (30.2%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Add Basic King Safety
+---------------------
+```
+Score of Blunder 8.0.0-king-safety vs Blunder 8.0.0: 578 - 391 - 435  [0.567] 1404
+...      Blunder 8.0.0-king-safety playing White: 312 - 179 - 211  [0.595] 702
+...      Blunder 8.0.0-king-safety playing Black: 266 - 212 - 224  [0.538] 702
+...      White vs Black: 524 - 445 - 435  [0.528] 1404
+Elo difference: 46.6 +/- 15.2, LOS: 100.0 %, DrawRatio: 31.0 %
+SPRT: llr 2.94 (100.0%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
