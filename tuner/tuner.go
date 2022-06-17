@@ -114,14 +114,18 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 
 		pos := engine.Position{}
 		pos.LoadFEN(fen)
+
 		normalCoefficents, safetyCoefficents := getCoefficents(&pos)
+		phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
+		mgPhase := float64(256-phase) / 256
+
 		entries = append(
 			entries,
 			Entry{
 				NormalCoefficents: normalCoefficents,
 				SafetyCoefficents: safetyCoefficents,
 				Outcome:           outcome,
-				MGPhase:           float64(256 - ((pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase)),
+				MGPhase:           mgPhase,
 			},
 		)
 	}
@@ -134,8 +138,8 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 // the evaluation.
 func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safetyCoefficents [][]Coefficent) {
 	phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
-	mgPhase := float64(256 - phase)
-	egPhase := float64(phase)
+	mgPhase := float64(256-phase) / 256
+	egPhase := float64(phase) / 256
 
 	allBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
 
@@ -348,14 +352,14 @@ func computeSafetyDotProduct(v1 []float64, v2 []Coefficent) (sum float64) {
 func evaluate(weights []float64, normalCoefficents []Coefficent, safetyCoefficents [][]Coefficent, mgPhase float64) (score float64) {
 	for i := range normalCoefficents {
 		coefficent := &normalCoefficents[i]
-		score += weights[coefficent.Idx] * coefficent.Value / 256
+		score += weights[coefficent.Idx] * coefficent.Value
 	}
 
 	whiteSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], safetyCoefficents[engine.White])
 	blackSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], safetyCoefficents[engine.Black])
 
-	whiteSafety = (((whiteSafety * whiteSafety) / 4) * mgPhase) / 256
-	blackSafety = (((blackSafety * blackSafety) / 4) * mgPhase) / 256
+	whiteSafety = ((whiteSafety * whiteSafety) / 4) * mgPhase
+	blackSafety = ((blackSafety * blackSafety) / 4) * mgPhase
 
 	return score + whiteSafety - blackSafety
 }
@@ -410,20 +414,20 @@ func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
 
 		for k := range entries[i].NormalCoefficents {
 			coefficent := &entries[i].NormalCoefficents[k]
-			gradients[coefficent.Idx] += term * coefficent.Value / 256
+			gradients[coefficent.Idx] += term * coefficent.Value
 		}
 
 		whiteSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], entries[i].SafetyCoefficents[engine.White])
 		blackSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], entries[i].SafetyCoefficents[engine.Black])
 
 		for k := range entries[i].SafetyCoefficents[engine.White] {
-			coefficent := &entries[i].SafetyCoefficents[engine.White][k]
-			gradients[coefficent.Idx] += term * coefficent.Value * whiteSafety / 2
-		}
+			whiteCoefficent := &entries[i].SafetyCoefficents[engine.White][k]
+			blackCoefficent := &entries[i].SafetyCoefficents[engine.Black][k]
 
-		for k := range entries[i].SafetyCoefficents[engine.Black] {
-			coefficent := &entries[i].SafetyCoefficents[engine.Black][k]
-			gradients[coefficent.Idx] += term * coefficent.Value * blackSafety / -2
+			whiteTerm := whiteSafety * whiteCoefficent.Value * entries[i].MGPhase / 2
+			blackTerm := blackSafety * blackCoefficent.Value * entries[i].MGPhase / 2
+
+			gradients[whiteCoefficent.Idx] += term * (whiteTerm - blackTerm)
 		}
 	}
 
@@ -499,24 +503,6 @@ func printParameters(weights []float64) {
 
 func Tune(infile string, epochs, numPositions int, recordErrorRate bool) {
 	weights := loadWeights()
-
-	/*pos := engine.Position{}
-	pos.LoadFEN("r1b1k3/ppp1bppr/8/7p/1Pp1n3/2NqP3/BB1P1PPP/R2QK1NR b KQq - 0 1")
-
-	normalEval := float64(engine.EvaluatePos(&pos))
-	if pos.SideToMove == engine.Black {
-		normalEval = -normalEval
-	}
-
-	normalCoefficents, safetyCoefficents := getCoefficents(&pos)
-	mgPhase := float64(256 - ((pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase))
-	tunerEval := evaluate(weights, normalCoefficents, safetyCoefficents, mgPhase)
-
-	fmt.Println("normal eval:", normalEval)
-	fmt.Println("tuner eval:", tunerEval)
-
-	panic("")*/
-
 	entries := loadEntries(infile, numPositions)
 
 	gradientsSumsSquared := make([]float64, len(weights))

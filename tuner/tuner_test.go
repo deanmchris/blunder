@@ -231,7 +231,8 @@ func TestTuner(t *testing.T) {
 		}
 
 		normalCoefficents, safetyCoefficents := getCoefficents(&pos)
-		mgPhase := float64(256 - ((pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase))
+		phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
+		mgPhase := float64(256-phase) / 256
 		tunerEval := evaluate(weights, normalCoefficents, safetyCoefficents, mgPhase)
 
 		if abs_float64(normalEval-tunerEval) > 1.5 {
