@@ -39,7 +39,7 @@ var PieceMobilityMG = [5]int16{0, 0, 4, 5, 0}
 var PieceMobilityEG = [5]int16{0, 0, 3, 2, 6}
 
 var OuterRingAttackPoints = [5]int16{0, 1, 1, 1, 1}
-var InnerRingAttackPoints = [5]int16{0, 1, 2, 2, 1}
+var InnerRingAttackPoints = [5]int16{0, 2, 2, 3, 5}
 
 var PhaseValues = [6]int16{
 	PawnPhase,
@@ -219,8 +219,8 @@ func EvaluatePos(pos *Position) int16 {
 		MGScores: pos.MGScores,
 		EGScores: pos.EGScores,
 		KingZones: [2]KingZone{
-			KingZones[pos.Pieces[White][King].Msb()],
 			KingZones[pos.Pieces[Black][King].Msb()],
+			KingZones[pos.Pieces[White][King].Msb()],
 		},
 	}
 
@@ -253,8 +253,8 @@ func EvaluatePos(pos *Position) int16 {
 		eval.EGScores[Black] += BishopPairBonusEG
 	}
 
-	// evalKing(pos, White, pos.Pieces[White][King].Msb(), &eval)
-	// evalKing(pos, Black, pos.Pieces[Black][King].Msb(), &eval)
+	evalKing(pos, White, pos.Pieces[White][King].Msb(), &eval)
+	evalKing(pos, Black, pos.Pieces[Black][King].Msb(), &eval)
 
 	mgScore := eval.MGScores[pos.SideToMove] - eval.MGScores[pos.SideToMove^1]
 	egScore := eval.EGScores[pos.SideToMove] - eval.EGScores[pos.SideToMove^1]
@@ -350,7 +350,7 @@ func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 	// Take all the king saftey points collected for the enemy,
 	// and see what kind of penatly we should get.
 	enemyPoints := eval.KingAttackPoints[color^1]
-	penatly := int16((enemyPoints * enemyPoints) / 2)
+	penatly := int16((enemyPoints * enemyPoints) / 4)
 	if eval.KingAttackers[color^1] >= 2 && pos.Pieces[color^1][Queen] != 0 {
 		eval.MGScores[color] -= penatly
 	}

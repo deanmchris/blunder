@@ -12,11 +12,13 @@ import (
 )
 
 const (
-	Iterations    = 2000
-	NumWeights    = 796
-	ScalingFactor = 0.01
-	Epsilon       = 0.00000001
-	LearningRate  = 0.5
+	Iterations              = 2000
+	NumWeights              = 796
+	NumSafetyEvalTerms      = 8
+	SafetyEvalTermsStartIdx = 788
+	ScalingFactor           = 0.01
+	Epsilon                 = 0.00000001
+	LearningRate            = 0.5
 
 	Draw     float64 = 0.5
 	WhiteWin float64 = 1.0
@@ -36,8 +38,17 @@ type Coefficent struct {
 // Each position consists of a position board object and the outcome of the game
 // the position was from.
 type Entry struct {
-	Coefficents []Coefficent
-	Outcome     float64
+	NormalCoefficents []Coefficent
+	SafetyCoefficents [][]Coefficent
+	MGPhase           float64
+	Outcome           float64
+}
+
+// An object to store useful data while tracing safety coefficents,
+// similar to the Eval object in evaluation.go.
+type SafetyTracer struct {
+	KingZones     [2]engine.KingZone
+	KingAttackers [2]uint8
 }
 
 // Load the weights for tuning from the current evaluation terms.
@@ -67,6 +78,9 @@ func loadWeights() (weights []float64) {
 
 	copy(tempWeights[780:784], engine.PieceMobilityMG[1:5])
 	copy(tempWeights[784:788], engine.PieceMobilityEG[1:5])
+
+	copy(tempWeights[788:792], engine.OuterRingAttackPoints[1:5])
+	copy(tempWeights[792:796], engine.InnerRingAttackPoints[1:5])
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -100,7 +114,16 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 
 		pos := engine.Position{}
 		pos.LoadFEN(fen)
-		entries = append(entries, Entry{Coefficents: getCoefficents(&pos), Outcome: outcome})
+		normalCoefficents, safetyCoefficents := getCoefficents(&pos)
+		entries = append(
+			entries,
+			Entry{
+				NormalCoefficents: normalCoefficents,
+				SafetyCoefficents: safetyCoefficents,
+				Outcome:           outcome,
+				MGPhase:           float64(256 - ((pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase)),
+			},
+		)
 	}
 
 	fmt.Printf("Done loading %d positions...\n", numPositions)
@@ -109,13 +132,25 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 
 // Get the evaluation coefficents of the position so it can be used to calculate
 // the evaluation.
-func getCoefficents(pos *engine.Position) (coefficents []Coefficent) {
+func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safetyCoefficents [][]Coefficent) {
 	phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
 	mgPhase := float64(256 - phase)
 	egPhase := float64(phase)
 
 	allBB := pos.Sides[engine.White] | pos.Sides[engine.Black]
-	rawCoefficents := make([]float64, NumWeights)
+
+	rawNormCoefficents := make([]float64, NumWeights)
+	rawSafetyCoefficents := make([][]float64, 2)
+	rawSafetyCoefficents[engine.White] = make([]float64, NumSafetyEvalTerms)
+	rawSafetyCoefficents[engine.Black] = make([]float64, NumSafetyEvalTerms)
+	safetyCoefficents = make([][]Coefficent, 2)
+
+	safetyTracer := SafetyTracer{
+		KingZones: [2]engine.KingZone{
+			engine.KingZones[pos.Pieces[engine.Black][engine.King].Msb()],
+			engine.KingZones[pos.Pieces[engine.White][engine.King].Msb()],
+		},
+	}
 
 	for allBB != 0 {
 		sq := allBB.PopBit()
@@ -126,30 +161,54 @@ func getCoefficents(pos *engine.Position) (coefficents []Coefficent) {
 			sign = -1
 		}
 
-		getPSQT_Coefficents(rawCoefficents, piece, sq, sign, mgPhase, egPhase)
+		getPSQT_Coefficents(rawNormCoefficents, piece, sq, sign, mgPhase, egPhase)
 
 		switch piece.Type {
 		case engine.Knight:
-			getKnightCoefficents(pos, rawCoefficents, sq, mgPhase, egPhase, sign)
+			getKnightCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, sq, mgPhase, egPhase, sign)
 		case engine.Bishop:
-			getBishopCoefficents(pos, rawCoefficents, sq, mgPhase, egPhase, sign)
+			getBishopCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, sq, mgPhase, egPhase, sign)
 		case engine.Rook:
-			getRookCoefficents(pos, rawCoefficents, sq, mgPhase, egPhase, sign)
+			getRookCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, sq, mgPhase, egPhase, sign)
 		case engine.Queen:
-			getQueenCoefficents(pos, rawCoefficents, sq, mgPhase, egPhase, sign)
+			getQueenCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, sq, mgPhase, egPhase, sign)
 		}
 	}
 
-	getMaterialCoeffficents(pos, rawCoefficents, mgPhase, egPhase)
-	getBishopPairCoefficents(pos, rawCoefficents, mgPhase, egPhase)
+	getMaterialCoeffficents(pos, rawNormCoefficents, mgPhase, egPhase)
+	getBishopPairCoefficents(pos, rawNormCoefficents, mgPhase, egPhase)
 
-	for i, coefficent := range rawCoefficents {
+	for i, coefficent := range rawNormCoefficents {
 		if coefficent != 0 {
-			coefficents = append(coefficents, Coefficent{Idx: uint16(i), Value: coefficent})
+			normalCoefficents = append(normalCoefficents, Coefficent{Idx: uint16(i), Value: coefficent})
 		}
 	}
 
-	return coefficents
+	for i, coefficent := range rawSafetyCoefficents[engine.White] {
+		value := float64(0)
+		if safetyTracer.KingAttackers[engine.White] >= 2 && pos.Pieces[engine.White][engine.Queen] != 0 {
+			value = coefficent
+		}
+
+		safetyCoefficents[engine.White] = append(
+			safetyCoefficents[engine.White],
+			Coefficent{Idx: SafetyEvalTermsStartIdx + uint16(i), Value: value},
+		)
+	}
+
+	for i, coefficent := range rawSafetyCoefficents[engine.Black] {
+		value := float64(0)
+		if safetyTracer.KingAttackers[engine.Black] >= 2 && pos.Pieces[engine.Black][engine.Queen] != 0 {
+			value = coefficent
+		}
+
+		safetyCoefficents[engine.Black] = append(
+			safetyCoefficents[engine.Black],
+			Coefficent{Idx: SafetyEvalTermsStartIdx + uint16(i), Value: value},
+		)
+	}
+
+	return normalCoefficents, safetyCoefficents
 }
 
 // Get the piece square table coefficents of the position.
@@ -186,59 +245,119 @@ func getBishopPairCoefficents(pos *engine.Position, coefficents []float64, mgPha
 }
 
 // Get the coefficents of the position related to the given knight.
-func getKnightCoefficents(pos *engine.Position, coefficents []float64, sq uint8, mgPhase, egPhase, sign float64) {
+func getKnightCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer,
+	sq uint8, mgPhase, egPhase, sign float64) {
+
 	piece := pos.Squares[sq]
 	usBB := pos.Sides[piece.Color]
 
 	moves := engine.KnightMoves[sq] & ^usBB
 	mobility := float64(moves.CountBits())
-	coefficents[780+uint16(piece.Type)-1] += (mobility - 4) * sign * mgPhase
-	coefficents[784+uint16(piece.Type)-1] += (mobility - 4) * sign * egPhase
+	norm[780+uint16(piece.Type)-1] += (mobility - 4) * sign * mgPhase
+	norm[784+uint16(piece.Type)-1] += (mobility - 4) * sign * egPhase
+
+	outerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].OuterRing
+	innerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].InnerRing
+
+	if outerRingAttacks != 0 || innerRingAttacks != 0 {
+		safetyTracer.KingAttackers[piece.Color]++
+		safety[piece.Color][piece.Type-1] += float64(outerRingAttacks.CountBits())
+		safety[piece.Color][4+piece.Type-1] += float64(innerRingAttacks.CountBits())
+	}
 }
 
 // Get the coefficents of the position related to the given bishop.
-func getBishopCoefficents(pos *engine.Position, coefficents []float64, sq uint8, mgPhase, egPhase, sign float64) {
+func getBishopCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer,
+	sq uint8, mgPhase, egPhase, sign float64) {
+
 	piece := pos.Squares[sq]
 	usBB := pos.Sides[piece.Color]
 	allBB := usBB | pos.Sides[piece.Color^1]
 
 	moves := engine.GenBishopMoves(sq, allBB) & ^usBB
 	mobility := float64(moves.CountBits())
-	coefficents[780+uint16(piece.Type)-1] += (mobility - 7) * sign * mgPhase
-	coefficents[784+uint16(piece.Type)-1] += (mobility - 7) * sign * egPhase
+	norm[780+uint16(piece.Type)-1] += (mobility - 7) * sign * mgPhase
+	norm[784+uint16(piece.Type)-1] += (mobility - 7) * sign * egPhase
+
+	outerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].OuterRing
+	innerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].InnerRing
+
+	if outerRingAttacks != 0 || innerRingAttacks != 0 {
+		safetyTracer.KingAttackers[piece.Color]++
+		safety[piece.Color][piece.Type-1] += float64(outerRingAttacks.CountBits())
+		safety[piece.Color][4+piece.Type-1] += float64(innerRingAttacks.CountBits())
+	}
 }
 
 // Get the coefficents of the position related to the given rook.
-func getRookCoefficents(pos *engine.Position, coefficents []float64, sq uint8, mgPhase, egPhase, sign float64) {
+func getRookCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer,
+	sq uint8, mgPhase, egPhase, sign float64) {
+
 	piece := pos.Squares[sq]
 	usBB := pos.Sides[piece.Color]
 	allBB := usBB | pos.Sides[piece.Color^1]
 
 	moves := engine.GenRookMoves(sq, allBB) & ^usBB
 	mobility := float64(moves.CountBits())
-	coefficents[780+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(mgPhase)
-	coefficents[784+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(egPhase)
+	norm[780+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(mgPhase)
+	norm[784+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(egPhase)
+
+	outerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].OuterRing
+	innerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].InnerRing
+
+	if outerRingAttacks != 0 || innerRingAttacks != 0 {
+		safetyTracer.KingAttackers[piece.Color]++
+		safety[piece.Color][piece.Type-1] += float64(outerRingAttacks.CountBits())
+		safety[piece.Color][4+piece.Type-1] += float64(innerRingAttacks.CountBits())
+	}
 }
 
 // Get the coefficents of the position related to the given queen.
-func getQueenCoefficents(pos *engine.Position, coefficents []float64, sq uint8, mgPhase, egPhase, sign float64) {
+func getQueenCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer,
+	sq uint8, mgPhase, egPhase, sign float64) {
+
 	piece := pos.Squares[sq]
 	usBB := pos.Sides[piece.Color]
 	allBB := usBB | pos.Sides[piece.Color^1]
 
 	moves := (engine.GenBishopMoves(sq, allBB) | engine.GenRookMoves(sq, allBB)) & ^usBB
 	mobility := float64(moves.CountBits())
-	coefficents[780+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(mgPhase)
-	coefficents[784+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(egPhase)
+	norm[780+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(mgPhase)
+	norm[784+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(egPhase)
+
+	outerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].OuterRing
+	innerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].InnerRing
+
+	if outerRingAttacks != 0 || innerRingAttacks != 0 {
+		safetyTracer.KingAttackers[piece.Color]++
+		safety[piece.Color][piece.Type-1] += float64(outerRingAttacks.CountBits())
+		safety[piece.Color][4+piece.Type-1] += float64(innerRingAttacks.CountBits())
+	}
+}
+
+// Compute the dot product between an array of king safety coefficents and the appropriate
+// weight values.
+func computeSafetyDotProduct(v1 []float64, v2 []Coefficent) (sum float64) {
+	for i, coefficent := range v2 {
+		sum += coefficent.Value * v1[i]
+	}
+	return sum
 }
 
 // Evaluate the position from the training set file.
-func evaluate(weights []float64, coefficents []Coefficent) (score float64) {
-	for i := range coefficents {
-		coefficent := &coefficents[i]
+func evaluate(weights []float64, normalCoefficents []Coefficent, safetyCoefficents [][]Coefficent, mgPhase float64) (score float64) {
+	for i := range normalCoefficents {
+		coefficent := &normalCoefficents[i]
 		score += weights[coefficent.Idx] * coefficent.Value / 256
 	}
-	return score
+
+	whiteSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], safetyCoefficents[engine.White])
+	blackSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], safetyCoefficents[engine.Black])
+
+	whiteSafety = (((whiteSafety * whiteSafety) / 4) * mgPhase) / 256
+	blackSafety = (((blackSafety * blackSafety) / 4) * mgPhase) / 256
+
+	return score + whiteSafety - blackSafety
 }
 
 func computeGradientNumerically(entries []Entry, weights []float64, epsilon float64) (gradients []float64) {
@@ -251,14 +370,14 @@ func computeGradientNumerically(entries []Entry, weights []float64, epsilon floa
 		for k := range weights {
 			weights[k] += epsilon
 
-			score := evaluate(weights, entries[i].Coefficents)
+			score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, entries[i].MGPhase)
 			sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 			err := entries[i].Outcome - sigmoid
 			epsilonAddedErrSums[k] += math.Pow(err, 2)
 
 			weights[k] -= epsilon * 2
 
-			score = evaluate(weights, entries[i].Coefficents)
+			score = evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, entries[i].MGPhase)
 			sigmoid = 1 / (1 + math.Exp(-(ScalingFactor * score)))
 			err = entries[i].Outcome - sigmoid
 			epsilonSubtractedErrSums[k] += math.Pow(err, 2)
@@ -280,7 +399,7 @@ func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
 	gradients = make([]float64, NumWeights)
 
 	for i := range entries {
-		score := evaluate(weights, entries[i].Coefficents)
+		score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, entries[i].MGPhase)
 		sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 		err := entries[i].Outcome - sigmoid
 
@@ -289,9 +408,22 @@ func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
 		// the gradient. This saves time and accuracy. Thanks to Ethereal for this tweak.
 		term := err * (1 - sigmoid) * sigmoid
 
-		for k := range entries[i].Coefficents {
-			coefficent := &entries[i].Coefficents[k]
+		for k := range entries[i].NormalCoefficents {
+			coefficent := &entries[i].NormalCoefficents[k]
 			gradients[coefficent.Idx] += term * coefficent.Value / 256
+		}
+
+		whiteSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], entries[i].SafetyCoefficents[engine.White])
+		blackSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], entries[i].SafetyCoefficents[engine.Black])
+
+		for k := range entries[i].SafetyCoefficents[engine.White] {
+			coefficent := &entries[i].SafetyCoefficents[engine.White][k]
+			gradients[coefficent.Idx] += term * coefficent.Value * whiteSafety / 2
+		}
+
+		for k := range entries[i].SafetyCoefficents[engine.Black] {
+			coefficent := &entries[i].SafetyCoefficents[engine.Black][k]
+			gradients[coefficent.Idx] += term * coefficent.Value * blackSafety / -2
 		}
 	}
 
@@ -300,7 +432,7 @@ func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
 
 func computeMSE(entries []Entry, weights []float64) (errSum float64) {
 	for i := range entries {
-		score := evaluate(weights, entries[i].Coefficents)
+		score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, entries[i].MGPhase)
 		sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 		err := entries[i].Outcome - sigmoid
 		errSum += math.Pow(err, 2)
@@ -359,11 +491,32 @@ func printParameters(weights []float64) {
 	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:784]))
 	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[784:788]))
 
+	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[788:792]))
+	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[792:796]))
+
 	fmt.Println()
 }
 
 func Tune(infile string, epochs, numPositions int, recordErrorRate bool) {
 	weights := loadWeights()
+
+	/*pos := engine.Position{}
+	pos.LoadFEN("r1b1k3/ppp1bppr/8/7p/1Pp1n3/2NqP3/BB1P1PPP/R2QK1NR b KQq - 0 1")
+
+	normalEval := float64(engine.EvaluatePos(&pos))
+	if pos.SideToMove == engine.Black {
+		normalEval = -normalEval
+	}
+
+	normalCoefficents, safetyCoefficents := getCoefficents(&pos)
+	mgPhase := float64(256 - ((pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase))
+	tunerEval := evaluate(weights, normalCoefficents, safetyCoefficents, mgPhase)
+
+	fmt.Println("normal eval:", normalEval)
+	fmt.Println("tuner eval:", tunerEval)
+
+	panic("")*/
+
 	entries := loadEntries(infile, numPositions)
 
 	gradientsSumsSquared := make([]float64, len(weights))

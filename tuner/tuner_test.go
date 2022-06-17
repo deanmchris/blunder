@@ -230,9 +230,11 @@ func TestTuner(t *testing.T) {
 			normalEval = -normalEval
 		}
 
-		tunerEval := evaluate(weights, getCoefficents(&pos))
+		normalCoefficents, safetyCoefficents := getCoefficents(&pos)
+		mgPhase := float64(256 - ((pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase))
+		tunerEval := evaluate(weights, normalCoefficents, safetyCoefficents, mgPhase)
 
-		if abs_float64(normalEval-tunerEval) > 1 {
+		if abs_float64(normalEval-tunerEval) > 1.5 {
 			t.Errorf(
 				"For position %s [%s], got %f for normal evaluation score, but %f for tuner evaluation.",
 				pos.String(), fen, normalEval, tunerEval,
