@@ -52,6 +52,9 @@ const (
 	IID_Depth_Reduction             int8  = 2
 )
 
+// Precomputed reductions
+var LMR = [100][100]int8{}
+
 // Futility margins
 var FutilityMargins = [9]int16{
 	0,
@@ -455,7 +458,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			reduction := int8(0)
 
 			if !isPVNode && legalMoves >= LMRLegalMovesLimit && depth >= LMRDepthLimit && !tactical {
-				reduction = 2
+				reduction = LMR[depth][legalMoves]
 			}
 
 			score = -search.negamax(depth-1-reduction, ply+1, -(alpha + 1), -alpha, &childPVLine, true)
@@ -717,4 +720,12 @@ func orderMoves(currIndex uint8, moves *MoveList) {
 	tempMove := moves.Moves[currIndex]
 	moves.Moves[currIndex] = moves.Moves[bestIndex]
 	moves.Moves[bestIndex] = tempMove
+}
+
+func InitSearchTables() {
+	for depth := int8(3); depth < 100; depth++ {
+		for moveCnt := int8(3); moveCnt < 100; moveCnt++ {
+			LMR[depth][moveCnt] = max(2, depth/6) + moveCnt/12
+		}
+	}
 }

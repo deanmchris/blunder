@@ -9,6 +9,7 @@ func init() {
 	engine.InitTables()
 	engine.InitZobrist()
 	engine.InitEvalBitboards()
+	engine.InitSearchTables()
 }
 
 func main() {

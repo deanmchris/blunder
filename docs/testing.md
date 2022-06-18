@@ -279,3 +279,16 @@ Elo difference: 36.1 +/- 13.2, LOS: 100.0 %, DrawRatio: 37.5 %
 SPRT: llr 2.95 (100.1%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
+
+Add Basic Late-Move Reduction Table
+-----------------------------------
+```
+Rank Name                          Elo     +/-   Games   Score    Draw
+   0 Blunder 8.0.0                  -7      15    1166   49.0%   42.5%
+   1 Blunder 8.0.0-d6-m12           23      27     388   53.4%   39.2%
+   2 Blunder 8.0.0-d3-m14            6      26     389   50.9%   44.2%
+   3 Blunder 8.0.0-d5-m14           -8      26     389   48.8%   44.2%
+```
+
+Here the rather cryptic ```Blunder 8.0.0-d6-m12``` is the variation of LMR tweaking I
+tried that worked the best.
