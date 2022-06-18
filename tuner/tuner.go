@@ -13,9 +13,9 @@ import (
 
 const (
 	Iterations              = 2000
-	NumWeights              = 796
+	NumWeights              = 924
 	NumSafetyEvalTerms      = 8
-	SafetyEvalTermsStartIdx = 788
+	SafetyEvalTermsStartIdx = 916
 	ScalingFactor           = 0.01
 	Epsilon                 = 0.00000001
 	LearningRate            = 0.5
@@ -79,8 +79,11 @@ func loadWeights() (weights []float64) {
 	copy(tempWeights[780:784], engine.PieceMobilityMG[1:5])
 	copy(tempWeights[784:788], engine.PieceMobilityEG[1:5])
 
-	copy(tempWeights[788:792], engine.OuterRingAttackPoints[1:5])
-	copy(tempWeights[792:796], engine.InnerRingAttackPoints[1:5])
+	copy(tempWeights[788:852], engine.PassedPawnPSQT_MG[:])
+	copy(tempWeights[852:916], engine.PassedPawnPSQT_EG[:])
+
+	copy(tempWeights[916:920], engine.OuterRingAttackPoints[1:5])
+	copy(tempWeights[920:924], engine.InnerRingAttackPoints[1:5])
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -168,6 +171,8 @@ func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safet
 		getPSQT_Coefficents(rawNormCoefficents, piece, sq, sign, mgPhase, egPhase)
 
 		switch piece.Type {
+		case engine.Pawn:
+			getPawnCoefficents(pos, rawNormCoefficents, sq, mgPhase, egPhase, sign)
 		case engine.Knight:
 			getKnightCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, sq, mgPhase, egPhase, sign)
 		case engine.Bishop:
@@ -245,6 +250,24 @@ func getBishopPairCoefficents(pos *engine.Position, coefficents []float64, mgPha
 	if pos.Pieces[engine.Black][engine.Bishop].CountBits() >= 2 {
 		coefficents[778] -= mgPhase
 		coefficents[779] -= egPhase
+	}
+}
+
+// Get the coefficents of the position related to the given pawn.
+func getPawnCoefficents(pos *engine.Position, norm []float64, sq uint8, mgPhase, egPhase, sign float64) {
+	piece := pos.Squares[sq]
+	enemyPawns := pos.Pieces[piece.Color^1][engine.Pawn]
+	usPawns := pos.Pieces[piece.Color][engine.Pawn]
+
+	// Evaluate passed pawns, but make sure they're not behind a friendly pawn.
+	if engine.PassedPawnMasks[piece.Color][sq]&enemyPawns == 0 &&
+		usPawns&engine.DoubledPawnMasks[piece.Color][sq] == 0 {
+
+		mgIndex := 788 + uint16(engine.FlipSq[piece.Color][sq])
+		egIndex := 852 + uint16(engine.FlipSq[piece.Color][sq])
+
+		norm[mgIndex] += sign * mgPhase
+		norm[egIndex] += sign * egPhase
 	}
 }
 
@@ -495,8 +518,11 @@ func printParameters(weights []float64) {
 	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:784]))
 	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[784:788]))
 
-	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[788:792]))
-	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[792:796]))
+	prettyPrintPSQT("MG Passed Pawn PST", convertFloatSiceToInt(weights[788:852]))
+	prettyPrintPSQT("EG Passed Pawn PST", convertFloatSiceToInt(weights[852:916]))
+
+	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[916:920]))
+	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[920:924]))
 
 	fmt.Println()
 }

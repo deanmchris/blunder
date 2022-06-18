@@ -267,3 +267,15 @@ Elo difference: 46.6 +/- 15.2, LOS: 100.0 %, DrawRatio: 31.0 %
 SPRT: llr 2.94 (100.0%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
+
+Add Basic Passed Pawn Evaluation
+--------------------------------
+```
+Score of Blunder 8.0.0-passed-pawns vs Blunder 8.0.0: 608 - 435 - 627  [0.552] 1670
+...      Blunder 8.0.0-passed-pawns playing White: 333 - 191 - 310  [0.585] 834
+...      Blunder 8.0.0-passed-pawns playing Black: 275 - 244 - 317  [0.519] 836
+...      White vs Black: 577 - 466 - 627  [0.533] 1670
+Elo difference: 36.1 +/- 13.2, LOS: 100.0 %, DrawRatio: 37.5 %
+SPRT: llr 2.95 (100.1%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
