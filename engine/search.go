@@ -58,14 +58,14 @@ var LMR = [100][100]int8{}
 // Futility margins
 var FutilityMargins = [9]int16{
 	0,
-	200, // depth 1
-	200, // depth 2
-	300, // depth 3
-	300, // depth 4
-	550, // depth 5
-	550, // depth 6
-	800, // depth 7
-	800, // depth 8
+	100, // depth 1
+	160, // depth 2
+	220, // depth 3
+	280, // depth 4
+	340, // depth 5
+	400, // depth 6
+	460, // depth 7
+	520, // depth 8
 
 }
 

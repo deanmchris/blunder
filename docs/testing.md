@@ -292,3 +292,15 @@ Rank Name                          Elo     +/-   Games   Score    Draw
 
 Here the rather cryptic ```Blunder 8.0.0-d6-m12``` is the variation of LMR tweaking I
 tried that worked the best.
+
+Tweak the Futility Pruning Margins
+----------------------------------
+```
+Score of Blunder 8.0.0-fp-tuning vs Blunder 8.0.0: 580 - 518 - 902  [0.515] 2000
+...      Blunder 8.0.0-fp-tuning playing White: 299 - 254 - 447  [0.522] 1000
+...      Blunder 8.0.0-fp-tuning playing Black: 281 - 264 - 455  [0.508] 1000
+...      White vs Black: 563 - 535 - 902  [0.507] 2000
+Elo difference: 10.8 +/- 11.3, LOS: 96.9 %, DrawRatio: 45.1 %
+SPRT: llr 0.939 (31.9%), lbound -2.94, ubound 2.94
+Finished match
+```
