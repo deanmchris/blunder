@@ -13,9 +13,9 @@ import (
 
 const (
 	Iterations              = 2000
-	NumWeights              = 924
+	NumWeights              = 928
 	NumSafetyEvalTerms      = 8
-	SafetyEvalTermsStartIdx = 916
+	SafetyEvalTermsStartIdx = 920
 	ScalingFactor           = 0.01
 	Epsilon                 = 0.00000001
 	LearningRate            = 0.5
@@ -82,8 +82,13 @@ func loadWeights() (weights []float64) {
 	copy(tempWeights[788:852], engine.PassedPawnPSQT_MG[:])
 	copy(tempWeights[852:916], engine.PassedPawnPSQT_EG[:])
 
-	copy(tempWeights[916:920], engine.OuterRingAttackPoints[1:5])
-	copy(tempWeights[920:924], engine.InnerRingAttackPoints[1:5])
+	tempWeights[916] = engine.DoubledPawnPenatlyMG
+	tempWeights[917] = engine.DoubledPawnPenatlyEG
+	tempWeights[918] = engine.IsolatedPawnPenatlyMG
+	tempWeights[919] = engine.IsolatedPawnPenatlyEG
+
+	copy(tempWeights[920:924], engine.OuterRingAttackPoints[1:5])
+	copy(tempWeights[924:928], engine.InnerRingAttackPoints[1:5])
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -258,6 +263,18 @@ func getPawnCoefficents(pos *engine.Position, norm []float64, sq uint8, mgPhase,
 	piece := pos.Squares[sq]
 	enemyPawns := pos.Pieces[piece.Color^1][engine.Pawn]
 	usPawns := pos.Pieces[piece.Color][engine.Pawn]
+
+	// Evaluate isolated pawns.
+	if engine.IsolatedPawnMasks[engine.FileOf(sq)]&usPawns == 0 {
+		norm[918] -= sign * mgPhase
+		norm[919] -= sign * egPhase
+	}
+
+	// Evaluate doubled pawns.
+	if engine.DoubledPawnMasks[piece.Color][sq]&usPawns != 0 {
+		norm[916] -= sign * mgPhase
+		norm[917] -= sign * egPhase
+	}
 
 	// Evaluate passed pawns, but make sure they're not behind a friendly pawn.
 	if engine.PassedPawnMasks[piece.Color][sq]&enemyPawns == 0 &&
@@ -513,7 +530,7 @@ func printParameters(weights []float64) {
 	printSlice("EG Piece Values", convertFloatSiceToInt(weights[773:778]))
 
 	fmt.Println("\nBishop Pair Bonus MG:", weights[778])
-	fmt.Println("\nBishop Pair Bonus EG:", weights[779])
+	fmt.Println("Bishop Pair Bonus EG:", weights[779])
 
 	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:784]))
 	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[784:788]))
@@ -521,8 +538,14 @@ func printParameters(weights []float64) {
 	prettyPrintPSQT("MG Passed Pawn PST", convertFloatSiceToInt(weights[788:852]))
 	prettyPrintPSQT("EG Passed Pawn PST", convertFloatSiceToInt(weights[852:916]))
 
-	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[916:920]))
-	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[920:924]))
+	fmt.Println("\nDoubled Pawn Penalty MG:", weights[916])
+	fmt.Println("Doubled Pawn Penalty EG:", weights[917])
+
+	fmt.Println("\nIsolated Pawn Penalty MG:", weights[918])
+	fmt.Println("Isolated Pawn Penalty EG:", weights[919])
+
+	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[920:924]))
+	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[924:928]))
 
 	fmt.Println()
 }

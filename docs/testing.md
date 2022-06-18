@@ -304,3 +304,15 @@ Elo difference: 10.8 +/- 11.3, LOS: 96.9 %, DrawRatio: 45.1 %
 SPRT: llr 0.939 (31.9%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Add Doubled and Isolated Pawn Structure Evaluation Terms
+--------------------------------------------------------
+```
+Score of Blunder 8.0.0-pawn-structure vs Blunder 8.0.0: 730 - 545 - 655  [0.548] 1930
+...      Blunder 8.0.0-pawn-structure playing White: 368 - 265 - 332  [0.553] 965
+...      Blunder 8.0.0-pawn-structure playing Black: 362 - 280 - 323  [0.542] 965
+...      White vs Black: 648 - 627 - 655  [0.505] 1930
+Elo difference: 33.4 +/- 12.6, LOS: 100.0 %, DrawRatio: 33.9 %
+SPRT: llr 2.95 (100.2%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
