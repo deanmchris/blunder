@@ -69,6 +69,9 @@ var FutilityMargins = [9]int16{
 
 }
 
+// Late-move pruning margins
+var LateMovePruningMargins = [6]int{0, 8, 12, 16, 20, 24}
+
 // An array that maps move scores to attacker and victim piece types
 // for MVV-LVA move ordering: https://www.chessprogramming.org/MVV-LVA.
 var MvvLva [7][6]uint16 = [7][6]uint16{
@@ -424,6 +427,21 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		}
 
 		legalMoves++
+
+		// =====================================================================//
+		// LATE MOVE PRUNING: Because of move ordering, moves late in the move  //
+		// list are not very likely to be interesting, so save time by          //
+		// completing pruning such moves without searching them. Cauation needs //
+		// to be taken we don't miss a tactical move however, so the further    //
+		// away we prune from the horizon, the "later" the move needs to be.    //
+		// =====================================================================//
+		if depth <= 5 && !isPVNode && !inCheck && legalMoves > LateMovePruningMargins[depth] {
+			tactical := search.Pos.InCheck() || move.MoveType() == Promotion
+			if !tactical {
+				search.Pos.UndoMove(move)
+				continue
+			}
+		}
 
 		// Futility prune if possible
 

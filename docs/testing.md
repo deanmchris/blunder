@@ -316,3 +316,15 @@ Elo difference: 33.4 +/- 12.6, LOS: 100.0 %, DrawRatio: 33.9 %
 SPRT: llr 2.95 (100.2%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
+
+Add Late-Move Pruning To Search
+-------------------------------
+```
+Score of Blunder 8.0.0-lmp vs Blunder 8.0.0: 629 - 503 - 868  [0.531] 2000
+...      Blunder 8.0.0-lmp playing White: 322 - 239 - 439  [0.541] 1000
+...      Blunder 8.0.0-lmp playing Black: 307 - 264 - 429  [0.521] 1000
+...      White vs Black: 586 - 546 - 868  [0.510] 2000
+Elo difference: 21.9 +/- 11.4, LOS: 100.0 %, DrawRatio: 43.4 %
+SPRT: llr 2.22 (75.4%), lbound -2.94, ubound 2.94
+Finished match
+```
