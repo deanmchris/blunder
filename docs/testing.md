@@ -328,3 +328,14 @@ Elo difference: 21.9 +/- 11.4, LOS: 100.0 %, DrawRatio: 43.4 %
 SPRT: llr 2.22 (75.4%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Tweak Static-Null Move Pruning Margins
+--------------------------------------
+```
+Rank Name                          Elo     +/-   Games   Score    Draw
+   0 Blunder 8.0.0-snmp-120        -11      10    2519   48.4%   44.1%
+   1 Blunder 8.0.0-snmp-85          28      20     630   54.0%   45.6%
+   2 Blunder 8.0.0-snmp-110          9      21     629   51.4%   42.3%
+   3 Blunder 8.0.0-snmp-90           6      20     630   50.8%   45.1%
+   4 Blunder 8.0.0-snmp-95           2      20     630   50.3%   43.5%
+```

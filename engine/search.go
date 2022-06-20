@@ -43,9 +43,7 @@ const (
 
 	// Pruning constants
 	NMR_Depth_Limit                 int8  = 2
-	StaticNullMovePruningBaseMargin int16 = 120
-	FutilityPruningBaseMargin       int16 = 200
-	LateMoveReduction               int8  = 2
+	StaticNullMovePruningBaseMargin int16 = 85
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
 	WindowSize                      int16 = 35
