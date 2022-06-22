@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -39,11 +38,9 @@ func TestPolyglotHashing(t *testing.T) {
 		pos.LoadFEN(polyglotPos.Fen)
 		hash := GenPolyglotHash(&pos)
 		if hash != polyglotPos.Hash {
-			t.Error(
-				fmt.Sprintf(
-					"Polyglot hash generation failed for position %s. Got 0x%x instead of 0x%x",
-					polyglotPos.Fen, hash, polyglotPos.Hash,
-				),
+			t.Errorf(
+				"Polyglot hash generation failed for position %s. Got 0x%x instead of 0x%x",
+				polyglotPos.Fen, hash, polyglotPos.Hash,
 			)
 		}
 	}

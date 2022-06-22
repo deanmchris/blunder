@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -43,11 +42,9 @@ func TestSee(t *testing.T) {
 		pos.LoadFEN(seePos.Fen)
 		result := pos.See(seePos.Move)
 		if result != seePos.Score {
-			t.Error(
-				fmt.Sprintf(
-					"SEE test failed for position %s, move %s. Got %d instead of %d",
-					seePos.Fen, seePos.Move, result, seePos.Score,
-				),
+			t.Errorf(
+				"SEE test failed for position %s, move %s. Got %d instead of %d",
+				seePos.Fen, seePos.Move, result, seePos.Score,
 			)
 		}
 	}
