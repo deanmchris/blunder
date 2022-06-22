@@ -5,6 +5,14 @@ import (
 	"testing"
 )
 
+// Make sure to initalize the engine internals, since these
+// tests are run independently of main.go.
+func init() {
+	InitBitboards()
+	InitTables()
+	InitZobrist()
+}
+
 // polyglot_test.go provides tests to ensure polyglot hashing it working correctly.
 
 type PolyglotPosition struct {

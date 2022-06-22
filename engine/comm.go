@@ -87,7 +87,7 @@ func dividePerftCommand(pos *Position, command string, TT *TransTable[PerftEntry
 }
 
 // Run the fen command in the command line mode
-func fenCommand(pos *Position, command string) {
+func fenCommand(search *Search, command string) {
 	command = strings.TrimPrefix(command, "fen ")
 	command = strings.TrimSuffix(command, "\n")
 
@@ -96,7 +96,7 @@ func fenCommand(pos *Position, command string) {
 			fmt.Println("fen entered is not valid")
 		}
 	}()
-	pos.LoadFEN(command)
+	search.Setup(command)
 }
 
 // Resize the perft transposition table.
@@ -124,7 +124,7 @@ func RunCommLoop() {
 	inter := UCIInterface{}
 	TT := TransTable[PerftEntry]{}
 
-	inter.Search.Pos.LoadFEN(FENStartPosition)
+	inter.Search.Setup(FENStartPosition)
 	TT.Resize(DefaultTTSize, PerftEntrySize)
 
 	for {
@@ -138,7 +138,7 @@ func RunCommLoop() {
 			TT.Clear()
 			dividePerftCommand(&inter.Search.Pos, command, &TT)
 		} else if strings.HasPrefix(command, "fen ") {
-			fenCommand(&inter.Search.Pos, command)
+			fenCommand(&inter.Search, command)
 		} else if strings.HasPrefix(command, "tt ") {
 			resizeTT(&TT, command)
 		} else if command == "print\n" {

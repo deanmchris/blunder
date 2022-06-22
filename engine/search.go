@@ -31,6 +31,11 @@ const (
 	// is allowed to reach.
 	MaxHistoryScore int32 = int32(MvvLvaOffset) - int32((MaxKillers+1)*KillerMoveScore)
 
+	// A constant representing the maximum game ply,
+	// used to initalize the array for holding repetition
+	// detection history.
+	MaxGamePly = 1024
+
 	// Constants representing various pruning margins and parameters used
 	// in the search.
 	StaticNullMovePruningBaseMargin int16 = 120
@@ -110,12 +115,39 @@ type Search struct {
 	Timer TimeManager
 	TT    TransTable[SearchEntry]
 
-	side       uint8
-	nodes      uint64
-	totalNodes uint64
+	side              uint8
+	nodes             uint64
+	totalNodes        uint64
+	killers           [MaxDepth + 1][MaxKillers]Move
+	history           [2][64][64]int32
+	zobristHistory    [MaxGamePly]uint64
+	zobristHistoryPly uint16
+}
 
-	killers [MaxDepth + 1][MaxKillers]Move
-	history [2][64][64]int32
+// Setup the necessary internals of the engine when given a new FEN string.
+func (search *Search) Setup(FEN string) {
+	search.Pos.LoadFEN(FEN)
+	search.zobristHistoryPly = 0
+	search.zobristHistory[search.zobristHistoryPly] = search.Pos.Hash
+}
+
+// Reset the necessary internals of the engine. Normally used when the
+// "ucinewgame" command is sent.
+func (search *Search) Reset() {
+	search.TT.Clear()
+	search.ClearKillers()
+	search.ClearHistoryTable()
+}
+
+// Add a zobrist hash to the history.
+func (search *Search) AddHistory(hash uint64) {
+	search.zobristHistoryPly++
+	search.zobristHistory[search.zobristHistoryPly] = hash
+}
+
+// Remove a zobrist hash from the history.
+func (search *Search) RemoveHistory() {
+	search.zobristHistoryPly--
 }
 
 // The main search function for Blunder, implemented as an interative
@@ -325,10 +357,14 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if doNull && !inCheck && !isPVNode && depth >= 3 && !search.Pos.NoMajorsOrMiniors() {
+		search.Pos.DoNullMove()
+		search.AddHistory(search.Pos.Hash)
+
 		R := 3 + depth/6
-		search.Pos.MakeNullMove()
-		score := -search.negamax(depth-R-1, ply+1, -beta, -beta+1, &childPVLine, false)
-		search.Pos.UnmakeNullMove()
+		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &childPVLine, false)
+
+		search.RemoveHistory()
+		search.Pos.UndoNullMove()
 		childPVLine.Clear()
 
 		if search.Timer.Stop {
@@ -376,8 +412,8 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		move := moves.Moves[index]
 
 		// Make the move, and if it was illegal, undo it and skip to the next move.
-		if !search.Pos.MakeMove(move) {
-			search.Pos.UnmakeMove(move)
+		if !search.Pos.DoMove(move) {
+			search.Pos.UndoMove(move)
 			continue
 		}
 
@@ -393,7 +429,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		if depth <= 3 && !isPVNode && !inCheck && legalMoves > LateMovePruningMargins[depth] {
 			tactical := search.Pos.InCheck() || move.MoveType() == Promotion
 			if !tactical {
-				search.Pos.UnmakeMove(move)
+				search.Pos.UndoMove(move)
 				continue
 			}
 		}
@@ -409,10 +445,12 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		if canFutilityPrune && legalMoves > 1 {
 			tactical := search.Pos.InCheck() || move.MoveType() == Attack || move.MoveType() == Promotion
 			if !tactical {
-				search.Pos.UnmakeMove(move)
+				search.Pos.UndoMove(move)
 				continue
 			}
 		}
+
+		search.AddHistory(search.Pos.Hash)
 
 		// =====================================================================//
 		// LATE MOVE REDUCTION: Since our move ordering is good, the            //
@@ -465,7 +503,8 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			}
 		}
 
-		search.Pos.UnmakeMove(move)
+		search.Pos.UndoMove(move)
+		search.RemoveHistory()
 
 		// If the current score is better than the best score so far,
 		// update the best score and the best move.
@@ -590,13 +629,13 @@ func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8, pvLine *PVLin
 			continue
 		}
 
-		if !search.Pos.MakeMove(move) {
-			search.Pos.UnmakeMove(move)
+		if !search.Pos.DoMove(move) {
+			search.Pos.UndoMove(move)
 			continue
 		}
 
 		score := -search.Qsearch(-beta, -alpha, negamaxPly, &childPVLine)
-		search.Pos.UnmakeMove(move)
+		search.Pos.UndoMove(move)
 
 		if score > bestScore {
 			bestScore = score
@@ -666,6 +705,14 @@ func (search *Search) storeKiller(ply uint8, move Move) {
 	}
 }
 
+// Clear the killer moves table.
+func (search *Search) ClearKillers() {
+	for ply := 0; ply < MaxDepth+1; ply++ {
+		search.killers[ply][0] = NullMove
+		search.killers[ply][1] = NullMove
+	}
+}
+
 // Determine the draw score based on the phase of the game and whose moving,
 // to encourge the engine to strive for a win in the middle-game, but be
 // satisified with a draw in the endgame.
@@ -683,9 +730,8 @@ func (search *Search) contempt() int16 {
 
 // Determine if the current board state is being repeated.
 func (search *Search) isDrawByRepition() bool {
-	var repPly uint16
-	for repPly = 0; repPly < HistoryPly; repPly++ {
-		if PositionHistories[repPly] == search.Pos.Hash {
+	for repPly := uint16(0); repPly < search.zobristHistoryPly; repPly++ {
+		if search.zobristHistory[repPly] == search.Pos.Hash {
 			return true
 		}
 	}

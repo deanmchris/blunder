@@ -17,7 +17,7 @@ func genMoves(pos *Position) (moves MoveList) {
 	// and generate the moves for that piece.
 
 	for piece := uint8(Knight); piece < NoType; piece++ {
-		piecesBB := pos.PieceBB[pos.SideToMove][piece]
+		piecesBB := pos.Pieces[pos.SideToMove][piece]
 		for piecesBB != 0 {
 			pieceSq := piecesBB.PopBit()
 			genPieceMoves(pos, piece, pieceSq, &moves, FullBB)
@@ -38,10 +38,10 @@ func genCapturesAndQueenPromotions(pos *Position) (moves MoveList) {
 	// Go through each piece type, and each piece for that type,
 	// and generate the moves for that piece.
 
-	targets := pos.SideBB[pos.SideToMove^1]
+	targets := pos.Sides[pos.SideToMove^1]
 
 	for piece := uint8(Knight); piece < NoType; piece++ {
-		piecesBB := pos.PieceBB[pos.SideToMove][piece]
+		piecesBB := pos.Pieces[pos.SideToMove][piece]
 		for piecesBB != 0 {
 			pieceSq := piecesBB.PopBit()
 			genPieceMoves(pos, piece, pieceSq, &moves, targets)
@@ -57,8 +57,8 @@ func genCapturesAndQueenPromotions(pos *Position) (moves MoveList) {
 // Generate the moves a single piece,
 func genPieceMoves(pos *Position, piece, sq uint8, moves *MoveList, targets Bitboard) {
 	// Get a bitboard representing our side and the enemy side.
-	usBB := pos.SideBB[pos.SideToMove]
-	enemyBB := pos.SideBB[pos.SideToMove^1]
+	usBB := pos.Sides[pos.SideToMove]
+	enemyBB := pos.Sides[pos.SideToMove^1]
 
 	// Figure out what type of piece we're dealing with, and
 	// generate the moves it has accordingly.
@@ -102,9 +102,9 @@ func genBishopMoves(sq uint8, blockers Bitboard) Bitboard {
 // Only generate the moves that align with the specified
 // target squares.
 func genPawnMoves(pos *Position, moves *MoveList) {
-	usBB := pos.SideBB[pos.SideToMove]
-	enemyBB := pos.SideBB[pos.SideToMove^1] | SquareBB[pos.EPSq]
-	pawnsBB := pos.PieceBB[pos.SideToMove][Pawn]
+	usBB := pos.Sides[pos.SideToMove]
+	enemyBB := pos.Sides[pos.SideToMove^1] | SquareBB[pos.EPSq]
+	pawnsBB := pos.Pieces[pos.SideToMove][Pawn]
 
 	// For each pawn on our side...
 	for pawnsBB != 0 {
@@ -151,9 +151,9 @@ func genPawnMoves(pos *Position, moves *MoveList) {
 }
 
 func genPawnAttacksAndQueenPromotions(pos *Position, moves *MoveList) {
-	usBB := pos.SideBB[pos.SideToMove]
-	enemyBB := pos.SideBB[pos.SideToMove^1] | SquareBB[pos.EPSq]
-	pawnsBB := pos.PieceBB[pos.SideToMove][Pawn]
+	usBB := pos.Sides[pos.SideToMove]
+	enemyBB := pos.Sides[pos.SideToMove^1] | SquareBB[pos.EPSq]
+	pawnsBB := pos.Pieces[pos.SideToMove][Pawn]
 
 	// For each pawn on our side...
 	for pawnsBB != 0 {
@@ -210,7 +210,7 @@ func makePromotionMoves(from, to uint8, moves *MoveList) {
 // crossing attacked squares is not tested for here, as pseduo-legal move
 // generation is the focus.
 func genCastlingMoves(pos *Position, moves *MoveList) {
-	allPieces := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
+	allPieces := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
 	if pos.SideToMove == White {
 		if pos.CastlingRights&WhiteKingsideRight != 0 && (allPieces&F1_G1) == 0 && (!sqIsAttacked(pos, pos.SideToMove, E1) &&
 			!sqIsAttacked(pos, pos.SideToMove, F1) && !sqIsAttacked(pos, pos.SideToMove, G1)) {
@@ -254,15 +254,15 @@ func sqIsAttacked(pos *Position, usColor, sq uint8) bool {
 	// out from this superpiece sitting on our square, and if any of these rays hit
 	// an enemy piece, we know our square is being attacked by an enemy piece.
 
-	enemyBB := pos.SideBB[usColor^1]
-	usBB := pos.SideBB[usColor]
+	enemyBB := pos.Sides[usColor^1]
+	usBB := pos.Sides[usColor]
 
-	enemyBishops := pos.PieceBB[usColor^1][Bishop]
-	enemyRooks := pos.PieceBB[usColor^1][Rook]
-	enemyQueens := pos.PieceBB[usColor^1][Queen]
-	enemyKnights := pos.PieceBB[usColor^1][Knight]
-	enemyKing := pos.PieceBB[usColor^1][King]
-	enemyPawns := pos.PieceBB[usColor^1][Pawn]
+	enemyBishops := pos.Pieces[usColor^1][Bishop]
+	enemyRooks := pos.Pieces[usColor^1][Rook]
+	enemyQueens := pos.Pieces[usColor^1][Queen]
+	enemyKnights := pos.Pieces[usColor^1][Knight]
+	enemyKing := pos.Pieces[usColor^1][King]
+	enemyPawns := pos.Pieces[usColor^1][Pawn]
 
 	intercardinalRays := genBishopMoves(sq, enemyBB|usBB)
 	cardinalRaysRays := genRookMoves(sq, enemyBB|usBB)
@@ -310,7 +310,7 @@ func DividePerft(pos *Position, depth, divdeAt uint8, TT *TransTable[PerftEntry]
 	// for each move.
 	for idx := uint8(0); idx < moves.Count; idx++ {
 		move := moves.Moves[idx]
-		if pos.MakeMove(move) {
+		if pos.DoMove(move) {
 			moveNodes := DividePerft(pos, depth-1, divdeAt, TT)
 			if depth == divdeAt {
 				fmt.Printf("%v: %v\n", move, moveNodes)
@@ -319,7 +319,7 @@ func DividePerft(pos *Position, depth, divdeAt uint8, TT *TransTable[PerftEntry]
 			nodes += moveNodes
 		}
 
-		pos.UnmakeMove(move)
+		pos.UndoMove(move)
 	}
 
 	if TT.size > 0 {
@@ -352,10 +352,10 @@ func Perft(pos *Position, depth uint8, TT *TransTable[PerftEntry]) uint64 {
 	// for each move.
 	for idx := uint8(0); idx < moves.Count; idx++ {
 		move := moves.Moves[idx]
-		if pos.MakeMove(move) {
+		if pos.DoMove(move) {
 			nodes += Perft(pos, depth-1, TT)
 		}
-		pos.UnmakeMove(move)
+		pos.UndoMove(move)
 	}
 
 	if TT.size > 0 {

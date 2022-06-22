@@ -279,11 +279,11 @@ var FlipRank [2][8]int = [2][8]int{
 // more positive if it's good for the side to move, otherwise more negative).
 func EvaluatePos(pos *Position) int16 {
 	var eval Eval
-	eval.KingZones[White] = KingZones[pos.PieceBB[White][King].Msb()]
-	eval.KingZones[Black] = KingZones[pos.PieceBB[Black][King].Msb()]
+	eval.KingZones[White] = KingZones[pos.Pieces[White][King].Msb()]
+	eval.KingZones[Black] = KingZones[pos.Pieces[Black][King].Msb()]
 
 	phase := TotalPhase
-	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
+	allBB := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
 
 	for allBB != 0 {
 		sq := allBB.PopBit()
@@ -305,8 +305,8 @@ func EvaluatePos(pos *Position) int16 {
 		phase -= PhaseValues[piece.Type]
 	}
 
-	evalKing(pos, White, pos.PieceBB[White][King].Msb(), &eval)
-	evalKing(pos, Black, pos.PieceBB[Black][King].Msb(), &eval)
+	evalKing(pos, White, pos.Pieces[White][King].Msb(), &eval)
+	evalKing(pos, Black, pos.Pieces[Black][King].Msb(), &eval)
 
 	mgScore := eval.MGScores[pos.SideToMove] - eval.MGScores[pos.SideToMove^1]
 	egScore := eval.EGScores[pos.SideToMove] - eval.EGScores[pos.SideToMove^1]
@@ -320,8 +320,8 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Pawn] + PSQT_MG[Pawn][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Pawn] + PSQT_EG[Pawn][FlipSq[color][sq]]
 
-	usPawns := pos.PieceBB[color][Pawn]
-	enemyPawns := pos.PieceBB[color^1][Pawn]
+	usPawns := pos.Pieces[color][Pawn]
+	enemyPawns := pos.Pieces[color^1][Pawn]
 
 	file := fileOf(sq)
 	doubled := false
@@ -351,8 +351,8 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Knight] + PSQT_MG[Knight][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Knight] + PSQT_EG[Knight][FlipSq[color][sq]]
 
-	usPawns := pos.PieceBB[color][Pawn]
-	enemyPawns := pos.PieceBB[color^1][Pawn]
+	usPawns := pos.Pieces[color][Pawn]
+	enemyPawns := pos.Pieces[color^1][Pawn]
 
 	if KnightOutpustMasks[color][sq]&enemyPawns == 0 &&
 		PawnAttacks[color^1][sq]&usPawns != 0 &&
@@ -362,7 +362,7 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 		eval.EGScores[color] += KnightOutpostBonusEG
 	}
 
-	usBB := pos.SideBB[color]
+	usBB := pos.Sides[color]
 	moves := KnightMoves[sq] & ^usBB
 	mobility := int16(moves.CountBits())
 
@@ -384,8 +384,8 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Bishop] + PSQT_MG[Bishop][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Bishop] + PSQT_EG[Bishop][FlipSq[color][sq]]
 
-	usBB := pos.SideBB[color]
-	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
+	usBB := pos.Sides[color]
+	allBB := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
 
 	moves := genBishopMoves(sq, allBB) & ^usBB
 	mobility := int16(moves.CountBits())
@@ -408,8 +408,8 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Rook] + PSQT_MG[Rook][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Rook] + PSQT_EG[Rook][FlipSq[color][sq]]
 
-	usBB := pos.SideBB[color]
-	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
+	usBB := pos.Sides[color]
+	allBB := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
 
 	moves := genRookMoves(sq, allBB) & ^usBB
 	mobility := int16(moves.CountBits())
@@ -432,8 +432,8 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 	eval.MGScores[color] += PieceValueMG[Queen] + PSQT_MG[Queen][FlipSq[color][sq]]
 	eval.EGScores[color] += PieceValueEG[Queen] + PSQT_EG[Queen][FlipSq[color][sq]]
 
-	usBB := pos.SideBB[color]
-	allBB := pos.SideBB[pos.SideToMove] | pos.SideBB[pos.SideToMove^1]
+	usBB := pos.Sides[color]
+	allBB := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
 
 	moves := (genBishopMoves(sq, allBB) | genRookMoves(sq, allBB)) & ^usBB
 	mobility := int16(moves.CountBits())
@@ -458,7 +458,7 @@ func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 
 	enemyPoints := InitKingSafety[FlipSq[color][sq]] + eval.KingAttackPoints[color^1]
 	kingFile := MaskFile[fileOf(sq)]
-	usPawns := pos.PieceBB[color][Pawn]
+	usPawns := pos.Pieces[color][Pawn]
 
 	// Evaluate semi-open files adjacent to the enemy king
 	leftFile := ((kingFile & ClearFile[FileA]) << 1)
@@ -480,7 +480,7 @@ func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 	// and see what kind of penatly we should get by indexing the
 	// non-linear king-saftey table.
 	enemyPoints = min_u16(enemyPoints, uint16(len(KingAttackTable)-1))
-	if eval.KingAttackers[color^1] >= 2 && pos.PieceBB[color^1][Queen] != 0 {
+	if eval.KingAttackers[color^1] >= 2 && pos.Pieces[color^1][Queen] != 0 {
 		eval.MGScores[color] -= KingAttackTable[enemyPoints]
 	}
 }

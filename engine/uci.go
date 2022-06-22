@@ -77,13 +77,14 @@ func (inter *UCIInterface) positionCommandResponse(command string) {
 
 	// Set the board to the appropriate position and make
 	// the moves that have occured if any to update the position.
-	inter.Search.Pos.LoadFEN(fenString)
+	inter.Search.Setup(fenString)
 	if strings.HasPrefix(args, "moves") {
 		args = strings.TrimSuffix(strings.TrimPrefix(args, "moves"), " ")
 		if args != "" {
 			for _, moveAsString := range strings.Fields(args) {
 				move := MoveFromCoord(&inter.Search.Pos, moveAsString)
-				inter.Search.Pos.MakeMove(move)
+				inter.Search.Pos.DoMove(move)
+				inter.Search.AddHistory(inter.Search.Pos.Hash)
 
 				// Decrementing the history counter here makes
 				// sure that no state is saved on the position's
@@ -235,7 +236,7 @@ func (inter *UCIInterface) UCILoop() {
 	inter.Reset()
 
 	inter.Search.TT.Resize(DefaultTTSize, SearchEntrySize)
-	inter.Search.Pos.LoadFEN(FENStartPosition)
+	inter.Search.Setup(FENStartPosition)
 	inter.OpeningBook = make(map[uint64][]PolyglotEntry)
 	inter.OptionBookMoveDelay = DefaultBookMoveDelay
 
@@ -250,8 +251,7 @@ func (inter *UCIInterface) UCILoop() {
 		} else if strings.HasPrefix(command, "setoption") {
 			inter.setOptionCommandResponse(command)
 		} else if strings.HasPrefix(command, "ucinewgame") {
-			inter.Search.TT.Clear()
-			inter.Search.ClearHistoryTable()
+			inter.Search.Reset()
 		} else if strings.HasPrefix(command, "position") {
 			inter.positionCommandResponse(command)
 		} else if strings.HasPrefix(command, "go") {
