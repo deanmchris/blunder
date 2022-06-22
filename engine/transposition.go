@@ -1,15 +1,19 @@
 package engine
 
 // transposition.go contains an implementation of a transposition table (TT) to use
-// in search.
+// in searching and perft.
 
 const (
 	// Default size of the transposition table, in MB.
 	DefaultTTSize = 64
 
-	// Constant for the size of a transposition table entry, in bytes,
+	// The number of buckets to have per transposition table index.
+	NumTTBuckets = 2
+
+	// Constant for the size of a transposition table search and perft entry, in bytes,
 	// considering memory alignment.
-	TTEntrySize = 16
+	SearchEntrySize uint64 = 16
+	PerftEntrySize  uint64 = 24
 
 	// Constants representing the different flags for a transposition table entry,
 	// which determine what kind of entry it is. If the entry has a score from
@@ -20,19 +24,14 @@ const (
 	BetaFlag
 	ExactFlag
 
-	// A constant representing an invalid score from probing the transposition table.
-	// this constant's value doesn't matter as long as it's not in the range of possible
-	// score values. So it must be outside of the range (-Inf, Inf).
-	Invalid int16 = 20000
-
 	// A constant representing the minimum or maximum value that a score from the search
 	// must be below or above to be a checkmate score. The score assumes that the engine
 	// will not find mate in 100.
 	Checkmate = 9000
 )
 
-// A struct for a transposition table entry.
-type TT_Entry struct {
+// A struct for a transposition table entry used in the search.
+type SearchEntry struct {
 	Hash  uint64
 	Depth uint8
 	Score int16
@@ -40,26 +39,16 @@ type TT_Entry struct {
 	Best  Move
 }
 
-// A struct for a transposition table.
-type TransTable struct {
-	entries []TT_Entry
-	size    uint64
+// A struct for a transposition table entry used in perft.
+type PerftEntry struct {
+	Hash  uint64
+	Nodes uint64
+	Depth uint8
 }
 
-// Resize the transposition table given what the size should be in MB.
-func (tt *TransTable) Resize(sizeInMB uint64) {
-	size := (sizeInMB * 1024 * 1024) / TTEntrySize
-	tt.entries = make([]TT_Entry, size)
-	tt.size = size
-}
-
-// Get an entry from the table.
-func (tt *TransTable) Probe(hash uint64, ply, depth uint8, alpha, beta int16, best *Move) int16 {
-	// Get the entry from the table, calculating an index by modulo-ing the hash of
-	// the position by the size of the table.
-	entry := tt.entries[hash%tt.size]
-
-	adjustedScore := Invalid
+func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, best *Move) (int16, bool) {
+	adjustedScore := int16(0)
+	shouldUse := false
 
 	// Since index collisions can occur, test if the hash of the entry at this index
 	// actually matches the hash for the current position.
@@ -69,6 +58,10 @@ func (tt *TransTable) Probe(hash uint64, ply, depth uint8, alpha, beta int16, be
 		// use the best move in this entry and put it first in our move ordering
 		// scheme.
 		*best = entry.Best
+
+		// Return the score of the position to use as an estimate for various
+		// pruning and extension techniques in the search.
+		adjustedScore = entry.Score
 
 		// To be able to get an accurate value from this entry, make sure the results of
 		// this entry are from a search that is equal or greater than the current
@@ -94,6 +87,7 @@ func (tt *TransTable) Probe(hash uint64, ply, depth uint8, alpha, beta int16, be
 			if entry.Flag == ExactFlag {
 				// If we have an exact entry, we can use the saved score.
 				adjustedScore = score
+				shouldUse = true
 			}
 
 			if entry.Flag == AlphaFlag && score <= alpha {
@@ -101,6 +95,7 @@ func (tt *TransTable) Probe(hash uint64, ply, depth uint8, alpha, beta int16, be
 				// current alpha, then we know that our current alpha is the best score
 				// we can get in this node, so we can stop searching and use alpha.
 				adjustedScore = alpha
+				shouldUse = true
 			}
 
 			if entry.Flag == BetaFlag && score >= beta {
@@ -109,17 +104,16 @@ func (tt *TransTable) Probe(hash uint64, ply, depth uint8, alpha, beta int16, be
 				// searching this node previously, we found a value greater than the current
 				// beta. so we can stop searching and use beta.
 				adjustedScore = beta
+				shouldUse = true
 			}
 		}
 	}
 
 	// Return the score
-	return adjustedScore
+	return adjustedScore, shouldUse
 }
 
-// Store an entry in the table.
-func (tt *TransTable) Store(hash uint64, ply, depth uint8, score int16, flag uint8, best Move) {
-	entry := &tt.entries[hash%tt.size]
+func (entry *SearchEntry) Set(hash uint64, ply, depth uint8, score int16, flag uint8, best Move) {
 	entry.Hash = hash
 	entry.Depth = depth
 	entry.Flag = flag
@@ -143,16 +137,48 @@ func (tt *TransTable) Store(hash uint64, ply, depth uint8, score int16, flag uin
 	entry.Score = score
 }
 
+func (entry *PerftEntry) Get(hash uint64, depth uint8) (nodeCount uint64, ok bool) {
+	if entry.Hash == hash && entry.Depth == depth {
+		return entry.Nodes, true
+	}
+	return 0, false
+}
+
+func (entry *PerftEntry) Set(hash uint64, depth uint8, nodes uint64) {
+	entry.Hash = hash
+	entry.Depth = depth
+	entry.Nodes = nodes
+}
+
+// A struct for a transposition table.
+type TransTable[Entry SearchEntry | PerftEntry] struct {
+	entries []Entry
+	size    uint64
+}
+
+// Resize the transposition table given what the size should be in MB.
+func (tt *TransTable[Entry]) Resize(sizeInMB uint64, entrySize uint64) {
+	size := (sizeInMB * 1024 * 1024) / entrySize
+	tt.entries = make([]Entry, size)
+	tt.size = size
+}
+
+// Get an entry from the table.
+func (tt *TransTable[Entry]) Probe(hash uint64) *Entry {
+	// Get the entry from the table, calculating an index by modulo-ing the hash of
+	// the position by the size of the table.
+	return &tt.entries[hash%tt.size]
+}
+
 // Unitialize the memory used by the transposition table
-func (tt *TransTable) Unitialize() {
+func (tt *TransTable[Entry]) Unitialize() {
 	tt.entries = nil
 	tt.size = 0
 }
 
 // Clear the transposition table
-func (tt *TransTable) Clear() {
-	var idx uint64
-	for idx = 0; idx < tt.size; idx++ {
-		tt.entries[idx] = TT_Entry{}
+func (tt *TransTable[Entry]) Clear() {
+	for idx := uint64(0); idx < tt.size; idx++ {
+		tt.entries[idx] = *new(Entry)
 	}
 }

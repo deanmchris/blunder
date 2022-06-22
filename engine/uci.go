@@ -120,7 +120,7 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 		size, err := strconv.Atoi(value)
 		if err == nil {
 			inter.Search.TT.Unitialize()
-			inter.Search.TT.Resize(uint64(size))
+			inter.Search.TT.Resize(uint64(size), SearchEntrySize)
 		}
 	case "Clear Hash":
 		inter.Search.TT.Clear()
@@ -242,7 +242,7 @@ func (inter *UCIInterface) UCILoop() {
 	inter.uciCommandResponse()
 	inter.Reset()
 
-	inter.Search.TT.Resize(DefaultTTSize)
+	inter.Search.TT.Resize(DefaultTTSize, SearchEntrySize)
 	inter.Search.Pos.LoadFEN(FENStartPosition)
 	inter.OpeningBook = make(map[uint64][]PolyglotEntry)
 	inter.OptionBookMoveDelay = DefaultBookMoveDelay

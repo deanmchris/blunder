@@ -108,7 +108,7 @@ func (pvLine PVLine) String() string {
 type Search struct {
 	Pos   Position
 	Timer TimeManager
-	TT    TransTable
+	TT    TransTable[SearchEntry]
 
 	side       uint8
 	nodes      uint64
@@ -285,11 +285,19 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// table. And the best move we'll get from the search if we don't get a hit.
 	ttMove := NullMove
 
-	// Probe the transposition table to see if we have a useable matching entry for the current
-	// position. If we get a hit, return the score and stop searching.
-	score := search.TT.Probe(search.Pos.Hash, ply, uint8(depth), alpha, beta, &ttMove)
-	if score != Invalid && !isRoot {
-		return score
+	// =====================================================================//
+	// TRANSPOSITION TABLE PROBING: Probe the transposition table to see if //
+	// we have a useable matching entry for the current position. If we get //
+	// a hit, return the score and stop searching.                          //
+	// =====================================================================//
+
+	entry := search.TT.Probe(search.Pos.Hash)
+	ttScore, shouldUse := entry.Get(
+		search.Pos.Hash, ply, uint8(depth), alpha, beta, &ttMove,
+	)
+
+	if shouldUse && !isRoot {
+		return ttScore
 	}
 
 	// =====================================================================//
@@ -526,7 +534,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	// If we're not out of time, store the result of the search for this position.
 	if !search.Timer.Stop {
-		search.TT.Store(search.Pos.Hash, ply, uint8(depth), bestScore, ttFlag, bestMove)
+		search.TT.Probe(search.Pos.Hash).Set(
+			search.Pos.Hash, ply, uint8(depth), bestScore, ttFlag, bestMove,
+		)
 	}
 
 	// Return the best score, which is alpha.
