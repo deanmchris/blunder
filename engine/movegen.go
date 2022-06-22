@@ -85,15 +85,15 @@ func genPieceMoves(pos *Position, piece, sq uint8, moves *MoveList, targets Bitb
 // Generate rook moves.
 func genRookMoves(sq uint8, blockers Bitboard) Bitboard {
 	magic := &RookMagics[sq]
-	blockers &= magic.Mask
-	return RookAttacks[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
+	blockers &= magic.BlockerMask
+	return RookMoves[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
 }
 
 // Generate rook moves.
 func genBishopMoves(sq uint8, blockers Bitboard) Bitboard {
 	magic := &BishopMagics[sq]
-	blockers &= magic.Mask
-	return BishopAttacks[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
+	blockers &= magic.BlockerMask
+	return BishopMoves[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
 }
 
 // Generate pawn moves for the current side. Pawns are treated
