@@ -357,7 +357,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	// Generate and score the moves for the side to move
 	// in the current position.
-	moves := GenMoves(&search.Pos)
+	moves := genMoves(&search.Pos)
 	search.scoreMoves(&moves, ttMove, ply)
 
 	// Set up variables to record the number of legal moves and
@@ -577,7 +577,7 @@ func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8, pvLine *PVLin
 		alpha = bestScore
 	}
 
-	moves := genCapturesAndQPromotions(&search.Pos)
+	moves := genCapturesAndQueenPromotions(&search.Pos)
 	search.scoreMoves(&moves, NullMove, negamaxPly)
 	var childPVLine PVLine
 

@@ -5,6 +5,14 @@ import (
 	"testing"
 )
 
+func init() {
+	InitBitboards()
+	InitTables()
+	InitZobrist()
+}
+
+// Make sure to initalize the engine internals, since these
+// tests are run independently of main.go.
 type SeePosition struct {
 	Fen   string
 	Move  Move

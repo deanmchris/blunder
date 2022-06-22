@@ -2,9 +2,7 @@ package engine
 
 // movegen.go implements the move generator for Blunder.
 
-import (
-	"fmt"
-)
+import "fmt"
 
 const (
 	// These masks help determine whether or not the squares between
@@ -14,7 +12,7 @@ const (
 )
 
 // Generate all pseduo-legal moves for a given position.
-func GenMoves(pos *Position) (moves MoveList) {
+func genMoves(pos *Position) (moves MoveList) {
 	// Go through each piece type, and each piece for that type,
 	// and generate the moves for that piece.
 
@@ -36,7 +34,7 @@ func GenMoves(pos *Position) (moves MoveList) {
 }
 
 // Generate all pseduo-legal captures and queen promotions for a given position.
-func genCapturesAndQPromotions(pos *Position) (moves MoveList) {
+func genCapturesAndQueenPromotions(pos *Position) (moves MoveList) {
 	// Go through each piece type, and each piece for that type,
 	// and generate the moves for that piece.
 
@@ -51,7 +49,7 @@ func genCapturesAndQPromotions(pos *Position) (moves MoveList) {
 	}
 
 	// Generate pawn attacks or queen promotions.
-	genPawnAttacksAndQPromotions(pos, &moves)
+	genPawnAttacksAndQueenPromotions(pos, &moves)
 
 	return moves
 }
@@ -105,7 +103,7 @@ func genBishopMoves(sq uint8, blockers Bitboard) Bitboard {
 // target squares.
 func genPawnMoves(pos *Position, moves *MoveList) {
 	usBB := pos.SideBB[pos.SideToMove]
-	enemyBB := pos.SideBB[pos.SideToMove^1]
+	enemyBB := pos.SideBB[pos.SideToMove^1] | SquareBB[pos.EPSq]
 	pawnsBB := pos.PieceBB[pos.SideToMove][Pawn]
 
 	// For each pawn on our side...
@@ -122,13 +120,13 @@ func genPawnMoves(pos *Position, moves *MoveList) {
 		pawnPush := pawnOnePush | pawnTwoPush
 
 		// and the attacks.
-		pawnAttacks := PawnAttacks[pos.SideToMove][from]
+		pawnAttacks := PawnAttacks[pos.SideToMove][from] & enemyBB
 
 		// Generate pawn push moves
 		for pawnPush != 0 {
 			to := pawnPush.PopBit()
 			if isPromoting(pos.SideToMove, to) {
-				makePromotionMoves(pos, from, to, moves)
+				makePromotionMoves(from, to, moves)
 				continue
 			}
 			moves.AddMove(NewMove(from, to, Quiet, NoFlag))
@@ -137,14 +135,13 @@ func genPawnMoves(pos *Position, moves *MoveList) {
 		// Generate pawn attack moves.
 		for pawnAttacks != 0 {
 			to := pawnAttacks.PopBit()
-			toBB := SquareBB[to]
 
 			// Check for en passant moves.
 			if to == pos.EPSq {
 				moves.AddMove(NewMove(from, to, Attack, AttackEP))
-			} else if toBB&enemyBB != 0 {
+			} else {
 				if isPromoting(pos.SideToMove, to) {
-					makePromotionMoves(pos, from, to, moves)
+					makePromotionMoves(from, to, moves)
 					continue
 				}
 				moves.AddMove(NewMove(from, to, Attack, NoFlag))
@@ -153,9 +150,9 @@ func genPawnMoves(pos *Position, moves *MoveList) {
 	}
 }
 
-func genPawnAttacksAndQPromotions(pos *Position, moves *MoveList) {
+func genPawnAttacksAndQueenPromotions(pos *Position, moves *MoveList) {
 	usBB := pos.SideBB[pos.SideToMove]
-	enemyBB := pos.SideBB[pos.SideToMove^1]
+	enemyBB := pos.SideBB[pos.SideToMove^1] | SquareBB[pos.EPSq]
 	pawnsBB := pos.PieceBB[pos.SideToMove][Pawn]
 
 	// For each pawn on our side...
@@ -166,7 +163,7 @@ func genPawnAttacksAndQPromotions(pos *Position, moves *MoveList) {
 		pawnOnePush := PawnPushes[pos.SideToMove][from] & ^(usBB | enemyBB)
 
 		// and the attacks.
-		pawnAttacks := PawnAttacks[pos.SideToMove][from]
+		pawnAttacks := PawnAttacks[pos.SideToMove][from] & enemyBB
 
 		// Generate a possible queen promotion.
 		to := pawnOnePush.PopBit()
@@ -177,14 +174,13 @@ func genPawnAttacksAndQPromotions(pos *Position, moves *MoveList) {
 		// Generate pawn attack moves.
 		for pawnAttacks != 0 {
 			to := pawnAttacks.PopBit()
-			toBB := SquareBB[to]
 
 			// Check for en passant moves.
 			if to == pos.EPSq {
 				moves.AddMove(NewMove(from, to, Attack, AttackEP))
-			} else if toBB&enemyBB != 0 {
+			} else {
 				if isPromoting(pos.SideToMove, to) {
-					makePromotionMoves(pos, from, to, moves)
+					moves.AddMove(NewMove(from, to, Promotion, QueenPromotion))
 					continue
 				}
 				moves.AddMove(NewMove(from, to, Attack, NoFlag))
@@ -203,7 +199,7 @@ func isPromoting(usColor, toSq uint8) bool {
 }
 
 // Generate promotion moves for pawns
-func makePromotionMoves(pos *Position, from, to uint8, moves *MoveList) {
+func makePromotionMoves(from, to uint8, moves *MoveList) {
 	moves.AddMove(NewMove(from, to, Promotion, KnightPromotion))
 	moves.AddMove(NewMove(from, to, Promotion, BishopPromotion))
 	moves.AddMove(NewMove(from, to, Promotion, RookPromotion))
@@ -294,23 +290,28 @@ func sqIsAttacked(pos *Position, usColor, sq uint8) bool {
 // number of nodes explored.  This function is used to
 // debug move generation and ensure it is working by comparing
 // the results to the known results of other engines
-func DividePerft(pos *Position, depth, divdeAt uint8) uint64 {
+func DividePerft(pos *Position, depth, divdeAt uint8, TT *TransTable[PerftEntry]) uint64 {
 	// If depth zero has been reached, return zero...
 	if depth == 0 {
 		return 1
 	}
 
+	if TT.size > 0 {
+		if nodeCount, ok := TT.Probe(pos.Hash).Get(pos.Hash, depth); ok {
+			return nodeCount
+		}
+	}
+
 	// otherwise genrate the legal moves we have...
-	moves := GenMoves(pos)
-	var nodes uint64
+	moves := genMoves(pos)
+	nodes := uint64(0)
 
 	// And make every move, recursively calling perft to get the number of subnodes
 	// for each move.
-	var idx uint8
-	for idx = 0; idx < moves.Count; idx++ {
+	for idx := uint8(0); idx < moves.Count; idx++ {
 		move := moves.Moves[idx]
 		if pos.MakeMove(move) {
-			moveNodes := DividePerft(pos, depth-1, divdeAt)
+			moveNodes := DividePerft(pos, depth-1, divdeAt, TT)
 			if depth == divdeAt {
 				fmt.Printf("%v: %v\n", move, moveNodes)
 			}
@@ -321,30 +322,44 @@ func DividePerft(pos *Position, depth, divdeAt uint8) uint64 {
 		pos.UnmakeMove(move)
 	}
 
+	if TT.size > 0 {
+		TT.Probe(pos.Hash).Set(pos.Hash, depth, nodes)
+	}
+
 	// Return the total amount of nodes for the given position.
 	return nodes
 }
 
 // Same as divide perft but doesn't print subnode count
 // for each move, only the final total.
-func Perft(pos *Position, depth uint8) uint64 {
+func Perft(pos *Position, depth uint8, TT *TransTable[PerftEntry]) uint64 {
 	// If depth zero has been reached, return zero...
 	if depth == 0 {
 		return 1
 	}
 
+	if TT.size > 0 {
+		if nodeCount, ok := TT.Probe(pos.Hash).Get(pos.Hash, depth); ok {
+			return nodeCount
+		}
+	}
+
 	// otherwise genrate the legal moves we have...
-	moves := GenMoves(pos)
-	var nodes uint64
+	moves := genMoves(pos)
+	nodes := uint64(0)
 
 	// And make every move, recursively calling perft to get the number of subnodes
 	// for each move.
-	var idx uint8
-	for idx = 0; idx < moves.Count; idx++ {
-		if pos.MakeMove(moves.Moves[idx]) {
-			nodes += Perft(pos, depth-1)
+	for idx := uint8(0); idx < moves.Count; idx++ {
+		move := moves.Moves[idx]
+		if pos.MakeMove(move) {
+			nodes += Perft(pos, depth-1, TT)
 		}
-		pos.UnmakeMove(moves.Moves[idx])
+		pos.UnmakeMove(move)
+	}
+
+	if TT.size > 0 {
+		TT.Probe(pos.Hash).Set(pos.Hash, depth, nodes)
 	}
 
 	// Return the total amount of nodes for the given position.

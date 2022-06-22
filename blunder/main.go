@@ -1,6 +1,8 @@
 package main
 
-import "blunder/engine"
+import (
+	"blunder/engine"
+)
 
 func init() {
 	engine.InitBitboards()

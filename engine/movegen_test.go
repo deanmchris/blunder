@@ -26,11 +26,19 @@ type PerftTest struct {
 	DepthValues [MaxPerftDepth]uint64
 }
 
+// Make sure to initalize the engine internals, since these
+// tests are run independently of main.go.
+func init() {
+	InitBitboards()
+	InitTables()
+	InitZobrist()
+}
+
 // Load the perft test suite
 func loadPerftSuite() (perftTests []PerftTest) {
 	wd, _ := os.Getwd()
 	parentFolder := filepath.Dir(wd)
-	filePath := filepath.Join(parentFolder, "/testdata/perftsuite.epd")
+	filePath := filepath.Join(parentFolder, "/perft_suite/perft_suite.epd")
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -95,11 +103,13 @@ func TestMovegen(t *testing.T) {
 	printPerftTestRow("position", "depth", "expected", "moves", "correct")
 	printPerftTestRowSeparator()
 
-	var pos Position
-	var totalNodes uint64
+	pos := Position{}
+	TT := TransTable[PerftEntry]{}
+	totalNodes := uint64(0)
 	testsPassed := true
 
 	perftTests := loadPerftSuite()
+	TT.Resize(DefaultTTSize, PerftEntrySize)
 	start := time.Now()
 
 	for _, perftTest := range perftTests {
@@ -110,7 +120,7 @@ func TestMovegen(t *testing.T) {
 				continue
 			}
 
-			result := Perft(&pos, uint8(depth)+1)
+			result := Perft(&pos, uint8(depth)+1, &TT)
 			totalNodes += result
 
 			var correct string
