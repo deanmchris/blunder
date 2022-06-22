@@ -13,11 +13,6 @@ const (
 	Inf int16 = 10000
 )
 
-// Variables representing values for draws in the middle and
-// end-game.
-var MiddleGameDraw int16 = 25
-var EndGameDraw int16 = 0
-
 type Eval struct {
 	MGScores [2]int16
 	EGScores [2]int16
@@ -278,11 +273,16 @@ var FlipRank [2][8]int = [2][8]int{
 // Evaluate a position and give a score, from the perspective of the side to move (
 // more positive if it's good for the side to move, otherwise more negative).
 func EvaluatePos(pos *Position) int16 {
-	var eval Eval
-	eval.KingZones[White] = KingZones[pos.Pieces[White][King].Msb()]
-	eval.KingZones[Black] = KingZones[pos.Pieces[Black][King].Msb()]
+	eval := Eval{
+		MGScores: pos.MGScores,
+		EGScores: pos.EGScores,
+		KingZones: [2]KingZone{
+			KingZones[pos.Pieces[Black][King].Msb()],
+			KingZones[pos.Pieces[White][King].Msb()],
+		},
+	}
 
-	phase := TotalPhase
+	phase := pos.Phase
 	allBB := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
 
 	for allBB != 0 {
@@ -301,8 +301,6 @@ func EvaluatePos(pos *Position) int16 {
 		case Queen:
 			evalQueen(pos, piece.Color, sq, &eval)
 		}
-
-		phase -= PhaseValues[piece.Type]
 	}
 
 	evalKing(pos, White, pos.Pieces[White][King].Msb(), &eval)
@@ -317,9 +315,6 @@ func EvaluatePos(pos *Position) int16 {
 
 // Evaluate the score of a pawn.
 func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
-	eval.MGScores[color] += PieceValueMG[Pawn] + PSQT_MG[Pawn][FlipSq[color][sq]]
-	eval.EGScores[color] += PieceValueEG[Pawn] + PSQT_EG[Pawn][FlipSq[color][sq]]
-
 	usPawns := pos.Pieces[color][Pawn]
 	enemyPawns := pos.Pieces[color^1][Pawn]
 
@@ -348,9 +343,6 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 
 // Evaluate the score of a knight.
 func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
-	eval.MGScores[color] += PieceValueMG[Knight] + PSQT_MG[Knight][FlipSq[color][sq]]
-	eval.EGScores[color] += PieceValueEG[Knight] + PSQT_EG[Knight][FlipSq[color][sq]]
-
 	usPawns := pos.Pieces[color][Pawn]
 	enemyPawns := pos.Pieces[color^1][Pawn]
 
@@ -381,9 +373,6 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 
 // Evaluate the score of a bishop.
 func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
-	eval.MGScores[color] += PieceValueMG[Bishop] + PSQT_MG[Bishop][FlipSq[color][sq]]
-	eval.EGScores[color] += PieceValueEG[Bishop] + PSQT_EG[Bishop][FlipSq[color][sq]]
-
 	usBB := pos.Sides[color]
 	allBB := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
 
@@ -405,9 +394,6 @@ func evalBishop(pos *Position, color, sq uint8, eval *Eval) {
 
 // Evaluate the score of a rook.
 func evalRook(pos *Position, color, sq uint8, eval *Eval) {
-	eval.MGScores[color] += PieceValueMG[Rook] + PSQT_MG[Rook][FlipSq[color][sq]]
-	eval.EGScores[color] += PieceValueEG[Rook] + PSQT_EG[Rook][FlipSq[color][sq]]
-
 	usBB := pos.Sides[color]
 	allBB := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
 
@@ -429,9 +415,6 @@ func evalRook(pos *Position, color, sq uint8, eval *Eval) {
 
 // Evaluate the score of a queen.
 func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
-	eval.MGScores[color] += PieceValueMG[Queen] + PSQT_MG[Queen][FlipSq[color][sq]]
-	eval.EGScores[color] += PieceValueEG[Queen] + PSQT_EG[Queen][FlipSq[color][sq]]
-
 	usBB := pos.Sides[color]
 	allBB := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
 
@@ -453,9 +436,6 @@ func evalQueen(pos *Position, color, sq uint8, eval *Eval) {
 
 // Evaluate the score of a king.
 func evalKing(pos *Position, color, sq uint8, eval *Eval) {
-	eval.MGScores[color] += PSQT_MG[King][FlipSq[color][sq]]
-	eval.EGScores[color] += PSQT_EG[King][FlipSq[color][sq]]
-
 	enemyPoints := InitKingSafety[FlipSq[color][sq]] + eval.KingAttackPoints[color^1]
 	kingFile := MaskFile[fileOf(sq)]
 	usPawns := pos.Pieces[color][Pawn]

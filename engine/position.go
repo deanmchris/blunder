@@ -145,6 +145,10 @@ type Position struct {
 	Rule50         uint8
 	prevStates     [100]State
 	StatePly       uint8
+
+	MGScores [2]int16
+	EGScores [2]int16
+	Phase    int16
 }
 
 // Load in a FEN string and use it to setup the position.
@@ -153,7 +157,10 @@ func (pos *Position) LoadFEN(fen string) {
 	pos.Pieces = [2][6]Bitboard{}
 	pos.Sides = [2]Bitboard{}
 	pos.Squares = [64]Piece{}
+	pos.MGScores = [2]int16{}
+	pos.EGScores = [2]int16{}
 	pos.CastlingRights = 0
+	pos.Phase = TotalPhase
 
 	for square := range pos.Squares {
 		pos.Squares[square] = Piece{Type: NoType, Color: NoColor}
@@ -710,6 +717,10 @@ func (pos *Position) putPiece(pieceType, pieceColor, to uint8) {
 	pos.Sides[pieceColor].SetBit(to)
 	pos.Squares[to].Type = pieceType
 	pos.Squares[to].Color = pieceColor
+
+	pos.MGScores[pieceColor] += PieceValueMG[pieceType] + PSQT_MG[pieceType][FlipSq[pieceColor][to]]
+	pos.EGScores[pieceColor] += PieceValueEG[pieceType] + PSQT_EG[pieceType][FlipSq[pieceColor][to]]
+	pos.Phase -= PhaseValues[pieceType]
 }
 
 // Clear a piece of a given color and type from a square.
@@ -717,6 +728,10 @@ func (pos *Position) clearPiece(from uint8) {
 	piece := &pos.Squares[from]
 	pos.Pieces[piece.Color][piece.Type].ClearBit(from)
 	pos.Sides[piece.Color].ClearBit(from)
+
+	pos.MGScores[piece.Color] -= PieceValueMG[piece.Type] + PSQT_MG[piece.Type][FlipSq[piece.Color][from]]
+	pos.EGScores[piece.Color] -= PieceValueEG[piece.Type] + PSQT_EG[piece.Type][FlipSq[piece.Color][from]]
+	pos.Phase += PhaseValues[piece.Type]
 
 	piece.Type = NoType
 	piece.Color = NoColor
@@ -730,6 +745,10 @@ func (pos *Position) zobristPutPiece(pieceType, pieceColor, to uint8) {
 	pos.Squares[to].Type = pieceType
 	pos.Squares[to].Color = pieceColor
 	pos.Hash ^= Zobrist.PieceNumber(pieceType, pieceColor, to)
+
+	pos.MGScores[pieceColor] += PieceValueMG[pieceType] + PSQT_MG[pieceType][FlipSq[pieceColor][to]]
+	pos.EGScores[pieceColor] += PieceValueEG[pieceType] + PSQT_EG[pieceType][FlipSq[pieceColor][to]]
+	pos.Phase -= PhaseValues[pieceType]
 }
 
 // Clear the piece given from the given square.
@@ -737,6 +756,10 @@ func (pos *Position) zobristClearPiece(from uint8) {
 	piece := &pos.Squares[from]
 	pos.Pieces[piece.Color][piece.Type].ClearBit(from)
 	pos.Sides[piece.Color].ClearBit(from)
+
+	pos.MGScores[piece.Color] -= PieceValueMG[piece.Type] + PSQT_MG[piece.Type][FlipSq[piece.Color][from]]
+	pos.EGScores[piece.Color] -= PieceValueEG[piece.Type] + PSQT_EG[piece.Type][FlipSq[piece.Color][from]]
+	pos.Phase += PhaseValues[piece.Type]
 
 	pos.Hash ^= Zobrist.PieceNumber(piece.Type, piece.Color, from)
 	piece.Type = NoType

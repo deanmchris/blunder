@@ -48,6 +48,9 @@ const (
 	WindowSize                      int16 = 25
 )
 
+var MiddleGameDraw int16 = 25
+var EndGameDraw int16 = 0
+
 var FutilityMargins = [9]int16{0, 100, 160, 220, 280, 340, 400, 460, 520}
 var LateMovePruningMargins = [4]int{0, 8, 12, 24}
 
@@ -601,7 +604,7 @@ func (search *Search) qsearch(alpha, beta int16, negamaxPly uint8, pvLine *PVLin
 		}
 
 		if score >= beta {
-			return beta
+			break
 		}
 
 		if score > alpha {
