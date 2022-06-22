@@ -1,19 +1,21 @@
 package engine
 
+// bitboard.go contains the implementation of a bitboard datatype for the engine.
+
 import (
 	"fmt"
 	"math/bits"
 )
-
-// bitboard.go contains the implementation of a bitboard datatype for the engine.
 
 // A type representing a bitboard, which is a unsigned 64-bit number. Blunder's
 // bitboard representation has the most significant bit being A1 and the least signficanrt
 // bit being H8.
 type Bitboard uint64
 
-// A constant representing a bitboard with every square set
+// A constant representing a bitboard with every square set and every square
+// empty.
 const FullBB Bitboard = 0xffffffffffffffff
+const EmptyBB Bitboard = 0x0
 
 // A global constant where each entry represents a square on the chess board,
 // and each entry contains a bitboard with the bit set high at that square.
@@ -34,7 +36,7 @@ func (bitboard *Bitboard) ClearBit(sq uint8) {
 // Test whether the bit of the given bitbord at the given
 // position is set.
 func (bb Bitboard) BitSet(sq uint8) bool {
-	return (bb & Bitboard((0x8000000000000000 >> sq))) > 0
+	return (bb & SquareBB[sq]) != 0
 }
 
 // Get the position of the MSB of the given bitboard.
@@ -42,8 +44,8 @@ func (bitboard Bitboard) Msb() uint8 {
 	return uint8(bits.LeadingZeros64(uint64(bitboard)))
 }
 
-// Get the position of the LSB of the given bitboard,
-// a bitboard with only the LSB set, and clear the LSB.
+// Get the position of the MSB of the given bitboard,
+// and clear the MSB.
 func (bitboard *Bitboard) PopBit() uint8 {
 	sq := bitboard.Msb()
 	bitboard.ClearBit(sq)
@@ -71,21 +73,15 @@ func (bitboard Bitboard) String() (bitboardAsString string) {
 		}
 		bitboardAsString += "\n"
 	}
-	bitboardAsString += "   "
-	for fileNo := 0; fileNo < 8; fileNo++ {
-		bitboardAsString += "--"
-	}
 
-	bitboardAsString += "\n    "
-	for _, file := range "abcdefgh" {
-		bitboardAsString += fmt.Sprintf("%c ", file)
-	}
+	bitboardAsString += "   ----------------"
+	bitboardAsString += "\n    a b c d e f g h"
 	bitboardAsString += "\n"
 	return bitboardAsString
 }
 
 // Initalize the bitboard constants.
-func init() {
+func InitBitboards() {
 	var sq uint8
 	for sq = 0; sq < 65; sq++ {
 		SquareBB[sq] = 0x8000000000000000 >> sq
