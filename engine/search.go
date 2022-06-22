@@ -8,7 +8,7 @@ import (
 
 const (
 	// The maximum depth the engine will attempt to reach.
-	MaxPly = 100
+	MaxDepth = 100
 
 	// A constant representing no move.
 	NullMove Move = 0
@@ -114,11 +114,8 @@ type Search struct {
 	nodes      uint64
 	totalNodes uint64
 
-	killers [MaxPly + 1][MaxKillers]Move
+	killers [MaxDepth + 1][MaxKillers]Move
 	history [2][64][64]int32
-
-	SpecifiedDepth uint8
-	SpecifiedNodes uint64
 }
 
 // The main search function for Blunder, implemented as an interative
@@ -138,7 +135,10 @@ func (search *Search) Search() Move {
 	alpha := -Inf
 	beta := Inf
 
-	for depth = 1; depth <= MaxPly && depth <= search.SpecifiedDepth && search.SpecifiedNodes > 0; depth++ {
+	for depth = 1; depth <= MaxDepth &&
+		depth <= search.Timer.MaxDepth &&
+		search.Timer.MaxNodeCount > 0; depth++ {
+
 		// Clear the nodes searched and the last iterations pv line.
 		search.nodes = 0
 		pvLine.Clear()
@@ -178,7 +178,7 @@ func (search *Search) Search() Move {
 		// If the score between this current iteration and the last iteration drops,
 		// take more time on the current search to make sure we find the best move.
 		if depth > 1 && lastIterationScore > score && lastIterationScore-score >= 30 {
-			search.Timer.SetSoftTimeForMove(search.Timer.SoftTimeForMove * 13 / 10)
+			search.Timer.Update(search.Timer.TimeForMove * 13 / 10)
 		}
 
 		// Save the best move and report search statistics to the GUI
@@ -229,15 +229,14 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// Update the number of nodes searched.
 	search.nodes++
 
-	if ply >= MaxPly {
+	if ply >= MaxDepth {
 		return EvaluatePos(&search.Pos)
 	}
 
 	// If a given node amount to search was given, make sure we haven't passed it
 	// and if so stop the search.
-	if search.totalNodes+search.nodes >= search.SpecifiedNodes {
+	if search.totalNodes+search.nodes >= search.Timer.MaxNodeCount {
 		search.Timer.Stop = true
-		return 0
 	}
 
 	// Every 2048 nodes, check if our time has expired.
@@ -555,7 +554,7 @@ func (search *Search) Qsearch(alpha, beta int16, negamaxPly uint8, pvLine *PVLin
 		search.Timer.Check()
 	}
 
-	if search.totalNodes+search.nodes >= search.SpecifiedNodes {
+	if search.totalNodes+search.nodes >= search.Timer.MaxNodeCount {
 		search.Timer.Stop = true
 	}
 

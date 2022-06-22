@@ -1,7 +1,9 @@
 package engine
 
 // timemanager.go implements the time mangement logic which Blunder
-// uses during its search phase.
+// uses during its search phase. It controls when the search should be
+// stopped given the arguments passed through the UCI "go" command,
+// as well as dynamic factors of the search.
 
 import (
 	"time"
@@ -14,15 +16,30 @@ const (
 
 // A struct which holds data for a timer for Blunder's time mangement.
 type TimeManager struct {
-	TimeLeft  int64
-	Increment int64
-	MovesToGo int64
-	Stop      bool
+	// Fields for UCI go command arguments
+	TimeLeft     int64
+	Increment    int64
+	MoveTime     int64
+	MovesToGo    int16
+	MaxNodeCount uint64
+	MaxDepth     uint8
 
-	stopTime        time.Time
-	startTime       time.Time
-	hardTimeForMove int64
-	SoftTimeForMove int64
+	// Fields to calculate when the search should be stopped.
+	Stop        bool
+	TimeForMove int64
+	stopTime    time.Time
+}
+
+// Setup the interals of the timer given the "go" command arguments.
+func (tm *TimeManager) Setup(timeLeft, increment, moveTime int64,
+	movesToGo int16, maxDepth uint8, maxNodeCount uint64) {
+
+	tm.TimeLeft = timeLeft
+	tm.Increment = increment
+	tm.MovesToGo = movesToGo
+	tm.MoveTime = moveTime
+	tm.MaxDepth = maxDepth
+	tm.MaxNodeCount = maxNodeCount
 }
 
 // Start the timer, setting up the internal state.
@@ -30,27 +47,31 @@ func (tm *TimeManager) Start() {
 	// Reset the flag time's up flag to false for a new search
 	tm.Stop = false
 
+	// Prioritize the "movetime" argument if a value is given and use that.
+	if tm.MoveTime != NoValue {
+		tm.stopTime = time.Now().Add(time.Duration(tm.MoveTime) * time.Millisecond)
+		tm.TimeLeft = NoValue
+		return
+	}
+
 	// If we're given infinite time, we're done calculating the time for the
 	// current move.
 	if tm.TimeLeft == InfiniteTime {
 		return
 	}
 
-	// If we're given a hard time limit, we're also done calculating, since we've
-	// been told already how much time should be spent on the current search.
-	if tm.hardTimeForMove != NoValue {
-		return
-	}
+	// Otherwise, automatically calculate the time we can allocate for the search about to start.
 
-	// Calculate the time we can allocate for the search about to start.
-	var timeForMove int64
-
-	if tm.MovesToGo != NoValue {
+	timeForMove := int64(0)
+	if int64(tm.MovesToGo) != NoValue {
 		// If we have a certian amount of moves to go before the time we have left
 		// is reset, use that value to divide the time currently left.
-		timeForMove = tm.TimeLeft / tm.MovesToGo
+		timeForMove = tm.TimeLeft / int64(tm.MovesToGo)
 	} else {
-		// Otherwise get 2.5% of the current time left and use that.
+		// Otherwise, calculate the amount of remaining time that will
+		// be used by spending more time as the game progresses,
+		// assuming that the longer the game continues, the quicker
+		// it will end from the current position.
 		timeForMove = tm.TimeLeft / 40
 	}
 
@@ -71,58 +92,44 @@ func (tm *TimeManager) Start() {
 
 	// Calculate the time from now when we need to stop searching, based on the
 	// time are allowed to spend on the current search.
-	tm.startTime = time.Now()
-	tm.stopTime = tm.startTime.Add(time.Duration(timeForMove) * time.Millisecond)
-	tm.SoftTimeForMove = timeForMove
-	tm.hardTimeForMove = NoValue
-	tm.Stop = false
+	tm.stopTime = time.Now().Add(time.Duration(timeForMove) * time.Millisecond)
+	tm.TimeForMove = timeForMove
 }
 
-// Set a hard limit for the maximum amount of time the current
-// search can use. Normally this value is set automatically to
-// allow the search to use however much time it needs, but there
-// are cases where we want to enforce a strict time limit.
-//
-// This method should not be called after TimeManger.Start has been called,
-// since both methods act as the intializers of the current search, and one
-// would conflict with the other. So either TimeManager.Start or
-// TimeManeger.SetHardTimeForMove should be called to intialize the current
-// search time logic, but not both.
-func (tm *TimeManager) SetHardTimeForMove(newTime int64) {
-	tm.hardTimeForMove = newTime
-	tm.stopTime = time.Now().Add(time.Duration(newTime) * time.Millisecond)
-}
+// Update the alloted search time.
+func (tm *TimeManager) Update(newTimeForMove int64) {
+	// If we've been given an explict amount of search time,
+	// respect it.
+	if tm.MoveTime != NoValue {
+		return
+	}
 
-// Set the soft time limit for current search. The soft time limit
-// is a reccomendation for how long the search should continue, but
-// can be changed by dynamic factors during the search.
-func (tm *TimeManager) SetSoftTimeForMove(newTime int64) {
-	// To avoid losing on time, we do enforce a rule that
-	// any update to the soft time limit must not exceeded
+	// To avoid losing on time, enforce a rule that
+	// any update to the time left must not exceeded
 	// more than 1/8th of the total time left for our side.
-	if newTime > tm.TimeLeft/8 {
-		newTime = tm.TimeLeft / 8
+	if newTimeForMove > tm.TimeLeft/8 {
+		newTimeForMove = tm.TimeLeft / 8
 	}
 
-	// If the hard time limit for this move has already been set, only update the
-	// time limit if the hard time limit has not been set, or it is still greater
-	// than or equal to the new soft time limit.
-	if newTime != NoValue && (tm.hardTimeForMove == NoValue || tm.hardTimeForMove >= newTime) {
-		tm.SoftTimeForMove = newTime
-		tm.stopTime = tm.startTime.Add(time.Duration(newTime) * time.Millisecond)
-	}
+	// Set the new time for the current search.
+	tm.stopTime = time.Now().Add(time.Duration(newTimeForMove) * time.Millisecond)
+	tm.TimeForMove = newTimeForMove
 }
 
 // Check if the time we alloted for picking this move has expired.
 func (tm *TimeManager) Check() {
-	// If we have infinite time, tm.Stop is set to false unless we've already
-	// been told to stop.
-	if !tm.Stop && tm.TimeLeft == InfiniteTime {
-		tm.Stop = false
+	// If we've already been told to stop before now,
+	// no more work needs to be done.
+	if tm.Stop {
 		return
 	}
 
-	// Otherwise figure out if our alloated time for this move is up.
+	// If we have infinite time, we don't need to check if our time is up.
+	if tm.TimeLeft == InfiniteTime {
+		return
+	}
+
+	// Otherwise check if our alloted time is over.
 	if time.Now().After(tm.stopTime) {
 		tm.Stop = true
 	}

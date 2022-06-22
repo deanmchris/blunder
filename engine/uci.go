@@ -186,11 +186,9 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 		colorPrefix = "w"
 	}
 
-	// Parse the time left, increment, and moves to go from the command parameters.
+	// Parse the go command arguments.
 	timeLeft, increment, movesToGo := int(InfiniteTime), int(NoValue), int(NoValue)
-	specifiedDepth := uint64(MaxPly)
-	specifiedNodes := uint64(math.MaxUint64)
-	searchTime := uint64(NoValue)
+	maxDepth, maxNodeCount, moveTime := uint64(MaxDepth), uint64(math.MaxUint64), uint64(NoValue)
 
 	for index, field := range fields {
 		if strings.HasPrefix(field, colorPrefix) {
@@ -202,29 +200,23 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 		} else if field == "movestogo" {
 			movesToGo, _ = strconv.Atoi(fields[index+1])
 		} else if field == "depth" {
-			specifiedDepth, _ = strconv.ParseUint(fields[index+1], 10, 8)
+			maxDepth, _ = strconv.ParseUint(fields[index+1], 10, 8)
 		} else if field == "nodes" {
-			specifiedNodes, _ = strconv.ParseUint(fields[index+1], 10, 64)
+			maxNodeCount, _ = strconv.ParseUint(fields[index+1], 10, 64)
 		} else if field == "movetime" {
-			searchTime, _ = strconv.ParseUint(fields[index+1], 10, 64)
+			moveTime, _ = strconv.ParseUint(fields[index+1], 10, 64)
 		}
 	}
 
-	// Set the timeLeft to NoValue if we're already given a move time
-	// to use via movetime.
-	if searchTime != uint64(NoValue) {
-		timeLeft = int(NoValue)
-	}
-
 	// Setup the timer with the go command time control information.
-	inter.Search.Timer.SetHardTimeForMove(int64(searchTime))
-	inter.Search.Timer.TimeLeft = int64(timeLeft)
-	inter.Search.Timer.Increment = int64(increment)
-	inter.Search.Timer.MovesToGo = int64(movesToGo)
-
-	// Setup user defined search options if given.
-	inter.Search.SpecifiedDepth = uint8(specifiedDepth)
-	inter.Search.SpecifiedNodes = specifiedNodes
+	inter.Search.Timer.Setup(
+		int64(timeLeft),
+		int64(increment),
+		int64(moveTime),
+		int16(movesToGo),
+		uint8(maxDepth),
+		maxNodeCount,
+	)
 
 	// Report the best move found by the engine to the GUI.
 	bestMove := inter.Search.Search()
