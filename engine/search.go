@@ -432,7 +432,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			tactical := inCheck || move.MoveType() == Attack ||
 				search.killers[ply][0].Equal(move) ||
 				search.killers[ply][1].Equal(move) ||
-				(FlipRank[search.Pos.SideToMove^1][RankOf(move.ToSq())] >= Rank6 && isPawnPush(&search.Pos, move))
+				(FlipRank[search.Pos.SideToMove^1][rankOf(move.ToSq())] >= Rank6 && isPawnPush(&search.Pos, move))
 
 			reduction := int8(0)
 

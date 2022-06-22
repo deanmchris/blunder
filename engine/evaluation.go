@@ -323,7 +323,7 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 	usPawns := pos.PieceBB[color][Pawn]
 	enemyPawns := pos.PieceBB[color^1][Pawn]
 
-	file := FileOf(sq)
+	file := fileOf(sq)
 	doubled := false
 
 	// Evaluate isolated pawns.
@@ -341,8 +341,8 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 
 	// Evaluate passed pawns.
 	if PassedPawnMasks[color][sq]&enemyPawns == 0 && !doubled {
-		eval.MGScores[color] += PassedPawnBonusMG[FlipRank[color][RankOf(sq)]]
-		eval.EGScores[color] += PassedPawnBonusEG[FlipRank[color][RankOf(sq)]]
+		eval.MGScores[color] += PassedPawnBonusMG[FlipRank[color][rankOf(sq)]]
+		eval.EGScores[color] += PassedPawnBonusEG[FlipRank[color][rankOf(sq)]]
 	}
 }
 
@@ -356,7 +356,7 @@ func evalKnight(pos *Position, color, sq uint8, eval *Eval) {
 
 	if KnightOutpustMasks[color][sq]&enemyPawns == 0 &&
 		PawnAttacks[color^1][sq]&usPawns != 0 &&
-		FlipRank[color][RankOf(sq)] >= Rank5 {
+		FlipRank[color][rankOf(sq)] >= Rank5 {
 
 		eval.MGScores[color] += KnightOutpostBonusMG
 		eval.EGScores[color] += KnightOutpostBonusEG
@@ -457,7 +457,7 @@ func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 	eval.EGScores[color] += PSQT_EG[King][FlipSq[color][sq]]
 
 	enemyPoints := InitKingSafety[FlipSq[color][sq]] + eval.KingAttackPoints[color^1]
-	kingFile := MaskFile[FileOf(sq)]
+	kingFile := MaskFile[fileOf(sq)]
 	usPawns := pos.PieceBB[color][Pawn]
 
 	// Evaluate semi-open files adjacent to the enemy king
@@ -505,7 +505,7 @@ func init() {
 		KingZones[sq] = KingZone{OuterRing: zone &^ (KingMoves[sq] | sqBB), InnerRing: KingMoves[sq] | sqBB}
 
 		// Create isolated pawn masks.
-		file := FileOf(uint8(sq))
+		file := fileOf(uint8(sq))
 		fileBB := MaskFile[file]
 
 		mask := (fileBB & ClearFile[FileA]) << 1
@@ -513,7 +513,7 @@ func init() {
 		IsolatedPawnMasks[file] = mask
 
 		// Create doubled pawns masks.
-		rank := int(RankOf(uint8(sq)))
+		rank := int(rankOf(uint8(sq)))
 
 		mask = fileBB
 		for r := 0; r <= rank; r++ {

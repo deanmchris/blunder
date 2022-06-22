@@ -4,6 +4,7 @@ package engine
 // the zobrist hash value of a given position.
 //
 // https://www.chessprogramming.org/Zobrist_Hashing
+//
 
 const (
 	// A constant representing the value to use when seeding the random
@@ -15,29 +16,6 @@ const (
 	// hash.
 	NoEPFile = 8
 )
-
-// An implementation of a xorshift pseudo-random number
-// generator for 64 bit numbers, based on the implementation
-// by Stockfish:
-//
-// https://github.com/official-stockfish/Stockfish/blob/master/src/misc.h#L146
-//
-type PseduoRandomGenerator struct {
-	state uint64
-}
-
-// Seed the generator.
-func (prng *PseduoRandomGenerator) Seed(seed uint64) {
-	prng.state = seed
-}
-
-// Generator a random 64 bit number.
-func (prng *PseduoRandomGenerator) Random64() uint64 {
-	prng.state ^= prng.state >> 12
-	prng.state ^= prng.state << 25
-	prng.state ^= prng.state >> 27
-	return prng.state * 2685821657736338717
-}
 
 // A constant which will be a singleton of the _Zobrist struct below,
 // since only one instance is ever needed.

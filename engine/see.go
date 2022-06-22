@@ -38,7 +38,7 @@ func (pos *Position) See(move Move) int16 {
 		depth++
 		gain[depth] = PieceValues[attacker] - gain[depth-1]
 
-		if max(-gain[depth-1], gain[depth]) < 0 {
+		if max16(-gain[depth-1], gain[depth]) < 0 {
 			break
 		}
 
@@ -55,7 +55,7 @@ func (pos *Position) See(move Move) int16 {
 	}
 
 	for depth--; depth > 0; depth-- {
-		gain[depth-1] = -max(-gain[depth-1], gain[depth])
+		gain[depth-1] = -max16(-gain[depth-1], gain[depth])
 	}
 
 	return gain[0]
@@ -107,11 +107,4 @@ func (pos *Position) attackersForSide(attackerColor, sq uint8, occupiedBB Bitboa
 	attackers |= KingMoves[sq] & attackingKing
 	attackers |= PawnAttacks[attackerColor^1][sq] & attackingPawns
 	return attackers
-}
-
-func max(a, b int16) int16 {
-	if a > b {
-		return a
-	}
-	return b
 }

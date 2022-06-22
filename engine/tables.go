@@ -237,8 +237,8 @@ func GenRookMasks(sq uint8) Bitboard {
 	sliderBB := uint64(slider)
 	var occupiedBB uint64
 
-	fileMask := uint64(MaskFile[FileOf(sliderPos)])
-	rankMask := uint64(MaskRank[RankOf(sliderPos)])
+	fileMask := uint64(MaskFile[fileOf(sliderPos)])
+	rankMask := uint64(MaskRank[rankOf(sliderPos)])
 
 	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & rankMask)) - (2 * bits.Reverse64(sliderBB)))
 	lhs := (occupiedBB & rankMask) - 2*sliderBB
@@ -259,8 +259,8 @@ func GenBishopMasks(sq uint8) Bitboard {
 	sliderBB := uint64(slider)
 	var occupiedBB uint64
 
-	diagonalMask := uint64(MaskDiagonal[FileOf(sliderPos)-RankOf(sliderPos)+7])
-	antidiagonalMask := uint64(MaskAntidiagonal[14-(RankOf(sliderPos)+FileOf(sliderPos))])
+	diagonalMask := uint64(MaskDiagonal[fileOf(sliderPos)-rankOf(sliderPos)+7])
+	antidiagonalMask := uint64(MaskAntidiagonal[14-(rankOf(sliderPos)+fileOf(sliderPos))])
 
 	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & diagonalMask)) - (2 * bits.Reverse64(sliderBB)))
 	lhs := (occupiedBB & diagonalMask) - 2*sliderBB
@@ -281,8 +281,8 @@ func GenRookAttacks(sq uint8, occupied Bitboard) Bitboard {
 	sliderBB := uint64(slider)
 	occupiedBB := uint64(occupied)
 
-	fileMask := uint64(MaskFile[FileOf(sliderPos)])
-	rankMask := uint64(MaskRank[RankOf(sliderPos)])
+	fileMask := uint64(MaskFile[fileOf(sliderPos)])
+	rankMask := uint64(MaskRank[rankOf(sliderPos)])
 
 	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & rankMask)) - (2 * bits.Reverse64(sliderBB)))
 	lhs := (occupiedBB & rankMask) - 2*sliderBB
@@ -303,8 +303,8 @@ func GenBishopAttacks(sq uint8, occupied Bitboard) Bitboard {
 	sliderBB := uint64(slider)
 	occupiedBB := uint64(occupied)
 
-	diagonalMask := uint64(MaskDiagonal[FileOf(sliderPos)-RankOf(sliderPos)+7])
-	antidiagonalMask := uint64(MaskAntidiagonal[14-(RankOf(sliderPos)+FileOf(sliderPos))])
+	diagonalMask := uint64(MaskDiagonal[fileOf(sliderPos)-rankOf(sliderPos)+7])
+	antidiagonalMask := uint64(MaskAntidiagonal[14-(rankOf(sliderPos)+fileOf(sliderPos))])
 
 	rhs := bits.Reverse64(bits.Reverse64((occupiedBB & diagonalMask)) - (2 * bits.Reverse64(sliderBB)))
 	lhs := (occupiedBB & diagonalMask) - 2*sliderBB

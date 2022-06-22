@@ -495,7 +495,7 @@ func (pos *Position) LoadFEN(fen string) {
 	// Set the en passant square for the position.
 	pos.EPSq = NoSq
 	if ep != "-" {
-		pos.EPSq = CoordinateToPos(ep)
+		pos.EPSq = coordinateToPos(ep)
 		if (PawnAttacks[pos.SideToMove^1][pos.EPSq] & pos.PieceBB[pos.SideToMove][Pawn]) == 0 {
 			pos.EPSq = NoSq
 		}
@@ -808,7 +808,7 @@ func pawnPush(color uint8) int8 {
 // given it's color and origin square.
 func canDoublePush(fromSq uint8, color uint8) bool {
 	if color == White {
-		return RankOf(fromSq) == Rank2
+		return rankOf(fromSq) == Rank2
 	}
-	return RankOf(fromSq) == Rank6
+	return rankOf(fromSq) == Rank6
 }

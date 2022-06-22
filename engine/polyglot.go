@@ -24,7 +24,7 @@ func GenPolyglotHash(pos *Position) (hash uint64) {
 	}
 
 	if pos.EPSq != NoSq {
-		hash ^= Random64[EnPassant+int(FileOf(pos.EPSq))]
+		hash ^= Random64[EnPassant+int(fileOf(pos.EPSq))]
 	}
 
 	if pos.CastlingRights&WhiteKingsideRight != 0 {
