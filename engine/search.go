@@ -158,11 +158,13 @@ func (search *Search) RemoveHistory() {
 // deepening loop.
 func (search *Search) Search() Move {
 	search.side = search.Pos.SideToMove
+	search.totalNodes = 0
+
 	pvLine := PVLine{}
 	bestMove := NullMove
 
-	search.totalNodes = 0
 	timeExtended := false
+	totalTime := int64(0)
 	depth := uint8(0)
 	alpha := -Inf
 	beta := Inf
@@ -222,6 +224,8 @@ func (search *Search) Search() Move {
 		alpha = score - WindowSize
 		beta = score + WindowSize
 
+		totalTime += endTime.Milliseconds()
+
 		bestMove = pvLine.GetPVMove()
 		nps := uint64(float64(search.nodes) / float64(endTime.Seconds()))
 		search.totalNodes += search.nodes
@@ -230,7 +234,7 @@ func (search *Search) Search() Move {
 			"info depth %d score %s nodes %d nps %d time %d pv %s\n",
 			depth, getMateOrCPScore(score),
 			search.nodes, nps,
-			endTime.Milliseconds(),
+			totalTime,
 			pvLine,
 		)
 	}
