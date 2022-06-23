@@ -13,8 +13,8 @@ import (
 
 const (
 	Iterations              = 2000
-	NumWeights              = 928
-	NumSafetyEvalTerms      = 8
+	NumWeights              = 929
+	NumSafetyEvalTerms      = 9
 	SafetyEvalTermsStartIdx = 920
 	ScalingFactor           = 0.01
 	Epsilon                 = 0.00000001
@@ -89,6 +89,7 @@ func loadWeights() (weights []float64) {
 
 	copy(tempWeights[920:924], engine.OuterRingAttackPoints[1:5])
 	copy(tempWeights[924:928], engine.InnerRingAttackPoints[1:5])
+	tempWeights[928] = engine.SemiOpenFileNextToKingPenalty
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -191,6 +192,9 @@ func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safet
 
 	getMaterialCoeffficents(pos, rawNormCoefficents, mgPhase, egPhase)
 	getBishopPairCoefficents(pos, rawNormCoefficents, mgPhase, egPhase)
+
+	getPawnShieldCoefficents(pos, pos.Pieces[engine.White][engine.King].Msb(), engine.White, rawSafetyCoefficents)
+	getPawnShieldCoefficents(pos, pos.Pieces[engine.Black][engine.King].Msb(), engine.Black, rawSafetyCoefficents)
 
 	for i, coefficent := range rawNormCoefficents {
 		if coefficent != 0 {
@@ -379,6 +383,27 @@ func getQueenCoefficents(pos *engine.Position, norm []float64, safety [][]float6
 	}
 }
 
+// Compute the coefficents releated to king safety via pawn shields
+func getPawnShieldCoefficents(pos *engine.Position, sq, color uint8, safety [][]float64) {
+	kingFile := engine.MaskFile[engine.FileOf(sq)]
+	usPawns := pos.Pieces[color][engine.Pawn]
+
+	leftFile := ((kingFile & engine.ClearFile[engine.FileA]) << 1)
+	rightFile := ((kingFile & engine.ClearFile[engine.FileH]) >> 1)
+
+	if kingFile&usPawns == 0 {
+		safety[color^1][8] += 1
+	}
+
+	if leftFile != 0 && leftFile&usPawns == 0 {
+		safety[color^1][8] += 1
+	}
+
+	if rightFile != 0 && rightFile&usPawns == 0 {
+		safety[color^1][8] += 1
+	}
+}
+
 // Compute the dot product between an array of king safety coefficents and the appropriate
 // weight values.
 func computeSafetyDotProduct(v1 []float64, v2 []Coefficent) (sum float64) {
@@ -546,6 +571,7 @@ func printParameters(weights []float64) {
 
 	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[920:924]))
 	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[924:928]))
+	fmt.Println("Semi-Open File Next To King Penalty:", weights[928])
 
 	fmt.Println()
 }

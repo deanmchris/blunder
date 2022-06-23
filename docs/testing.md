@@ -346,3 +346,16 @@ Generate Queen Promotions in Quiescence Search
 After ~2K games a very slight to no Elo gain was noticed, although
 at several instances it looked promising. The engine seems to play
 bit more tactically sound however, so the change will be kept.
+
+Check For Semi-Open Files Next To King
+--------------------------------------
+```
+Score of Blunder 8.0.0-pawn-shields vs Blunder 8.0.0: 586 - 578 - 886  [0.502] 2050
+...      Blunder 8.0.0-pawn-shields playing White: 313 - 271 - 440  [0.521] 1024
+...      Blunder 8.0.0-pawn-shields playing Black: 273 - 307 - 446  [0.483] 1026
+...      White vs Black: 620 - 544 - 886  [0.519] 2050
+Elo difference: 1.4 +/- 11.3, LOS: 59.3 %, DrawRatio: 43.2 %
+SPRT: llr -0.197 (-6.7%), lbound -2.94, ubound 2.94
+```
+
+Keep it for now.
