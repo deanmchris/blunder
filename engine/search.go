@@ -43,11 +43,13 @@ const (
 
 	// Pruning constants
 	NMR_Depth_Limit                 int8  = 2
+	FutilityPruningDepthLimit       int8  = 8
 	StaticNullMovePruningBaseMargin int16 = 85
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
 	WindowSize                      int16 = 35
 	IID_Depth_Reduction             int8  = 2
+	IID_Depth_Limit                 int8  = 4
 )
 
 // Precomputed reductions
@@ -328,9 +330,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	entry := search.TT.Probe(search.Pos.Hash)
-	ttScore, shouldUse := entry.Get(
-		search.Pos.Hash, ply, uint8(depth), alpha, beta, &ttMove,
-	)
+	ttScore, shouldUse := entry.Get(search.Pos.Hash, ply, uint8(depth), alpha, beta, &ttMove)
 
 	if shouldUse && !isRoot {
 		return ttScore
@@ -389,7 +389,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// suck and probably don't even have a chance of raise alpha.           //
 	// =====================================================================//
 
-	if depth <= 8 && !isPVNode && !inCheck && alpha < Checkmate && beta < Checkmate {
+	if depth <= FutilityPruningDepthLimit && !isPVNode && !inCheck && alpha < Checkmate && beta < Checkmate {
 		staticScore := EvaluatePos(&search.Pos)
 		margin := FutilityMargins[depth]
 		canFutilityPrune = staticScore+margin <= alpha
@@ -402,7 +402,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// hopes of getting a quick beta-cutoff.          						//
 	// =====================================================================//
 
-	if depth >= 4 && (isPVNode || entry.Flag == BetaFlag) && ttMove.Equal(NullMove) {
+	if depth >= IID_Depth_Limit && (isPVNode || entry.Flag == BetaFlag) && ttMove.Equal(NullMove) {
 		search.negamax(depth-IID_Depth_Reduction-1, ply+1, -beta, -alpha, &childPVLine, true)
 		if len(childPVLine.Moves) > 0 {
 			ttMove = childPVLine.GetPVMove()
