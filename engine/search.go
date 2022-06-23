@@ -15,7 +15,7 @@ const (
 
 	// A constant representing the score of the principal variation
 	// move from the transposition table.
-	PVMoveScore uint16 = 60
+	PVMoveScore uint16 = 65
 
 	// A constant representing the score offsets of the killer moves.
 	FirstKillerMoveScore  uint16 = 10
@@ -585,7 +585,7 @@ func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine) i
 		alpha = bestScore
 	}
 
-	moves := genCaptures(&search.Pos)
+	moves := genCapturesAndQueenPromotions(&search.Pos)
 	search.scoreMoves(&moves, NullMove, maxPly)
 	childPVLine := PVLine{}
 

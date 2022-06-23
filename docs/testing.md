@@ -339,3 +339,10 @@ Rank Name                          Elo     +/-   Games   Score    Draw
    3 Blunder 8.0.0-snmp-90           6      20     630   50.8%   45.1%
    4 Blunder 8.0.0-snmp-95           2      20     630   50.3%   43.5%
 ```
+
+Generate Queen Promotions in Quiescence Search
+----------------------------------------------
+
+After ~2K games a very slight to no Elo gain was noticed, although
+at several instances it looked promising. The engine seems to play
+bit more tactically sound however, so the change will be kept.

@@ -2,9 +2,7 @@ package engine
 
 // movegen.go implements the move generator for the engine.
 
-import (
-	"fmt"
-)
+import "fmt"
 
 const (
 	// These masks help determine whether or not the squares between
@@ -27,7 +25,7 @@ func genMoves(pos *Position) (moves MoveList) {
 	}
 
 	// Generate pawn moves.
-	genPawnMoves(pos, &moves, FullBB)
+	genPawnMoves(pos, &moves)
 
 	// Generate castling moves.
 	genCastlingMoves(pos, &moves)
@@ -35,12 +33,13 @@ func genMoves(pos *Position) (moves MoveList) {
 	return moves
 }
 
-// Generate all pseduo-legal captures for a given position.
-func genCaptures(pos *Position) (moves MoveList) {
+// Generate all pseduo-legal captures and queen promotions for a given position.
+func genCapturesAndQueenPromotions(pos *Position) (moves MoveList) {
 	// Go through each piece type, and each piece for that type,
 	// and generate the moves for that piece.
 
 	targets := pos.Sides[pos.SideToMove^1]
+
 	for piece := uint8(Knight); piece < NoType; piece++ {
 		piecesBB := pos.Pieces[pos.SideToMove][piece]
 		for piecesBB != 0 {
@@ -49,8 +48,8 @@ func genCaptures(pos *Position) (moves MoveList) {
 		}
 	}
 
-	// Generate pawn moves.
-	genPawnMoves(pos, &moves, targets|SquareBB[pos.EPSq])
+	// Generate pawn attacks or queen promotions.
+	genPawnAttacksAndQueenPromotions(pos, &moves)
 
 	return moves
 }
@@ -102,9 +101,9 @@ func GenBishopMoves(sq uint8, blockers Bitboard) Bitboard {
 // complicated and exceptional rules for how they can move.
 // Only generate the moves that align with the specified
 // target squares.
-func genPawnMoves(pos *Position, moves *MoveList, targets Bitboard) {
+func genPawnMoves(pos *Position, moves *MoveList) {
 	usBB := pos.Sides[pos.SideToMove]
-	enemyBB := pos.Sides[pos.SideToMove^1]
+	enemyBB := pos.Sides[pos.SideToMove^1] | SquareBB[pos.EPSq]
 	pawnsBB := pos.Pieces[pos.SideToMove][Pawn]
 
 	// For each pawn on our side...
@@ -118,10 +117,10 @@ func genPawnMoves(pos *Position, moves *MoveList, targets Bitboard) {
 		}
 
 		// calculate the push move for the pawn...
-		pawnPush := (pawnOnePush | pawnTwoPush) & targets
+		pawnPush := pawnOnePush | pawnTwoPush
 
 		// and the attacks.
-		pawnAttacks := PawnAttacks[pos.SideToMove][from] & targets
+		pawnAttacks := PawnAttacks[pos.SideToMove][from] & enemyBB
 
 		// Generate pawn push moves
 		for pawnPush != 0 {
@@ -136,14 +135,52 @@ func genPawnMoves(pos *Position, moves *MoveList, targets Bitboard) {
 		// Generate pawn attack moves.
 		for pawnAttacks != 0 {
 			to := pawnAttacks.PopBit()
-			toBB := SquareBB[to]
 
 			// Check for en passant moves.
 			if to == pos.EPSq {
 				moves.AddMove(NewMove(from, to, Attack, AttackEP))
-			} else if toBB&enemyBB != 0 {
+			} else {
 				if isPromoting(pos.SideToMove, to) {
 					makePromotionMoves(from, to, moves)
+					continue
+				}
+				moves.AddMove(NewMove(from, to, Attack, NoFlag))
+			}
+		}
+	}
+}
+
+func genPawnAttacksAndQueenPromotions(pos *Position, moves *MoveList) {
+	usBB := pos.Sides[pos.SideToMove]
+	enemyBB := pos.Sides[pos.SideToMove^1] | SquareBB[pos.EPSq]
+	pawnsBB := pos.Pieces[pos.SideToMove][Pawn]
+
+	// For each pawn on our side...
+	for pawnsBB != 0 {
+		from := pawnsBB.PopBit()
+
+		// Generate a possible pawn push to promotion.
+		pawnOnePush := PawnPushes[pos.SideToMove][from] & ^(usBB | enemyBB)
+
+		// and the attacks.
+		pawnAttacks := PawnAttacks[pos.SideToMove][from] & enemyBB
+
+		// Generate a possible queen promotion.
+		to := pawnOnePush.PopBit()
+		if isPromoting(pos.SideToMove, to) {
+			moves.AddMove(NewMove(from, to, Promotion, QueenPromotion))
+		}
+
+		// Generate pawn attack moves.
+		for pawnAttacks != 0 {
+			to := pawnAttacks.PopBit()
+
+			// Check for en passant moves.
+			if to == pos.EPSq {
+				moves.AddMove(NewMove(from, to, Attack, AttackEP))
+			} else {
+				if isPromoting(pos.SideToMove, to) {
+					moves.AddMove(NewMove(from, to, Promotion, QueenPromotion))
 					continue
 				}
 				moves.AddMove(NewMove(from, to, Attack, NoFlag))

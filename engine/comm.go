@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 8.0.0-snmp-120"
+	EngineName   = "Blunder 8.0.0-queen-promotions-in-qsearch"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 
