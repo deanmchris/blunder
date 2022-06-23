@@ -33,6 +33,10 @@ const (
 	// pv moves, captures, and killer moves.
 	MaxHistoryScore int32 = int32(MvvLvaOffset - 30)
 
+	// A bonus given to moves scored by history that refuted
+	// the previous move played by causing a beta-cutoff
+	CounterMoveBonus uint16 = 5
+
 	// A constant representing the maximum game ply,
 	// used to initalize the array for holding repetition
 	// detection history.
@@ -126,6 +130,7 @@ type Search struct {
 	totalNodes        uint64
 	killers           [MaxDepth + 1][MaxKillers]Move
 	history           [2][64][64]int32
+	counter           [2][64][64]Move
 	zobristHistory    [MaxGamePly]uint64
 	zobristHistoryPly uint16
 }
@@ -143,6 +148,7 @@ func (search *Search) Reset() {
 	search.TT.Clear()
 	search.ClearKillers()
 	search.ClearHistoryTable()
+	search.ClearCounterMoves()
 }
 
 // Add a zobrist hash to the history.
@@ -182,7 +188,7 @@ func (search *Search) Search() Move {
 		pvLine.Clear()
 
 		startTime := time.Now()
-		score := search.negamax(int8(depth), 0, alpha, beta, &pvLine, true)
+		score := search.negamax(int8(depth), 0, alpha, beta, &pvLine, true, NullMove)
 		endTime := time.Since(startTime)
 
 		if search.Timer.Stop {
@@ -263,7 +269,7 @@ func getMateOrCPScore(score int16) string {
 }
 
 // The primary negamax function.
-func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *PVLine, doNull bool) int16 {
+func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *PVLine, doNull bool, prevMove Move) int16 {
 	// Update the number of nodes searched.
 	search.nodes++
 
@@ -366,7 +372,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		search.AddHistory(search.Pos.Hash)
 
 		R := 3 + depth/6
-		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &childPVLine, false)
+		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &childPVLine, false, NullMove)
 
 		search.RemoveHistory()
 		search.Pos.UndoNullMove()
@@ -403,7 +409,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if depth >= IID_Depth_Limit && (isPVNode || entry.Flag == BetaFlag) && ttMove.Equal(NullMove) {
-		search.negamax(depth-IID_Depth_Reduction-1, ply+1, -beta, -alpha, &childPVLine, true)
+		search.negamax(depth-IID_Depth_Reduction-1, ply+1, -beta, -alpha, &childPVLine, true, NullMove)
 		if len(childPVLine.Moves) > 0 {
 			ttMove = childPVLine.GetPVMove()
 			childPVLine.Clear()
@@ -411,7 +417,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	}
 
 	moves := genMoves(&search.Pos)
-	search.scoreMoves(&moves, ttMove, ply)
+	search.scoreMoves(&moves, ttMove, ply, prevMove)
 
 	legalMoves := 0
 	ttFlag := AlphaFlag
@@ -472,7 +478,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 		score := int16(0)
 		if legalMoves == 1 {
-			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
+			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move)
 		} else {
 			tactical := inCheck || move.MoveType() == Attack
 			reduction := int8(0)
@@ -481,15 +487,15 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 				reduction = LMR[depth][legalMoves]
 			}
 
-			score = -search.negamax(depth-1-reduction, ply+1, -(alpha + 1), -alpha, &childPVLine, true)
+			score = -search.negamax(depth-1-reduction, ply+1, -(alpha + 1), -alpha, &childPVLine, true, move)
 
 			if score > alpha && reduction > 0 {
-				score = -search.negamax(depth-1-reduction, ply+1, -beta, -alpha, &childPVLine, true)
+				score = -search.negamax(depth-1-reduction, ply+1, -beta, -alpha, &childPVLine, true, move)
 				if score > alpha {
-					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
+					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move)
 				}
 			} else if score > alpha && score < beta {
-				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true)
+				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move)
 			}
 		}
 
@@ -507,6 +513,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		if score >= beta {
 			ttFlag = BetaFlag
 			search.storeKiller(ply, move)
+			search.storeCounterMove(prevMove, move)
 			search.incrementHistoryScore(move, depth)
 			break
 		} else {
@@ -590,7 +597,7 @@ func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine) i
 	}
 
 	moves := genCapturesAndQueenPromotions(&search.Pos)
-	search.scoreMoves(&moves, NullMove, maxPly)
+	search.scoreMoves(&moves, NullMove, maxPly, NullMove)
 	childPVLine := PVLine{}
 
 	for index := uint8(0); index < moves.Count; index++ {
@@ -645,6 +652,24 @@ func (search *Search) ClearKillers() {
 	for ply := 0; ply < MaxDepth+1; ply++ {
 		search.killers[ply][0] = NullMove
 		search.killers[ply][1] = NullMove
+	}
+}
+
+// Given a counter move (a move that caused the previous move made to be refuted, i.e.
+// cause a beta-cutoff)
+func (search *Search) storeCounterMove(prevMove, currMove Move) {
+	if search.Pos.Squares[currMove.ToSq()].Type == NoType {
+		search.counter[search.Pos.SideToMove][prevMove.FromSq()][prevMove.ToSq()] = currMove
+	}
+}
+
+// Clear the counter move table.
+func (search *Search) ClearCounterMoves() {
+	for sq1 := 0; sq1 < 64; sq1++ {
+		for sq2 := 0; sq2 < 64; sq2++ {
+			search.counter[White][sq1][sq2] = NullMove
+			search.counter[Black][sq1][sq2] = NullMove
+		}
 	}
 }
 
@@ -704,7 +729,7 @@ func (search *Search) isDrawByRepition() bool {
 }
 
 // Score the moves generated.
-func (search *Search) scoreMoves(moves *MoveList, pvMove Move, ply uint8) {
+func (search *Search) scoreMoves(moves *MoveList, pvMove Move, ply uint8, prevMove Move) {
 	for index := uint8(0); index < moves.Count; index++ {
 		move := &moves.Moves[index]
 		capturedType := search.Pos.Squares[move.ToSq()].Type
@@ -719,7 +744,14 @@ func (search *Search) scoreMoves(moves *MoveList, pvMove Move, ply uint8) {
 		} else if move.Equal(search.killers[ply][1]) {
 			move.AddScore(MvvLvaOffset - SecondKillerMoveScore)
 		} else {
-			move.AddScore(uint16(search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()]))
+			counterMove := search.counter[search.Pos.SideToMove][prevMove.FromSq()][prevMove.ToSq()]
+			moveScore := uint16(search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()])
+
+			if move.Equal(counterMove) {
+				moveScore += CounterMoveBonus
+			}
+
+			move.AddScore(moveScore)
 		}
 	}
 }

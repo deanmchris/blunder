@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	EngineName   = "Blunder 8.0.0-rook-or-queen-on-seventh"
+	EngineName   = "Blunder 8.0.0-counter-move-heuristic"
 	EngineAuthor = "Christian Dean"
 	EngineEmail  = "deanmchris@gmail.com"
 

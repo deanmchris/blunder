@@ -371,3 +371,14 @@ Elo difference: 9.2 +/- 8.0, LOS: 98.8 %, DrawRatio: 45.1 %
 SPRT: llr 1.5 (50.9%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Add A Small Counter-Move Bonus
+------------------------------
+```
+Score of Blunder 8.0.0-nmp-tweaking vs Blunder 8.0.0: 722 - 685 - 1093  [0.507] 2500
+...      Blunder 8.0.0-nmp-tweaking playing White: 398 - 316 - 536  [0.533] 1250
+...      Blunder 8.0.0-nmp-tweaking playing Black: 324 - 369 - 557  [0.482] 1250
+...      White vs Black: 767 - 640 - 1093  [0.525] 2500
+Elo difference: 5.1 +/- 10.2, LOS: 83.8 %, DrawRatio: 43.7 %
+SPRT: llr 0.315 (10.7%), lbound -2.94, ubound 2.94
+```
