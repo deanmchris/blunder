@@ -359,3 +359,15 @@ SPRT: llr -0.197 (-6.7%), lbound -2.94, ubound 2.94
 ```
 
 Keep it for now.
+
+Reward Rooks And Queens on Seventh Rank
+---------------------------------------
+```
+Score of Blunder 8.0.0-rook-or-queen-on-seventh vs Blunder 8.0.0: 1152 - 1046 - 1802  [0.513] 4000
+...      Blunder 8.0.0-rook-or-queen-on-seventh playing White: 604 - 487 - 909  [0.529] 2000
+...      Blunder 8.0.0-rook-or-queen-on-seventh playing Black: 548 - 559 - 893  [0.497] 2000
+...      White vs Black: 1163 - 1035 - 1802  [0.516] 4000
+Elo difference: 9.2 +/- 8.0, LOS: 98.8 %, DrawRatio: 45.1 %
+SPRT: llr 1.5 (50.9%), lbound -2.94, ubound 2.94
+Finished match
+```

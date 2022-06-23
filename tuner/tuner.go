@@ -13,9 +13,9 @@ import (
 
 const (
 	Iterations              = 2000
-	NumWeights              = 929
+	NumWeights              = 931
 	NumSafetyEvalTerms      = 9
-	SafetyEvalTermsStartIdx = 920
+	SafetyEvalTermsStartIdx = 922
 	ScalingFactor           = 0.01
 	Epsilon                 = 0.00000001
 	LearningRate            = 0.5
@@ -87,9 +87,12 @@ func loadWeights() (weights []float64) {
 	tempWeights[918] = engine.IsolatedPawnPenatlyMG
 	tempWeights[919] = engine.IsolatedPawnPenatlyEG
 
-	copy(tempWeights[920:924], engine.OuterRingAttackPoints[1:5])
-	copy(tempWeights[924:928], engine.InnerRingAttackPoints[1:5])
-	tempWeights[928] = engine.SemiOpenFileNextToKingPenalty
+	tempWeights[920] = engine.RookOrQueenOnSeventhBonusMG
+	tempWeights[921] = engine.RookOrQueenOnSeventhBonusEG
+
+	copy(tempWeights[922:926], engine.OuterRingAttackPoints[1:5])
+	copy(tempWeights[926:930], engine.InnerRingAttackPoints[1:5])
+	tempWeights[930] = engine.SemiOpenFileNextToKingPenalty
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -345,6 +348,14 @@ func getRookCoefficents(pos *engine.Position, norm []float64, safety [][]float64
 	usBB := pos.Sides[piece.Color]
 	allBB := usBB | pos.Sides[piece.Color^1]
 
+	enemyKingSq := pos.Pieces[piece.Color^1][engine.King].Msb()
+	if engine.FlipRank[piece.Color][engine.RankOf(sq)] == engine.Rank7 &&
+		engine.FlipRank[piece.Color][engine.RankOf(enemyKingSq)] >= engine.Rank7 {
+
+		norm[920] += sign * mgPhase
+		norm[921] += sign * egPhase
+	}
+
 	moves := engine.GenRookMoves(sq, allBB) & ^usBB
 	mobility := float64(moves.CountBits())
 	norm[780+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(mgPhase)
@@ -367,6 +378,14 @@ func getQueenCoefficents(pos *engine.Position, norm []float64, safety [][]float6
 	piece := pos.Squares[sq]
 	usBB := pos.Sides[piece.Color]
 	allBB := usBB | pos.Sides[piece.Color^1]
+
+	enemyKingSq := pos.Pieces[piece.Color^1][engine.King].Msb()
+	if engine.FlipRank[piece.Color][engine.RankOf(sq)] == engine.Rank7 &&
+		engine.FlipRank[piece.Color][engine.RankOf(enemyKingSq)] >= engine.Rank7 {
+
+		norm[920] += sign * mgPhase
+		norm[921] += sign * egPhase
+	}
 
 	moves := (engine.GenBishopMoves(sq, allBB) | engine.GenRookMoves(sq, allBB)) & ^usBB
 	mobility := float64(moves.CountBits())
@@ -537,6 +556,28 @@ func prettyPrintPSQT(name string, psqt []int16) {
 }
 
 func printParameters(weights []float64) {
+	printSlice("\nMG Piece Values", convertFloatSiceToInt(weights[768:773]))
+	printSlice("EG Piece Values", convertFloatSiceToInt(weights[773:778]))
+
+	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:784]))
+	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[784:788]))
+
+	fmt.Println("\nBishop Pair Bonus MG:", weights[778])
+	fmt.Println("Bishop Pair Bonus EG:", weights[779])
+
+	fmt.Println("\nIsolated Pawn Penalty MG:", weights[918])
+	fmt.Println("Isolated Pawn Penalty EG:", weights[919])
+
+	fmt.Println("\nDoubled Pawn Penalty MG:", weights[916])
+	fmt.Println("Doubled Pawn Penalty EG:", weights[917])
+
+	fmt.Println("\nRook Or Queen On Seventh Bonus MG:", weights[920])
+	fmt.Println("Rook Or Queen On Seventh Bonus EG:", weights[921])
+
+	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[922:926]))
+	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[926:930]))
+	fmt.Println("Semi-Open File Next To King Penalty:", weights[930])
+
 	prettyPrintPSQT("MG Pawn PST", convertFloatSiceToInt(weights[0:64]))
 	prettyPrintPSQT("MG Knight PST", convertFloatSiceToInt(weights[64:128]))
 	prettyPrintPSQT("MG Bishop PST", convertFloatSiceToInt(weights[128:192]))
@@ -551,27 +592,8 @@ func printParameters(weights []float64) {
 	prettyPrintPSQT("EG Queen PST", convertFloatSiceToInt(weights[640:704]))
 	prettyPrintPSQT("EG King PST", convertFloatSiceToInt(weights[704:768]))
 
-	printSlice("\nMG Piece Values", convertFloatSiceToInt(weights[768:773]))
-	printSlice("EG Piece Values", convertFloatSiceToInt(weights[773:778]))
-
-	fmt.Println("\nBishop Pair Bonus MG:", weights[778])
-	fmt.Println("Bishop Pair Bonus EG:", weights[779])
-
-	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:784]))
-	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[784:788]))
-
 	prettyPrintPSQT("MG Passed Pawn PST", convertFloatSiceToInt(weights[788:852]))
 	prettyPrintPSQT("EG Passed Pawn PST", convertFloatSiceToInt(weights[852:916]))
-
-	fmt.Println("\nDoubled Pawn Penalty MG:", weights[916])
-	fmt.Println("Doubled Pawn Penalty EG:", weights[917])
-
-	fmt.Println("\nIsolated Pawn Penalty MG:", weights[918])
-	fmt.Println("Isolated Pawn Penalty EG:", weights[919])
-
-	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[920:924]))
-	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[924:928]))
-	fmt.Println("Semi-Open File Next To King Penalty:", weights[928])
 
 	fmt.Println()
 }
