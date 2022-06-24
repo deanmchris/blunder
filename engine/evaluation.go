@@ -11,6 +11,13 @@ const (
 
 	// Constants representing a draw or infinite (checkmate) value.
 	Inf int16 = 10000
+
+	// A constant to scale the evaluation score by if the position is considered
+	// drawish (e.g. king and queen vs king and queen).
+	ScaleFactor int16 = 4
+
+	// A constant representing a draw value.
+	Draw int16 = 0
 )
 
 type Eval struct {
@@ -261,6 +268,10 @@ var FlipRank = [2][8]uint8{
 // Evaluate a position and give a score, from the perspective of the side to move (
 // more positive if it's good for the side to move, otherwise more negative).
 func EvaluatePos(pos *Position) int16 {
+	if isDrawn(pos) {
+		return Draw
+	}
+
 	eval := Eval{
 		MGScores: pos.MGScores,
 		EGScores: pos.EGScores,
@@ -308,7 +319,13 @@ func EvaluatePos(pos *Position) int16 {
 	egScore := eval.EGScores[pos.SideToMove] - eval.EGScores[pos.SideToMove^1]
 
 	phase = (phase*256 + (TotalPhase / 2)) / TotalPhase
-	return int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
+	score := int16(((int32(mgScore) * (int32(256) - int32(phase))) + (int32(egScore) * int32(phase))) / int32(256))
+
+	if isDrawish(pos) {
+		return score / ScaleFactor
+	}
+
+	return score
 }
 
 // Evaluate the score of a pawn.
@@ -473,6 +490,125 @@ func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 	if eval.KingAttackers[color^1] >= 2 && pos.Pieces[color^1][Queen] != 0 {
 		eval.MGScores[color] -= penatly
 	}
+}
+
+// Determine if a position is a strict draw (e.g. king versus king,
+// or king versus knight and king).
+func isDrawn(pos *Position) bool {
+	whiteKnights := pos.Pieces[White][Knight].CountBits()
+	whiteBishops := pos.Pieces[White][Bishop].CountBits()
+
+	blackKnights := pos.Pieces[Black][Knight].CountBits()
+	blackBishops := pos.Pieces[Black][Bishop].CountBits()
+
+	pawns := pos.Pieces[White][Pawn].CountBits() + pos.Pieces[Black][Pawn].CountBits()
+	knights := whiteKnights + blackKnights
+	bishops := whiteBishops + blackBishops
+	rooks := pos.Pieces[White][Rook].CountBits() + pos.Pieces[Black][Rook].CountBits()
+	queens := pos.Pieces[White][Queen].CountBits() + pos.Pieces[Black][Queen].CountBits()
+
+	majors := rooks + queens
+	miniors := knights + bishops
+
+	if pawns+majors+miniors == 0 {
+		// KvK => draw
+		return true
+	} else if majors+pawns == 0 {
+		if miniors == 1 {
+			// K & minior v K => draw
+			return true
+		} else if miniors == 2 && whiteKnights == 1 && blackKnights == 1 {
+			// KNvKN => draw
+			return true
+		} else if miniors == 2 && whiteBishops == 1 && blackBishops == 1 {
+			// KBvKB => draw when only when bishops are the same color
+			whiteBishopSq := pos.Pieces[White][Bishop].Msb()
+			blackBishopSq := pos.Pieces[Black][Bishop].Msb()
+			return sqIsDark(whiteBishopSq) == sqIsDark(blackBishopSq)
+		}
+	}
+
+	return false
+}
+
+// Determine if a position is drawish.
+func isDrawish(pos *Position) bool {
+	whiteKnights := pos.Pieces[White][Knight].CountBits()
+	whiteBishops := pos.Pieces[White][Bishop].CountBits()
+	whiteRooks := pos.Pieces[White][Rook].CountBits()
+	whiteQueens := pos.Pieces[White][Queen].CountBits()
+
+	blackKnights := pos.Pieces[Black][Knight].CountBits()
+	blackBishops := pos.Pieces[Black][Bishop].CountBits()
+	blackRooks := pos.Pieces[Black][Rook].CountBits()
+	blackQueens := pos.Pieces[Black][Queen].CountBits()
+
+	pawns := pos.Pieces[White][Pawn].CountBits() + pos.Pieces[Black][Pawn].CountBits()
+	knights := whiteKnights + blackKnights
+	bishops := whiteBishops + blackBishops
+	rooks := whiteRooks + blackRooks
+	queens := whiteQueens + blackQueens
+
+	whiteMinors := whiteBishops + whiteKnights
+	blackMinors := blackBishops + blackKnights
+
+	majors := rooks + queens
+	miniors := knights + bishops
+	all := majors + miniors
+
+	if pawns == 0 {
+		if all == 2 && blackQueens == 1 && whiteQueens == 1 {
+			// KQ v KQ => drawish
+			return true
+		} else if all == 2 && blackRooks == 1 && whiteRooks == 1 {
+			// KR v KR => drawish
+			return true
+		} else if all == 2 && whiteMinors == 1 && blackMinors == 1 {
+			// KN v KB => drawish
+			// KB v KB => drawish
+			return true
+		} else if all == 3 && ((whiteQueens == 1 && blackRooks == 2) || (blackQueens == 1 && whiteRooks == 2)) {
+			// KQ v KRR => drawish
+			return true
+		} else if all == 3 && ((whiteQueens == 1 && blackBishops == 2) || (blackQueens == 1 && whiteBishops == 2)) {
+			// KQ vs KBB => drawish
+			return true
+		} else if all == 3 && ((whiteQueens == 1 && blackKnights == 2) || (blackQueens == 1 && whiteKnights == 2)) {
+			// KQ vs KNN => drawish
+			return true
+		} else if all == 3 && ((whiteKnights == 2 && blackMinors <= 1) || (blackKnights == 2 && whiteMinors <= 1)) {
+			// KNN v KN => drawish
+			// KNN v KB => drawish
+			// KNN v K => drawish
+			return true
+		} else if all == 3 &&
+			((whiteQueens == 1 && blackRooks == 1 && blackMinors == 1) ||
+				(blackQueens == 1 && whiteRooks == 1 && whiteMinors == 1)) {
+			// KQ vs KRN => drawish
+			// KQ vs KRB => drawish
+			return true
+		} else if all == 3 &&
+			((whiteRooks == 1 && blackRooks == 1 && blackMinors == 1) ||
+				(blackRooks == 1 && whiteRooks == 1 && whiteMinors == 1)) {
+			// KR vs KRB => drawish
+			// KR vs KRN => drawish
+		} else if all == 4 &&
+			((whiteRooks == 2 && blackRooks == 1 && blackMinors == 1) ||
+				(blackRooks == 2 && whiteRooks == 1 && whiteMinors == 1)) {
+			// KRR v KRB => drawish
+			// KRR v KRN => drawish
+			return true
+		}
+	}
+
+	return false
+}
+
+// Determine if a square is dark.
+func sqIsDark(sq uint8) bool {
+	fileNo := FileOf(sq)
+	rankNo := RankOf(sq)
+	return ((fileNo + rankNo) % 2) == 0
 }
 
 func InitEvalBitboards() {

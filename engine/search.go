@@ -42,9 +42,6 @@ const (
 	// detection history.
 	MaxGamePly = 1024
 
-	// A constat representing a draw score value.
-	Draw int16 = 0
-
 	// Pruning constants
 	NMR_Depth_Limit                 int8  = 2
 	FutilityPruningDepthLimit       int8  = 8
