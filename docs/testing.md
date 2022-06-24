@@ -394,3 +394,14 @@ Elo difference: 5.1 +/- 8.2, LOS: 88.9 %, DrawRatio: 41.5 %
 SPRT: llr 0.481 (16.3%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Factor Enemy Pawns Into Knight Mobility Evaluation
+--------------------------------------------------
+```
+Score of Blunder 8.0.0-safe-mobility vs Blunder 8.0.0: 929 - 838 - 1233  [0.515] 3000
+...      Blunder 8.0.0-safe-mobility playing White: 490 - 381 - 629  [0.536] 1500
+...      Blunder 8.0.0-safe-mobility playing Black: 439 - 457 - 604  [0.494] 1500
+...      White vs Black: 947 - 820 - 1233  [0.521] 3000
+Elo difference: 10.5 +/- 9.5, LOS: 98.5 %, DrawRatio: 41.1 %
+SPRT: llr 1.27 (43.3%), lbound -2.94, ubound 2.94
+```
