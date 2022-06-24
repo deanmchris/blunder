@@ -14,6 +14,6 @@ func init() {
 
 func main() {
 	// homeDir, _ := os.UserHomeDir()
-	// tuner.Tune(homeDir+"\\Desktop\\data\\quiet.epd", 5000, 725000, true)
+	// tuner.Tune(homeDir+"\\Desktop\\data\\quiet.epd", 500, 725000, true)
 	engine.RunCommLoop()
 }
