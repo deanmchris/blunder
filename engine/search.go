@@ -57,7 +57,7 @@ const (
 )
 
 // Precomputed reductions
-var LMR = [100][100]int8{}
+var LMR = [MaxDepth + 1][100]int8{}
 
 // Futility margins
 var FutilityMargins = [9]int16{
