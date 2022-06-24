@@ -316,7 +316,14 @@ func getKnightCoefficents(pos *engine.Position, norm []float64, safety [][]float
 	}
 
 	moves := engine.KnightMoves[sq] & ^usBB
-	mobility := float64(moves.CountBits())
+	safeMoves := moves
+
+	for enemyPawns != 0 {
+		sq := enemyPawns.PopBit()
+		safeMoves &= ^engine.PawnAttacks[piece.Color^1][sq]
+	}
+
+	mobility := float64(safeMoves.CountBits())
 	norm[780+uint16(piece.Type)-1] += (mobility - 4) * sign * mgPhase
 	norm[784+uint16(piece.Type)-1] += (mobility - 4) * sign * egPhase
 
@@ -339,7 +346,15 @@ func getBishopCoefficents(pos *engine.Position, norm []float64, safety [][]float
 	allBB := usBB | pos.Sides[piece.Color^1]
 
 	moves := engine.GenBishopMoves(sq, allBB) & ^usBB
-	mobility := float64(moves.CountBits())
+	enemyPawns := pos.Pieces[piece.Color^1][engine.Pawn]
+	safeMoves := moves
+
+	for enemyPawns != 0 {
+		sq := enemyPawns.PopBit()
+		safeMoves &= ^engine.PawnAttacks[piece.Color^1][sq]
+	}
+
+	mobility := float64(safeMoves.CountBits())
 	norm[780+uint16(piece.Type)-1] += (mobility - 7) * sign * mgPhase
 	norm[784+uint16(piece.Type)-1] += (mobility - 7) * sign * egPhase
 
@@ -369,7 +384,15 @@ func getRookCoefficents(pos *engine.Position, norm []float64, safety [][]float64
 	}
 
 	moves := engine.GenRookMoves(sq, allBB) & ^usBB
-	mobility := float64(moves.CountBits())
+	enemyPawns := pos.Pieces[piece.Color^1][engine.Pawn]
+	safeMoves := moves
+
+	for enemyPawns != 0 {
+		sq := enemyPawns.PopBit()
+		safeMoves &= ^engine.PawnAttacks[piece.Color^1][sq]
+	}
+
+	mobility := float64(safeMoves.CountBits())
 	norm[780+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(mgPhase)
 	norm[784+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(egPhase)
 
@@ -399,7 +422,15 @@ func getQueenCoefficents(pos *engine.Position, norm []float64, safety [][]float6
 	}
 
 	moves := (engine.GenBishopMoves(sq, allBB) | engine.GenRookMoves(sq, allBB)) & ^usBB
-	mobility := float64(moves.CountBits())
+	enemyPawns := pos.Pieces[piece.Color^1][engine.Pawn]
+	safeMoves := moves
+
+	for enemyPawns != 0 {
+		sq := enemyPawns.PopBit()
+		safeMoves &= ^engine.PawnAttacks[piece.Color^1][sq]
+	}
+
+	mobility := float64(safeMoves.CountBits())
 	norm[780+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(mgPhase)
 	norm[784+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(egPhase)
 
