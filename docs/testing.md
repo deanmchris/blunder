@@ -382,3 +382,15 @@ Score of Blunder 8.0.0-nmp-tweaking vs Blunder 8.0.0: 722 - 685 - 1093  [0.507] 
 Elo difference: 5.1 +/- 10.2, LOS: 83.8 %, DrawRatio: 43.7 %
 SPRT: llr 0.315 (10.7%), lbound -2.94, ubound 2.94
 ```
+
+Add Knight Outpost
+------------------
+```
+Score of Blunder 8.0.0-kight-outposts vs Blunder 8.0.0: 1200 - 1141 - 1659  [0.507] 4000
+...      Blunder 8.0.0-kight-outposts playing White: 646 - 534 - 820  [0.528] 2000
+...      Blunder 8.0.0-kight-outposts playing Black: 554 - 607 - 839  [0.487] 2000
+...      White vs Black: 1253 - 1088 - 1659  [0.521] 4000
+Elo difference: 5.1 +/- 8.2, LOS: 88.9 %, DrawRatio: 41.5 %
+SPRT: llr 0.481 (16.3%), lbound -2.94, ubound 2.94
+Finished match
+```
