@@ -367,7 +367,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// this branch.                                                         //
 	// =====================================================================//
 
-	if doNull && !inCheck && !isPVNode && depth >= NMR_Depth_Limit {
+	if doNull && !inCheck && !isPVNode && depth >= NMR_Depth_Limit && !search.Pos.NoMajorsOrMiniors() {
 		search.Pos.DoNullMove()
 		search.AddHistory(search.Pos.Hash)
 

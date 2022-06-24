@@ -515,6 +515,15 @@ func (pos *Position) InCheck() bool {
 		pos.Pieces[pos.SideToMove][King].Msb())
 }
 
+// Determine if the current position has no majors or miniors left.
+func (pos *Position) NoMajorsOrMiniors() bool {
+	knights := pos.Pieces[White][Knight].CountBits() + pos.Pieces[Black][Knight].CountBits()
+	bishops := pos.Pieces[White][Bishop].CountBits() + pos.Pieces[Black][Bishop].CountBits()
+	rook := pos.Pieces[White][Rook].CountBits() + pos.Pieces[Black][Rook].CountBits()
+	queen := pos.Pieces[White][Queen].CountBits() + pos.Pieces[Black][Queen].CountBits()
+	return knights+bishops+rook+queen == 0
+}
+
 // Put a piece of a given color and type on a square.
 func (pos *Position) putPiece(pieceType, pieceColor, to uint8) {
 	pos.Pieces[pieceColor][pieceType].SetBit(to)
