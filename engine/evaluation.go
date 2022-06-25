@@ -14,7 +14,7 @@ const (
 
 	// A constant to scale the evaluation score by if the position is considered
 	// drawish (e.g. king and queen vs king and queen).
-	ScaleFactor int16 = 4
+	ScaleFactor int16 = 16
 
 	// A constant representing a draw value.
 	Draw int16 = 0
@@ -576,7 +576,7 @@ func isDrawish(pos *Position) bool {
 		} else if all == 3 && ((whiteQueens == 1 && blackKnights == 2) || (blackQueens == 1 && whiteKnights == 2)) {
 			// KQ vs KNN => drawish
 			return true
-		} else if all == 3 && ((whiteKnights == 2 && blackMinors <= 1) || (blackKnights == 2 && whiteMinors <= 1)) {
+		} else if all <= 3 && ((whiteKnights == 2 && blackMinors <= 1) || (blackKnights == 2 && whiteMinors <= 1)) {
 			// KNN v KN => drawish
 			// KNN v KB => drawish
 			// KNN v K => drawish

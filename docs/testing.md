@@ -405,3 +405,14 @@ Score of Blunder 8.0.0-safe-mobility vs Blunder 8.0.0: 929 - 838 - 1233  [0.515]
 Elo difference: 10.5 +/- 9.5, LOS: 98.5 %, DrawRatio: 41.1 %
 SPRT: llr 1.27 (43.3%), lbound -2.94, ubound 2.94
 ```
+
+Increase Scale Factor To Divide Eval By In Drawish Endgames
+-----------------------------------------------------------
+```
+Score of Blunder 8.0.0-draw-knowledge vs Blunder 8.0.0: 940 - 838 - 1372  [0.516] 3150
+...      Blunder 8.0.0-draw-knowledge playing White: 497 - 389 - 690  [0.534] 1576
+...      Blunder 8.0.0-draw-knowledge playing Black: 443 - 449 - 682  [0.498] 1574
+...      White vs Black: 946 - 832 - 1372  [0.518] 3150
+Elo difference: 11.3 +/- 9.1, LOS: 99.2 %, DrawRatio: 43.6 %
+SPRT: llr 1.53 (51.9%), lbound -2.94, ubound 2.94
+```
