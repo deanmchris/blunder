@@ -416,3 +416,15 @@ Score of Blunder 8.0.0-draw-knowledge vs Blunder 8.0.0: 940 - 838 - 1372  [0.516
 Elo difference: 11.3 +/- 9.1, LOS: 99.2 %, DrawRatio: 43.6 %
 SPRT: llr 1.53 (51.9%), lbound -2.94, ubound 2.94
 ```
+
+Progress Check of Dev Vs Latest Release
+---------------------------------------
+```
+Score of Blunder 8.0.0 vs Blunder 7.6.0: 734 - 550 - 676  [0.547] 1960
+...      Blunder 8.0.0 playing White: 373 - 265 - 343  [0.555] 981
+...      Blunder 8.0.0 playing Black: 361 - 285 - 333  [0.539] 979
+...      White vs Black: 658 - 626 - 676  [0.508] 1960
+Elo difference: 32.7 +/- 12.5, LOS: 100.0 %, DrawRatio: 34.5 %
+SPRT: llr 2.95 (100.3%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
