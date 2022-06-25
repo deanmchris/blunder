@@ -11,8 +11,15 @@ import (
 	"time"
 )
 
+const DefaultBookMoveDelay = 2
+
 type UCIInterface struct {
-	Search Search
+	Search      Search
+	OpeningBook map[uint64][]PolyglotEntry
+
+	OptionUseBook       bool
+	OptionBookPath      string
+	OptionBookMoveDelay int
 }
 
 func (inter *UCIInterface) Reset() {
@@ -27,6 +34,10 @@ func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Print("option name Clear Hash type button\n")
 	fmt.Print("option name Clear History type button\n")
 	fmt.Print("option name Clear Killers type button\n")
+	fmt.Print("option name Clear Counters type button\n")
+	fmt.Print("option name UseBook type check default false\n")
+	fmt.Print("option name BookPath type string default\n")
+	fmt.Print("option name BookMoveDelay type spin default 2 min 0 max 10\n")
 	fmt.Print("\nAvailable UCI commands:\n")
 
 	fmt.Print("    * uci\n    * isready\n    * ucinewgame")
@@ -117,11 +128,49 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 		inter.Search.ClearHistoryTable()
 	case "Clear Killers":
 		inter.Search.ClearKillers()
+	case "Clear Counters":
+		inter.Search.ClearCounterMoves()
+	case "UseBook":
+		if value == "true" {
+			inter.OptionUseBook = true
+		} else if value == "false" {
+			inter.OptionUseBook = false
+		}
+	case "BookPath":
+		var err error
+		inter.OpeningBook, err = LoadPolyglotFile(value)
+
+		if err == nil {
+			fmt.Println("Opening book loaded...")
+		} else {
+			fmt.Println("Failed to load opening book...")
+		}
+	case "BookMoveDelay":
+		size, err := strconv.Atoi(value)
+		if err == nil {
+			inter.OptionBookMoveDelay = size
+		}
 	}
 }
 
 // Respond to the command "go"
 func (inter *UCIInterface) goCommandResponse(command string) {
+	if inter.OptionUseBook {
+		if entries, ok := inter.OpeningBook[GenPolyglotHash(&inter.Search.Pos)]; ok {
+
+			// To allow opening variety, randomly select a move from an entry matching
+			// the current position.
+			entry := entries[rand.Intn(len(entries))]
+			move := moveFromCoord(&inter.Search.Pos, entry.Move)
+
+			if inter.Search.Pos.MoveIsPseduoLegal(move) {
+				time.Sleep(time.Duration(inter.OptionBookMoveDelay) * time.Second)
+				fmt.Printf("bestmove %v\n", move)
+				return
+			}
+		}
+	}
+
 	command = strings.TrimPrefix(command, "go")
 	command = strings.TrimPrefix(command, " ")
 	fields := strings.Fields(command)
@@ -181,6 +230,9 @@ func (inter *UCIInterface) UCILoop() {
 
 	inter.Search.TT.Resize(DefaultTTSize, SearchEntrySize)
 	inter.Search.Setup(FENStartPosition)
+
+	inter.OpeningBook = make(map[uint64][]PolyglotEntry)
+	inter.OptionBookMoveDelay = DefaultBookMoveDelay
 
 	for {
 		command, _ := reader.ReadString('\n')
