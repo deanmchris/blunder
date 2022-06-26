@@ -123,6 +123,7 @@ type Search struct {
 	Timer TimeManager
 
 	side              uint8
+	age               uint8
 	nodes             uint64
 	totalNodes        uint64
 	killers           [MaxDepth + 1][MaxKillers]Move
@@ -135,6 +136,7 @@ type Search struct {
 // Setup the necessary internals of the engine when given a new FEN string.
 func (search *Search) Setup(FEN string) {
 	search.Pos.LoadFEN(FEN)
+	search.age = 0
 	search.zobristHistoryPly = 0
 	search.zobristHistory[search.zobristHistoryPly] = search.Pos.Hash
 }
@@ -164,6 +166,7 @@ func (search *Search) RemoveHistory() {
 func (search *Search) Search() Move {
 	search.side = search.Pos.SideToMove
 	search.totalNodes = 0
+	search.age ^= 1
 
 	pvLine := PVLine{}
 	bestMove := NullMove
@@ -549,8 +552,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	// If we're not out of time, store the result of the search for this position.
 	if !search.Timer.Stop {
-		search.TT.Probe(search.Pos.Hash).Set(
-			search.Pos.Hash, ply, uint8(depth), bestScore, ttFlag, bestMove,
+		e := search.TT.Store(search.Pos.Hash, uint8(depth), search.age)
+		e.Set(
+			search.Pos.Hash, bestScore, bestMove, ply, uint8(depth), ttFlag, search.age,
 		)
 	}
 

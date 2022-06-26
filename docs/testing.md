@@ -428,3 +428,35 @@ Elo difference: 32.7 +/- 12.5, LOS: 100.0 %, DrawRatio: 34.5 %
 SPRT: llr 2.95 (100.3%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
+
+Add A Multi-Bucket Scheme To The Transposition Table
+----------------------------------------------------
+
+The Elo gain looked promising after several hundred games:
+
+```
+Score of Blunder 8.0.0-tt-tweaking vs Blunder 8.0.0: 186 - 142 - 322  [0.534] 650
+...      Blunder 8.0.0-tt-tweaking playing White: 92 - 69 - 164  [0.535] 325
+...      Blunder 8.0.0-tt-tweaking playing Black: 94 - 73 - 158  [0.532] 325
+...      White vs Black: 165 - 163 - 322  [0.502] 650
+Elo difference: 23.6 +/- 19.0, LOS: 99.2 %, DrawRatio: 49.5 %
+SPRT: llr 0.881 (29.9%), lbound -2.94, ubound 2.94
+```
+
+But evaporated after a couple hundred more:
+
+```
+Score of Blunder 8.0.0-tt-tweaking vs Blunder 8.0.0: 305 - 302 - 597  [0.501] 1204
+...      Blunder 8.0.0-tt-tweaking playing White: 150 - 146 - 307  [0.503] 603
+...      Blunder 8.0.0-tt-tweaking playing Black: 155 - 156 - 290  [0.499] 601
+...      White vs Black: 306 - 301 - 597  [0.502] 1204
+Elo difference: 0.9 +/- 13.9, LOS: 54.8 %, DrawRatio: 49.6 %
+SPRT: llr -0.169 (-5.7%), lbound -2.94, ubound 2.94
+Finished match
+```
+
+From some synthetic testing as well as the testing above, the feature looks promising,
+but the time control of 10+0.1 may be too short to see any significant difference in
+strength, and longer time control testing isn't particularly feasible at the moment,
+so the change will be accepted for now, assuming it might contribute something like
+~10-15 Elo at bullet-time controls.
