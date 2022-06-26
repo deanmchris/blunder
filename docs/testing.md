@@ -460,3 +460,15 @@ but the time control of 10+0.1 may be too short to see any significant differenc
 strength, and longer time control testing isn't particularly feasible at the moment,
 so the change will be accepted for now, assuming it might contribute something like
 ~10-15 Elo at bullet-time controls.
+
+Generate All Moves If In Check And <= 3 Plies Under The Horizon
+---------------------------------------------------------------
+```
+Score of Blunder 8.0.0-qsearch-tweaking vs Blunder 8.0.0: 1077 - 1038 - 1885  [0.505] 4000
+...      Blunder 8.0.0-qsearch-tweaking playing White: 596 - 466 - 938  [0.532] 2000
+...      Blunder 8.0.0-qsearch-tweaking playing Black: 481 - 572 - 947  [0.477] 2000
+...      White vs Black: 1168 - 947 - 1885  [0.528] 4000
+Elo difference: 3.4 +/- 7.8, LOS: 80.2 %, DrawRatio: 47.1 %
+SPRT: llr 0.0972 (3.3%), lbound -2.94, ubound 2.94
+Finished match
+```
