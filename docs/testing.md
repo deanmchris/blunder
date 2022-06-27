@@ -472,3 +472,17 @@ Elo difference: 3.4 +/- 7.8, LOS: 80.2 %, DrawRatio: 47.1 %
 SPRT: llr 0.0972 (3.3%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Tweak LMR Reductions To Be Slightly More Agressive
+--------------------------------------------------
+```
+Score of Blunder 8.0.0-lmr-tweaking vs Blunder 8.0.0: 1115 - 1081 - 1804  [0.504] 4000
+...      Blunder 8.0.0-lmr-tweaking playing White: 586 - 524 - 890  [0.515] 2000
+...      Blunder 8.0.0-lmr-tweaking playing Black: 529 - 557 - 914  [0.493] 2000
+...      White vs Black: 1143 - 1053 - 1804  [0.511] 4000
+Elo difference: 3.0 +/- 8.0, LOS: 76.6 %, DrawRatio: 45.1 %
+SPRT: llr -0.0113 (-0.4%), lbound -2.94, ubound 2.94
+Finished match
+```
+
+Keep for now.

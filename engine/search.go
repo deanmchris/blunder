@@ -784,7 +784,7 @@ func orderMoves(currIndex uint8, moves *MoveList) {
 func InitSearchTables() {
 	for depth := int8(3); depth < 100; depth++ {
 		for moveCnt := int8(3); moveCnt < 100; moveCnt++ {
-			LMR[depth][moveCnt] = max(2, depth/6) + moveCnt/12
+			LMR[depth][moveCnt] = max(2, depth/4) + moveCnt/12
 		}
 	}
 }
