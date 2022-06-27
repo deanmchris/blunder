@@ -486,3 +486,14 @@ Finished match
 ```
 
 Keep for now.
+
+Add Basic Razoring Scheme
+-------------------------
+```
+Score of Blunder 8.0.0-razoring vs Blunder 8.0.0: 1291 - 1187 - 2072  [0.511] 4550
+...      Blunder 8.0.0-razoring playing White: 700 - 544 - 1031  [0.534] 2275
+...      Blunder 8.0.0-razoring playing Black: 591 - 643 - 1041  [0.489] 2275
+...      White vs Black: 1343 - 1135 - 2072  [0.523] 4550
+Elo difference: 7.9 +/- 7.4, LOS: 98.2 %, DrawRatio: 45.5 %
+SPRT: llr 1.37 (46.5%), lbound -2.94, ubound 2.94
+```

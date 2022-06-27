@@ -388,6 +388,23 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	}
 
 	// =====================================================================//
+	// RAZORING: If we're close to the horzion and the static evaluation is //
+	// very bad, let's try to immediately drop to qsearch and confirm the   //
+	// position will likely fail low. If the qsearch score does fail-low,   //
+	// trust it and return alpha.         									//
+	// =====================================================================//
+
+	if depth <= 2 && !isPVNode && !inCheck {
+		staticScore := EvaluatePos(&search.Pos)
+		if staticScore+FutilityMargins[depth]*3 < alpha {
+			score := search.qsearch(alpha, beta, ply, &PVLine{}, 0)
+			if score < alpha {
+				return alpha
+			}
+		}
+	}
+
+	// =====================================================================//
 	// FUTILITY PRUNING: If we're close to the horizon, and even with a     //
 	// large margin the static evaluation can't be raised above alpha,      //
 	// we're probably in a fail-low node, and many moves can be probably    //
