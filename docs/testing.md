@@ -497,3 +497,15 @@ Score of Blunder 8.0.0-razoring vs Blunder 8.0.0: 1291 - 1187 - 2072  [0.511] 45
 Elo difference: 7.9 +/- 7.4, LOS: 98.2 %, DrawRatio: 45.5 %
 SPRT: llr 1.37 (46.5%), lbound -2.94, ubound 2.94
 ```
+
+Progress Check Of Dev Vs Latest Release
+---------------------------------------
+```
+Score of Blunder 8.0.0 vs Blunder 7.6.0: 527 - 350 - 469  [0.566] 1346
+...      Blunder 8.0.0 playing White: 276 - 163 - 235  [0.584] 674
+...      Blunder 8.0.0 playing Black: 251 - 187 - 234  [0.548] 672
+...      White vs Black: 463 - 414 - 469  [0.518] 1346
+Elo difference: 46.0 +/- 15.0, LOS: 100.0 %, DrawRatio: 34.8 %
+SPRT: llr 2.95 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
