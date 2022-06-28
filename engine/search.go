@@ -600,11 +600,16 @@ func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, p
 	}
 
 	bestScore := EvaluatePos(&search.Pos)
+	inCheck := ply <= 2 && search.Pos.InCheck()
 
 	// If the score is greater than beta, what our opponet can
 	// already guarantee early in the search tree, then we
 	// have a beta-cutoff.
-	if bestScore >= beta {
+	//
+	// Be sure not to do this though if we're considering checks,
+	// since the position isn't quiet enough, and the check might
+	// reveal something important on the horizon.
+	if !inCheck && bestScore >= beta {
 		return bestScore
 	}
 
@@ -615,7 +620,7 @@ func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, p
 	}
 
 	moves := MoveList{}
-	if ply <= 2 && search.Pos.InCheck() {
+	if inCheck {
 		moves = genMoves(&search.Pos)
 	} else {
 		moves = genCapturesAndQueenPromotions(&search.Pos)
