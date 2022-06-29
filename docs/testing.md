@@ -509,3 +509,14 @@ Elo difference: 46.0 +/- 15.0, LOS: 100.0 %, DrawRatio: 34.8 %
 SPRT: llr 2.95 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
+
+Add Eval Term For Rook On Open File And Tempo Bonus
+---------------------------------------------------
+```
+Score of Blunder 8.0.0-eval-tweaking vs Blunder 8.0.0: 810 - 774 - 1416  [0.506] 3000
+...      Blunder 8.0.0-eval-tweaking playing White: 412 - 345 - 743  [0.522] 1500
+...      Blunder 8.0.0-eval-tweaking playing Black: 398 - 429 - 673  [0.490] 1500
+...      White vs Black: 841 - 743 - 1416  [0.516] 3000
+Elo difference: 4.2 +/- 9.0, LOS: 81.7 %, DrawRatio: 47.2 %
+SPRT: llr 0.22 (7.5%), lbound -2.94, ubound 2.94
+```

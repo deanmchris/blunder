@@ -13,9 +13,9 @@ import (
 
 const (
 	Iterations              = 2000
-	NumWeights              = 932
+	NumWeights              = 934
 	NumSafetyEvalTerms      = 9
-	SafetyEvalTermsStartIdx = 923
+	SafetyEvalTermsStartIdx = 925
 	ScalingFactor           = 0.01
 	Epsilon                 = 0.00000001
 	LearningRate            = 0.5
@@ -92,9 +92,12 @@ func loadWeights() (weights []float64) {
 	tempWeights[921] = engine.KnightOnOutpostBonusMG
 	tempWeights[922] = engine.KnightOnOutpostBonusEG
 
-	copy(tempWeights[923:927], engine.OuterRingAttackPoints[1:5])
-	copy(tempWeights[927:931], engine.InnerRingAttackPoints[1:5])
-	tempWeights[931] = engine.SemiOpenFileNextToKingPenalty
+	tempWeights[923] = engine.RookOnOpenFileBonusMG
+	tempWeights[924] = engine.TempoBonusMG
+
+	copy(tempWeights[925:929], engine.OuterRingAttackPoints[1:5])
+	copy(tempWeights[929:933], engine.InnerRingAttackPoints[1:5])
+	tempWeights[933] = engine.SemiOpenFileNextToKingPenalty
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -200,6 +203,8 @@ func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safet
 
 	getPawnShieldCoefficents(pos, pos.Pieces[engine.White][engine.King].Msb(), engine.White, rawSafetyCoefficents)
 	getPawnShieldCoefficents(pos, pos.Pieces[engine.Black][engine.King].Msb(), engine.Black, rawSafetyCoefficents)
+
+	getTempoBonusCoefficent(pos, rawNormCoefficents, mgPhase)
 
 	for i, coefficent := range rawNormCoefficents {
 		if coefficent != 0 {
@@ -376,6 +381,11 @@ func getRookCoefficents(pos *engine.Position, norm []float64, safety [][]float64
 		norm[920] += sign * egPhase
 	}
 
+	pawns := pos.Pieces[engine.White][engine.Pawn] | pos.Pieces[engine.Black][engine.Pawn]
+	if engine.MaskFile[engine.FileOf(sq)]&pawns == 0 {
+		norm[923] += sign * mgPhase
+	}
+
 	moves := engine.GenRookMoves(sq, allBB) & ^usBB
 	mobility := float64(moves.CountBits())
 
@@ -442,6 +452,15 @@ func getPawnShieldCoefficents(pos *engine.Position, sq, color uint8, safety [][]
 	if rightFile != 0 && rightFile&usPawns == 0 {
 		safety[color^1][8] += 1
 	}
+}
+
+// Compute the tempo bonus coefficent
+func getTempoBonusCoefficent(pos *engine.Position, coefficents []float64, mgPhase float64) {
+	sign := float64(1)
+	if pos.SideToMove != engine.White {
+		sign = -1
+	}
+	coefficents[924] = sign * mgPhase
 }
 
 // Compute the dot product between an array of king safety coefficents and the appropriate
@@ -597,9 +616,12 @@ func printParameters(weights []float64) {
 	fmt.Println("\nKnight On Outpost Bonus MG:", weights[921])
 	fmt.Println("Knight On Outpost Bonus EG:", weights[922])
 
-	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[923:927]))
-	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[927:931]))
-	fmt.Println("Semi-Open File Next To King Penalty:", weights[931])
+	fmt.Println("\nRook On Open File Bonus MG:", weights[923])
+	fmt.Println("Tempo Bonus MG:", weights[924])
+
+	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[925:929]))
+	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[929:933]))
+	fmt.Println("Semi-Open File Next To King Penalty:", weights[933])
 
 	prettyPrintPSQT("MG Pawn PST", convertFloatSiceToInt(weights[0:64]))
 	prettyPrintPSQT("MG Knight PST", convertFloatSiceToInt(weights[64:128]))
