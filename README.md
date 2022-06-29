@@ -1,4 +1,4 @@
-![Blunder Logo](logo/blunder-logo.png)
+![Blunder Logo](logo/logo.png)
 
 Overview
 --------
