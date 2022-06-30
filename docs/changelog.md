@@ -15,6 +15,70 @@ Changelog
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
 
+Blunder 8.0.0
+-------------
+
+This release is very similar in spirit to that of 5.0.0, in the sense that much of the work done has been improvement and optimization of the code base through slow, large-scale refactoring, which have
+brought about Elo gains, although several new strength gainging features have been implemented. It'd
+be impossible to list every last change, but a summary of some of the major areas will be listed below.
+
+ - Improvements to Blunder's move generator have been made, improving it's speed by 10-15%. Thanks in particular to Koivisto, for giving me the idea to store the hash of a position
+as part of it's irreversible state, leading to a nice speed increase.
+
+- Small tweaks have been made to the UCI that's made it a bit more user friendly and hopefully
+more straightforward to use.
+
+- Magic bitboard generation code and comments have also been improved and cleaned-up.
+
+- Perhaps the biggest and move effective change, the tuner for Blunder has been updated from using a
+naieve local optimization algorithm, to gradient descent, specfically AdaGrad. The speed and efficeny of
+the new tuner in allowing me to quickly add, tune, and reject evaluation ideas and improvements allowed
+me to very quickly tune a stronger, and more streamlined evaluation, than the one I had in Blunder 7.6.0.
+I'll be uploading a paper shortly to this repository mostly outlining the math behind the process of 
+getting the tuner working, although parts of the code will be touched upon. The hope is that such a
+document will be useful to those who were in the position I was in several months ago.
+
+- The time manager code has had quite a large overhaul, making the code cleaner, and the API easier
+to use. Time managament in games with no increment or bonus time (a.k.a "sudden death"), has also
+been improved, using the assumption that it's better to spend less time in the opening phase,
+and more towards the end of the game.
+
+- For now [WAC testing](https://www.chessprogramming.org/Win_at_Chess) (a.k.a "iq testing") has been
+removed from Blunder for now, as well code in `blunder/tuner` to generate tuning data for Blunder.
+Both hadn't been very useful, although I plan on experimenting with generating custom tuning data
+back into Blunder very soon, so that code, at least, will be added back into later versions.
+
+- A logo has been created by myself for Blunder. It's nothing too complicated, as I'm not an artist,
+but it's an orginaly design I had a while ago, and I think it suits Blunder well. See the README,
+or `blunder/logo` for the logo.
+
+- Much of the code has been updated to make benefit of new features added in Go 1.18,
+most notably generics, which have allowed me to clean-up much of the code-base, including
+the transposition table.
+
+As far as some of the new strength gaining features, they're listed below:
+
+* Engine
+    - Update PSQT and material incrementally
+* Search
+    - [Internal Iterative Deepening](https://www.chessprogramming.org/Internal_Iterative_Deepening)
+    - [Razoring](https://www.chessprogramming.org/Razoring)
+    - Consider checks for checks in quiescence search.
+    - Add buckets to transposition table, and use a depth-replace and always-replace scheme
+* Evaluation
+    - [Basic rook structure](https://www.chessprogramming.org/Evaluation_of_Pieces#Rook)
+    - [Bishop pair](https://www.chessprogramming.org/Bishop_Pair)
+    - [Make mobility for knight's safe with regards to pawns](https://www.chessprogramming.org/Mobility#Safe_Mobility)
+    - [Drawn and drawish endgame recognition improvement](https://www.chessprogramming.org/Draw_Evaluation)
+
+Lastly, the release of Go 1.18 has also come with the ability to target certain, extended
+AMD 64 instruction sets. The makefile has been updated to allow compiling builds which
+target some of these instruction sets, although I've not had the opportunity to extensively
+test if there are any speed gains. I've also included pre-builds, for windows, macOS, and
+linux in the version release.
+
+See the README for more information.
+
 Blunder 7.6.0
 -------------
 

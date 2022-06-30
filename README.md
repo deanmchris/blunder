@@ -38,6 +38,8 @@ With that said, several people have been kind enough to test various versions of
 | 7.4.0       | 2510                   | 2532                    | 2554                             |
 | 7.5.0       | 2540                   | ?                       | 2593                             |
 | 7.6.0       | 2620                   | 2631                    | 2658                             |
+| 8.0.0       | 2670                   | ?                       | ?
+
 
 * [CCRL Blitz Rating List](http://ccrl.chessdom.com/ccrl/404/)
 * [Bruce's Bullet Rating List](https://e4e6.com/)
@@ -59,10 +61,19 @@ command line, navigate to `blunder/blunder`, and run `go build`. This will creat
 should then able to run.
 
 Alternatively, if the `make` build automation tool is installed on your computer (it comes standard on most Linux systems),
-simply download this repository's zip file, unzip it, navigate to the primary folder, and run `make` from the command line.
-An executable for Windows, Linux, and MacOS will be built and placed inside of the primary directory.
+simply download this repository's zip file, unzip it, navigate to the primary folder. From there several make commands can
+be run, depending on the sort of build you want:
 
-If you're on a windows platform, you'll need to run `make build-windows` instead.
+- run `make build`/`make build-windows` to build four different builds: one that works
+on all AMD 64 architectures (default), one that works with popcnt, avx2, and avx512. These
+are not the only extended instruction sets supported by each respective build, as the 
+Go compiler offers the ability to compile to diffent levels, rather than specfic 
+microarchitectures. See [here](https://github.com/golang/go/wiki/MinimumRequirements#amd64) for more details.
+
+- run `make build-all`/`make build-all-windows` to build default AMD 64 builds for macOS, linux, and windows.
+
+- run `make clean-all`/`make clean-all-windows` to clean-up the files produced from
+`make build-all`/`make build-all-windows` and `make clean-build`/`make clean-build-windows` to clean-up the files produced from `make build`/`make build-windows`.
 
 Usage
 -----
@@ -106,6 +117,8 @@ Features
     - [Static-exchange evaluation](https://www.chessprogramming.org/Static_Exchange_Evaluation)
     - [Aspiration windows](https://www.chessprogramming.org/Aspiration_Windows)
     - [Late-move pruning/move-count based pruning](https://www.chessprogramming.org/Futility_Pruning#MoveCountBasedPruning)
+    - [Internal Iterative Deepening](https://www.chessprogramming.org/Internal_Iterative_Deepening)
+    - [Razoring](https://www.chessprogramming.org/Razoring)
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
@@ -113,8 +126,13 @@ Features
     - [Mobility](https://www.chessprogramming.org/Mobility)
     - [Basic king safety](https://www.chessprogramming.org/King_Safety)
     - [Basic pawn structure](https://www.chessprogramming.org/Pawn_Structure)
-    - [Knight outposts](https://www.chessprogramming.org/Outposts)
-    - [Texel Tuner](https://www.chessprogramming.org/Texel%27s_Tuning_Method)
+    - [Basic rook structure](https://www.chessprogramming.org/Evaluation_of_Pieces#Rook)
+    - [Bishop pair](https://www.chessprogramming.org/Bishop_Pair)
+    - [Drawn and drawish endgame recognition](https://www.chessprogramming.org/Draw_Evaluation)
+    - Gradient descent [Texel Tuner](https://www.chessprogramming.org/Texel%27s_Tuning_Method)
+
+See `docs/testing.md` for a log of the specfic features I've implemented in Blunder, as well
+as their recorded Elo gains from testing. 
     
  Changelog
  ---------
