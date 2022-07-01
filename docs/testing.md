@@ -520,3 +520,14 @@ Score of Blunder 8.0.0-eval-tweaking vs Blunder 8.0.0: 810 - 774 - 1416  [0.506]
 Elo difference: 4.2 +/- 9.0, LOS: 81.7 %, DrawRatio: 47.2 %
 SPRT: llr 0.22 (7.5%), lbound -2.94, ubound 2.94
 ```
+
+Re-Tune Evaluation Using Zurichess Quiet Dataset Extended With 300k Self-Play Game Positions
+--------------------------------------------------------------------------------------------
+```
+Score of Blunder 8.0.0-enhanced-eval vs Blunder 8.0.0: 617 - 529 - 854  [0.522] 2000
+...      Blunder 8.0.0-enhanced-eval playing White: 335 - 234 - 431  [0.550] 1000
+...      Blunder 8.0.0-enhanced-eval playing Black: 282 - 295 - 423  [0.493] 1000
+...      White vs Black: 630 - 516 - 854  [0.528] 2000
+Elo difference: 15.3 +/- 11.5, LOS: 99.5 %, DrawRatio: 42.7 %
+SPRT: llr 1.42 (48.4%), lbound -2.94, ubound 2.94
+```
