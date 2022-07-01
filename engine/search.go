@@ -316,7 +316,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// score.
 	if depth <= 0 {
 		search.nodes--
-		return search.qsearch(alpha, beta, ply, pvLine, ply)
+		return search.Qsearch(alpha, beta, ply, pvLine, ply)
 	}
 
 	// Don't do any extra work if the current position is a draw. We
@@ -397,7 +397,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	if depth <= 2 && !isPVNode && !inCheck {
 		staticScore := EvaluatePos(&search.Pos)
 		if staticScore+FutilityMargins[depth]*3 < alpha {
-			score := search.qsearch(alpha, beta, ply, &PVLine{}, 0)
+			score := search.Qsearch(alpha, beta, ply, &PVLine{}, 0)
 			if score < alpha {
 				return alpha
 			}
@@ -584,7 +584,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 // a special form of negamax until the position is quiet (i.e there are no
 // winning tatical captures). Doing this is known as quiescence search, and
 // it makes the static evaluation much more accurate.
-func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, ply uint8) int16 {
+func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, ply uint8) int16 {
 	search.nodes++
 
 	if search.totalNodes+search.nodes >= search.Timer.MaxNodeCount {
@@ -643,7 +643,7 @@ func (search *Search) qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, p
 			continue
 		}
 
-		score := -search.qsearch(-beta, -alpha, maxPly, &childPVLine, ply+1)
+		score := -search.Qsearch(-beta, -alpha, maxPly, &childPVLine, ply+1)
 		search.Pos.UndoMove(move)
 
 		if score > bestScore {

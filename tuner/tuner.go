@@ -106,6 +106,44 @@ func loadWeights() (weights []float64) {
 	return weights
 }
 
+// Load the weights for tuning, setting them to reasonable default values.
+func loadDefaultWeights() (weights []float64) {
+	tempWeights := make([]int16, NumWeights)
+	weights = make([]float64, NumWeights)
+
+	copy(tempWeights[768:773], []int16{100, 300, 310, 500, 950})
+	copy(tempWeights[773:778], []int16{100, 300, 310, 500, 950})
+
+	tempWeights[778] = 10
+	tempWeights[779] = 10
+
+	copy(tempWeights[780:784], []int16{1, 1, 1, 1})
+	copy(tempWeights[784:788], []int16{1, 1, 1, 1})
+
+	tempWeights[916] = 5
+	tempWeights[917] = 10
+	tempWeights[918] = 5
+	tempWeights[919] = 10
+
+	tempWeights[920] = 15
+
+	tempWeights[921] = 15
+	tempWeights[922] = 20
+
+	tempWeights[923] = 10
+	tempWeights[924] = 10
+
+	copy(tempWeights[925:929], []int16{1, 1, 1, 1})
+	copy(tempWeights[929:933], []int16{1, 1, 1, 1})
+	tempWeights[933] = 1
+
+	for i := range tempWeights {
+		weights[i] = float64(tempWeights[i])
+	}
+
+	return weights
+}
+
 // Load the given number of positions from the training set file.
 func loadEntries(infile string, numPositions int) (entries []Entry) {
 	file, err := os.Open(infile)
@@ -643,8 +681,14 @@ func printParameters(weights []float64) {
 	fmt.Println()
 }
 
-func Tune(infile string, epochs, numPositions int, recordErrorRate bool) {
-	weights := loadWeights()
+func Tune(infile string, epochs, numPositions int, recordErrorRate bool, useDefaultWeights bool) {
+	var weights []float64
+	if useDefaultWeights {
+		weights = loadDefaultWeights()
+	} else {
+		weights = loadWeights()
+	}
+
 	entries := loadEntries(infile, numPositions)
 
 	gradientsSumsSquared := make([]float64, len(weights))

@@ -232,6 +232,96 @@ func (pos *Position) LoadFEN(FEN string) {
 	pos.Hash = Zobrist.GenHash(pos)
 }
 
+// Generate the FEN string represention of the current board.
+func (pos Position) GenFEN() string {
+	positionStr := strings.Builder{}
+
+	for rankStartPos := 56; rankStartPos >= 0; rankStartPos -= 8 {
+		emptySquares := 0
+		for sq := rankStartPos; sq < rankStartPos+8; sq++ {
+			piece := pos.Squares[sq]
+			if piece.Type == NoType {
+				emptySquares++
+			} else {
+				// If we have some consecutive empty squares, add then to the FEN
+				// string board, and reset the empty squares counter.
+				if emptySquares > 0 {
+					positionStr.WriteString(strconv.Itoa(emptySquares))
+					emptySquares = 0
+				}
+
+				piece := pos.Squares[sq]
+				pieceChar := PieceTypeToChar[piece.Type]
+				if piece.Color == White {
+					pieceChar = unicode.ToUpper(pieceChar)
+				}
+
+				// In FEN strings pawns are represented with p's not i's
+				if pieceChar == 'i' {
+					pieceChar = 'p'
+				} else if pieceChar == 'I' {
+					pieceChar = 'P'
+				}
+
+				positionStr.WriteRune(pieceChar)
+			}
+		}
+
+		if emptySquares > 0 {
+			positionStr.WriteString(strconv.Itoa(emptySquares))
+			emptySquares = 0
+		}
+
+		positionStr.WriteString("/")
+
+	}
+
+	sideToMove := ""
+	castlingRights := ""
+	epSquare := ""
+
+	if pos.SideToMove == White {
+		sideToMove = "w"
+	} else {
+		sideToMove = "b"
+	}
+
+	if pos.CastlingRights&WhiteKingsideRight != 0 {
+		castlingRights += "K"
+	}
+	if pos.CastlingRights&WhiteQueensideRight != 0 {
+		castlingRights += "Q"
+	}
+	if pos.CastlingRights&BlackKingsideRight != 0 {
+		castlingRights += "k"
+	}
+	if pos.CastlingRights&BlackQueensideRight != 0 {
+		castlingRights += "q"
+	}
+
+	if castlingRights == "" {
+		castlingRights = "-"
+	}
+
+	if pos.EPSq == NoSq {
+		epSquare = "-"
+	} else {
+		epSquare = posToCoordinate(pos.EPSq)
+	}
+
+	fullMoveCount := pos.Ply / 2
+	if pos.Ply%2 != 0 {
+		fullMoveCount = pos.Ply/2 + 1
+	}
+
+	return fmt.Sprintf(
+		"%s %s %s %s %d %d",
+		strings.TrimSuffix(positionStr.String(), "/"),
+		sideToMove, castlingRights, epSquare,
+		pos.Rule50, fullMoveCount,
+	)
+}
+
 // Return a string representation of the board.
 func (pos Position) String() (boardStr string) {
 	boardStr += "\n"
@@ -280,6 +370,7 @@ func (pos Position) String() (boardStr string) {
 		boardStr += posToCoordinate(pos.EPSq)
 	}
 
+	boardStr += fmt.Sprintf("\nfen: %s", pos.GenFEN())
 	boardStr += fmt.Sprintf("\nzobrist hash: 0x%x", pos.Hash)
 	boardStr += fmt.Sprintf("\nrule 50: %d\n", pos.Rule50)
 	boardStr += fmt.Sprintf("game ply: %d\n", pos.Ply)
