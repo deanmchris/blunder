@@ -531,3 +531,30 @@ Score of Blunder 8.0.0-enhanced-eval vs Blunder 8.0.0: 617 - 529 - 854  [0.522] 
 Elo difference: 15.3 +/- 11.5, LOS: 99.5 %, DrawRatio: 42.7 %
 SPRT: llr 1.42 (48.4%), lbound -2.94, ubound 2.94
 ```
+
+To measure the Elo gain more robustly, a gauntlet with Blunder 8.0.0 was first run:
+
+```
+# PLAYER           : RATING    POINTS  PLAYED    (%)
+1 Inanis 1.0.1     : 2780.5     257.5     400   64.4%
+2 GreKo 2018.02    : 2749.7     241.0     400   60.3%
+3 Zahak 5.0        : 2739.7     235.5     400   58.9%
+4 Blunder 8.0.0    : 2676.8     931.0    2000   46.5%
+5 Blunder 7.6.0    : 2631.0     174.0     400   43.5%
+6 Nalwald 1.9      : 2607.6     161.0     400   40.3%
+```
+
+And then the current dev version, with the re-tuned evaluation, was run against the same gauntlet:
+
+```
+# PLAYER           : RATING    POINTS  PLAYED    (%)
+1 Inanis 1.0.1     : 2750.8     223.5     400   55.9%
+2 Zahak 5.0        : 2732.2     213.0     400   53.3%
+3 GreKo 2018.02    : 2717.3     204.5     400   51.1%
+4 Blunder 8.1.0    : 2709.4    1045.0    2000   52.3%
+5 Nalwald 1.9      : 2634.7     158.0     400   39.5%
+6 Blunder 7.6.0    : 2631.0     156.0     400   39.0%
+```
+
+Showing the re-tuning gained ~34 Elo in gauntlet testing, quite a positive, more accurate
+result, particularly compared to self-play.
