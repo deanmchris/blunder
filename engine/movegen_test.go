@@ -26,6 +26,13 @@ type PerftTest struct {
 	DepthValues [MaxPerftDepth]uint64
 }
 
+// Make sure to initialize the engine internals.
+func init() {
+	InitBitboards()
+	InitTables()
+	InitZobrist()
+}
+
 // Load the perft test suite
 func loadPerftSuite() (perftTests []PerftTest) {
 	wd, _ := os.Getwd()

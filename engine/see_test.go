@@ -4,6 +4,13 @@ import (
 	"testing"
 )
 
+// Make sure to initialize the engine internals.
+func init() {
+	InitBitboards()
+	InitTables()
+	InitZobrist()
+}
+
 type SeePosition struct {
 	Fen   string
 	Move  Move

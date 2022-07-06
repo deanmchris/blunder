@@ -54,6 +54,51 @@ func genCapturesAndQueenPromotions(pos *Position) (moves MoveList) {
 	return moves
 }
 
+// Generate all pseduo-legal quiet moves for the side to move.
+func genQuiets(pos *Position) (moves MoveList) {
+	// Go through each piece type, and each piece for that type,
+	// and generate the moves for that piece.
+
+	targets := ^pos.Sides[pos.SideToMove^1]
+
+	for piece := uint8(Knight); piece < NoType; piece++ {
+		piecesBB := pos.Pieces[pos.SideToMove][piece]
+		for piecesBB != 0 {
+			pieceSq := piecesBB.PopBit()
+			genPieceMoves(pos, piece, pieceSq, &moves, targets)
+		}
+	}
+
+	// Generate pawn attacks or queen promotions.
+	genPawnPushesAndPromotions(pos, &moves)
+
+	// Generate castling moves.
+	genCastlingMoves(pos, &moves)
+
+	return moves
+}
+
+// Generate all pseduo-legal captures for a given position.
+func genCaptures(pos *Position) (moves MoveList) {
+	// Go through each piece type, and each piece for that type,
+	// and generate the moves for that piece.
+
+	targets := pos.Sides[pos.SideToMove^1]
+
+	for piece := uint8(Knight); piece < NoType; piece++ {
+		piecesBB := pos.Pieces[pos.SideToMove][piece]
+		for piecesBB != 0 {
+			pieceSq := piecesBB.PopBit()
+			genPieceMoves(pos, piece, pieceSq, &moves, targets)
+		}
+	}
+
+	// Generate pawn attacks or queen promotions.
+	genPawnAttacks(pos, &moves)
+
+	return moves
+}
+
 // Generate the moves a single piece,
 func genPieceMoves(pos *Position, piece, sq uint8, moves *MoveList, targets Bitboard) {
 	// Get a bitboard representing our side and the enemy side.
@@ -150,6 +195,7 @@ func genPawnMoves(pos *Position, moves *MoveList) {
 	}
 }
 
+// Generate all pseduo-legal pawn attacks and possible queen promotions.
 func genPawnAttacksAndQueenPromotions(pos *Position, moves *MoveList) {
 	usBB := pos.Sides[pos.SideToMove]
 	enemyBB := pos.Sides[pos.SideToMove^1] | SquareBB[pos.EPSq]
@@ -181,6 +227,69 @@ func genPawnAttacksAndQueenPromotions(pos *Position, moves *MoveList) {
 			} else {
 				if isPromoting(pos.SideToMove, to) {
 					moves.AddMove(NewMove(from, to, Promotion, QueenPromotion))
+					continue
+				}
+				moves.AddMove(NewMove(from, to, Attack, NoFlag))
+			}
+		}
+	}
+}
+
+// Generate all quiet pawn moves - pushes and promotions.
+func genPawnPushesAndPromotions(pos *Position, moves *MoveList) {
+	usBB := pos.Sides[pos.SideToMove]
+	enemyBB := pos.Sides[pos.SideToMove^1] | SquareBB[pos.EPSq]
+	pawnsBB := pos.Pieces[pos.SideToMove][Pawn]
+
+	// For each pawn on our side...
+	for pawnsBB != 0 {
+		from := pawnsBB.PopBit()
+
+		pawnOnePush := PawnPushes[pos.SideToMove][from] & ^(usBB | enemyBB)
+		pawnTwoPush := ((pawnOnePush & MaskRank[Rank6]) << 8) & ^(usBB | enemyBB)
+		if pos.SideToMove == White {
+			pawnTwoPush = ((pawnOnePush & MaskRank[Rank3]) >> 8) & ^(usBB | enemyBB)
+		}
+
+		// calculate the push moves for the pawn...
+		pawnPush := pawnOnePush | pawnTwoPush
+
+		// Generate pawn push moves
+		for pawnPush != 0 {
+			to := pawnPush.PopBit()
+			if isPromoting(pos.SideToMove, to) {
+				makePromotionMoves(from, to, moves)
+				continue
+			}
+			moves.AddMove(NewMove(from, to, Quiet, NoFlag))
+		}
+	}
+}
+
+// Generate all pseduo-legal pawn attacks and possible promotions. Note this function
+// is different from genPawnAttacksAndQueenPromotions, as all possible promotions are
+// generated.
+func genPawnAttacks(pos *Position, moves *MoveList) {
+	enemyBB := pos.Sides[pos.SideToMove^1] | SquareBB[pos.EPSq]
+	pawnsBB := pos.Pieces[pos.SideToMove][Pawn]
+
+	// For each pawn on our side...
+	for pawnsBB != 0 {
+		from := pawnsBB.PopBit()
+
+		// and the attacks.
+		pawnAttacks := PawnAttacks[pos.SideToMove][from] & enemyBB
+
+		// Generate pawn attack moves.
+		for pawnAttacks != 0 {
+			to := pawnAttacks.PopBit()
+
+			// Check for en passant moves.
+			if to == pos.EPSq {
+				moves.AddMove(NewMove(from, to, Attack, AttackEP))
+			} else {
+				if isPromoting(pos.SideToMove, to) {
+					makePromotionMoves(from, to, moves)
 					continue
 				}
 				moves.AddMove(NewMove(from, to, Attack, NoFlag))

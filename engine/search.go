@@ -433,18 +433,21 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		}
 	}
 
-	moves := genMoves(&search.Pos)
-	search.scoreMoves(&moves, ttMove, ply, prevMove)
-
 	legalMoves := 0
 	ttFlag := AlphaFlag
 
 	bestScore := -Inf
 	bestMove := NullMove
 
-	for index := uint8(0); index < moves.Count; index++ {
-		orderMoves(index, &moves)
-		move := moves.Moves[index]
+	moveGen := StagedMoveGenerator{
+		search:   search,
+		ttMove:   ttMove,
+		prevMove: prevMove,
+		ply:      ply,
+		stage:    HashMoveStage,
+	}
+
+	for move := moveGen.Next(); !move.Equal(NullMove); move = moveGen.Next() {
 
 		if !search.Pos.DoMove(move) {
 			search.Pos.UndoMove(move)
