@@ -560,3 +560,16 @@ Blunder 7.6.0        :    400 ( 171, 146,  83),  61.0 :   +78.4
 
 Showing the re-tuning gained ~34 Elo in gauntlet testing, quite a positive, more accurate
 result, particularly compared to self-play.
+
+Tweak late-move reduction scheme to research using a null-window and full-depth first
+on a fail-low, rather than the other way around
+--------------------------------------------------------------------------------------
+```
+Score of Blunder 8.2.0 vs Blunder 8.1.0: 1134 - 1000 - 1866  [0.517] 4000
+...      Blunder 8.2.0 playing White: 621 - 453 - 926  [0.542] 2000
+...      Blunder 8.2.0 playing Black: 513 - 547 - 940  [0.491] 2000
+...      White vs Black: 1168 - 966 - 1866  [0.525] 4000
+Elo difference: 11.6 +/- 7.9, LOS: 99.8 %, DrawRatio: 46.7 %
+SPRT: llr 2.15 (73.0%), lbound -2.94, ubound 2.94
+Finished match
+```

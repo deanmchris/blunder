@@ -507,7 +507,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			score = -search.negamax(depth-1-reduction, ply+1, -(alpha + 1), -alpha, &childPVLine, true, move)
 
 			if score > alpha && reduction > 0 {
-				score = -search.negamax(depth-1-reduction, ply+1, -beta, -alpha, &childPVLine, true, move)
+				score = -search.negamax(depth-1, ply+1, -(alpha + 1), -alpha, &childPVLine, true, move)
 				if score > alpha {
 					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move)
 				}
