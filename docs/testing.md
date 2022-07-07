@@ -535,25 +535,27 @@ SPRT: llr 1.42 (48.4%), lbound -2.94, ubound 2.94
 To measure the Elo gain more robustly, a gauntlet with Blunder 8.0.0 was first run:
 
 ```
-# PLAYER           : RATING    POINTS  PLAYED    (%)
-1 Inanis 1.0.1     : 2780.5     257.5     400   64.4%
-2 GreKo 2018.02    : 2749.7     241.0     400   60.3%
-3 Zahak 5.0        : 2739.7     235.5     400   58.9%
-4 Blunder 8.0.0    : 2676.8     931.0    2000   46.5%
-5 Blunder 7.6.0    : 2631.0     174.0     400   43.5%
-6 Nalwald 1.9      : 2607.6     161.0     400   40.3%
+Blunder 8.0.0 2629.3 :   2000 (+643,=576,-781),  46.5 %
+
+vs.                  :  games (   +,   =,   -),   (%) :    Diff
+Inanis 1.0.1         :    400 (  73, 139, 188),  35.6 :  -103.7
+GreKo 2018.02        :    400 ( 127,  64, 209),  39.8 :   -72.9
+Zahak 5.0            :    400 (  97, 135, 168),  41.1 :   -62.9
+Blunder 7.6.0        :    400 ( 155, 142, 103),  56.5 :   +45.8
+Nalwald 1.9          :    400 ( 191,  96, 113),  59.8 :   +69.2
 ```
 
 And then the current dev version, with the re-tuned evaluation, was run against the same gauntlet:
 
 ```
-# PLAYER           : RATING    POINTS  PLAYED    (%)
-1 Inanis 1.0.1     : 2750.8     223.5     400   55.9%
-2 Zahak 5.0        : 2732.2     213.0     400   53.3%
-3 GreKo 2018.02    : 2717.3     204.5     400   51.1%
-4 Blunder 8.1.0    : 2709.4    1045.0    2000   52.3%
-5 Nalwald 1.9      : 2634.7     158.0     400   39.5%
-6 Blunder 7.6.0    : 2631.0     156.0     400   39.0%
+Blunder 8.1.0 2663.5 :   2000 (+763,=564,-673),  52.3 %
+
+vs.                  :  games (   +,   =,   -),   (%) :    Diff
+Inanis 1.0.1         :    400 ( 112, 129, 159),  44.1 :   -41.4
+Zahak 5.0            :    400 ( 128, 118, 154),  46.8 :   -22.8
+GreKo 2018.02        :    400 ( 159,  73, 168),  48.9 :    -7.9
+Nalwald 1.9          :    400 ( 193,  98, 109),  60.5 :   +74.7
+Blunder 7.6.0        :    400 ( 171, 146,  83),  61.0 :   +78.4
 ```
 
 Showing the re-tuning gained ~34 Elo in gauntlet testing, quite a positive, more accurate
