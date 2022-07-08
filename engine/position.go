@@ -428,6 +428,9 @@ func (pos *Position) DoMove(move Move) (isValid bool) {
 			pos.zobristClearPiece(to)
 			pos.zobristPutPiece(state.Moved.Type, pos.SideToMove, to)
 		}
+
+		// Reset the fifty move rule counter
+		pos.Rule50 = 0
 	case Castle:
 		// If the move is a castle, move the king to the appropriate square...
 		pos.zobristPutPiece(state.Moved.Type, pos.SideToMove, to)

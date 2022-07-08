@@ -573,3 +573,14 @@ Elo difference: 11.6 +/- 7.9, LOS: 99.8 %, DrawRatio: 46.7 %
 SPRT: llr 2.15 (73.0%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Fix a bug where the fifty-move rule counter was not being reset when a capture occured.
+---------------------------------------------------------------------------------------
+```
+Score of Blunder 8.2.1 vs Blunder 8.2.0: 569 - 550 - 881  [0.505] 2000
+...      Blunder 8.2.1 playing White: 306 - 255 - 440  [0.525] 1001
+...      Blunder 8.2.1 playing Black: 263 - 295 - 441  [0.484] 999
+...      White vs Black: 601 - 518 - 881  [0.521] 2000
+Elo difference: 3.3 +/- 11.4, LOS: 71.5 %, DrawRatio: 44.0 %
+SPRT: llr 0.0356 (1.2%), lbound -2.94, ubound 2.94
+```
