@@ -118,6 +118,7 @@ func RunCommLoop() {
 	fmt.Println("Engine:", EngineName)
 	fmt.Println("Email:", EngineEmail)
 	fmt.Printf("Hash size: %d MB\n", DefaultTTSize)
+	fmt.Printf("Perft hash size: %d MB\n", DefaultTTSize)
 	fmt.Print(HelpMessage)
 
 	reader := bufio.NewReader(os.Stdin)
