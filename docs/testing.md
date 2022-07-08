@@ -584,3 +584,15 @@ Score of Blunder 8.2.1 vs Blunder 8.2.0: 569 - 550 - 881  [0.505] 2000
 Elo difference: 3.3 +/- 11.4, LOS: 71.5 %, DrawRatio: 44.0 %
 SPRT: llr 0.0356 (1.2%), lbound -2.94, ubound 2.94
 ```
+
+Progress Check Of Dev Vs Latest Release
+---------------------------------------
+```
+Score of Blunder 8.2.1 vs Blunder 8.0.0: 459 - 304 - 587  [0.557] 1350
+...      Blunder 8.2.1 playing White: 243 - 137 - 296  [0.578] 676
+...      Blunder 8.2.1 playing Black: 216 - 167 - 291  [0.536] 674
+...      White vs Black: 410 - 353 - 587  [0.521] 1350
+Elo difference: 40.1 +/- 13.9, LOS: 100.0 %, DrawRatio: 43.5 %
+SPRT: llr 2.96 (100.5%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
