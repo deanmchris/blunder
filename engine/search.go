@@ -320,8 +320,12 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	}
 
 	// Don't do any extra work if the current position is a draw. We
-	// can just return a draw value.
-	if !isRoot && (search.Pos.Rule50 >= 100 || search.isDrawByRepition()) {
+	// can just return a draw value. We also need to check for the edge
+	// case where there's a mate-in-one, but the fifty move rule counter
+	// is at 99. Mate should always trumps the counter, so make sure we
+	// don't return a draw evaluation for such a situation.
+	possibleMateInOne := inCheck && ply == 1
+	if !isRoot && ((search.Pos.Rule50 >= 100 && !possibleMateInOne) || search.isDrawByRepition()) {
 		return search.contempt()
 	}
 

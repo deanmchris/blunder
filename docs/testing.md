@@ -596,3 +596,17 @@ Elo difference: 40.1 +/- 13.9, LOS: 100.0 %, DrawRatio: 43.5 %
 SPRT: llr 2.96 (100.5%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
+
+Fix bug where mate-in-one did not trump the fifty move rule
+-----------------------------------------------------------
+```
+Score of Blunder 8.2.2 vs Blunder 8.2.1: 323 - 302 - 475  [0.510] 1100
+...      Blunder 8.2.2 playing White: 171 - 141 - 238  [0.527] 550
+...      Blunder 8.2.2 playing Black: 152 - 161 - 237  [0.492] 550
+...      White vs Black: 332 - 293 - 475  [0.518] 1100
+Elo difference: 6.6 +/- 15.5, LOS: 80.0 %, DrawRatio: 43.2 %
+SPRT: llr 0.233 (7.9%), lbound -2.94, ubound 2.94
+```
+
+Mostly, testing for any signs of a regression, rather than Elo gain. So test
+stopped short.
