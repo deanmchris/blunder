@@ -610,3 +610,17 @@ SPRT: llr 0.233 (7.9%), lbound -2.94, ubound 2.94
 
 Mostly, testing for any signs of a regression, rather than Elo gain. So test
 stopped short.
+
+Fix time mangagement "bug" that caused Blunder to lose on time in fast time controls
+with no increment
+------------------------------------------------------------------------------------
+```
+Score of Blunder 8.2.3 vs Blunder 8.2.2: 274 - 268 - 458  [0.503] 1000
+...      Blunder 8.2.3 playing White: 143 - 126 - 231  [0.517] 500
+...      Blunder 8.2.3 playing Black: 131 - 142 - 227  [0.489] 500
+...      White vs Black: 285 - 257 - 458  [0.514] 1000
+Elo difference: 2.1 +/- 15.8, LOS: 60.2 %, DrawRatio: 45.8 %
+SPRT: llr -0.056 (-1.9%), lbound -2.94, ubound 2.94
+```
+
+Tested for regression not strength gain, so test stopped early.

@@ -71,8 +71,14 @@ func (tm *TimeManager) Start(gamePly uint16) {
 		// Otherwise, calculate the amount of remaining time that will
 		// be used by spending more time as the game progresses,
 		// assuming that the longer the game continues, the quicker
-		// it will end from the current position.
-		timeForMove = tm.TimeLeft / max(10, 40-int64(gamePly))
+		// it will end from the current position. Make sure we have
+		// an increment though, otherwise we'll likely lose on time
+		// doing this approach.
+		if tm.Increment > 0 {
+			timeForMove = tm.TimeLeft / max(10, 40-int64(gamePly))
+		} else {
+			timeForMove = tm.TimeLeft / 40
+		}
 	}
 
 	// Give an bonus from the increment
