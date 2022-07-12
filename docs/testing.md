@@ -624,3 +624,15 @@ SPRT: llr -0.056 (-1.9%), lbound -2.94, ubound 2.94
 ```
 
 Tested for regression not strength gain, so test stopped early.
+
+Add evaluation term for bishop outposts
+---------------------------------------
+```
+Score of Blunder 8.3.3 vs Blunder 8.2.3: 1093 - 1023 - 1884  [0.509] 4000
+...      Blunder 8.3.3 playing White: 585 - 484 - 931  [0.525] 2000
+...      Blunder 8.3.3 playing Black: 508 - 539 - 953  [0.492] 2000
+...      White vs Black: 1124 - 992 - 1884  [0.516] 4000
+Elo difference: 6.1 +/- 7.8, LOS: 93.6 %, DrawRatio: 47.1 %
+SPRT: llr 0.772 (26.2%), lbound -2.94, ubound 2.94
+Finished match
+```

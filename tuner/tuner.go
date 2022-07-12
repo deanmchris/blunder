@@ -13,9 +13,9 @@ import (
 
 const (
 	Iterations              = 2000
-	NumWeights              = 934
+	NumWeights              = 936
 	NumSafetyEvalTerms      = 9
-	SafetyEvalTermsStartIdx = 925
+	SafetyEvalTermsStartIdx = 927
 	ScalingFactor           = 0.01
 	Epsilon                 = 0.00000001
 	LearningRate            = 0.5
@@ -95,9 +95,12 @@ func loadWeights() (weights []float64) {
 	tempWeights[923] = engine.RookOnOpenFileBonusMG
 	tempWeights[924] = engine.TempoBonusMG
 
-	copy(tempWeights[925:929], engine.OuterRingAttackPoints[1:5])
-	copy(tempWeights[929:933], engine.InnerRingAttackPoints[1:5])
-	tempWeights[933] = engine.SemiOpenFileNextToKingPenalty
+	tempWeights[925] = engine.BishopOutPostBonusMG
+	tempWeights[926] = engine.BishopOutPostBonusEG
+
+	copy(tempWeights[927:931], engine.OuterRingAttackPoints[1:5])
+	copy(tempWeights[931:935], engine.InnerRingAttackPoints[1:5])
+	tempWeights[935] = engine.SemiOpenFileNextToKingPenalty
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -133,9 +136,12 @@ func loadDefaultWeights() (weights []float64) {
 	tempWeights[923] = 10
 	tempWeights[924] = 10
 
-	copy(tempWeights[925:929], []int16{1, 1, 1, 1})
-	copy(tempWeights[929:933], []int16{1, 1, 1, 1})
-	tempWeights[933] = 1
+	tempWeights[925] = 10
+	tempWeights[926] = 15
+
+	copy(tempWeights[927:931], []int16{1, 1, 1, 1})
+	copy(tempWeights[931:935], []int16{1, 1, 1, 1})
+	tempWeights[935] = 1
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
@@ -387,6 +393,17 @@ func getBishopCoefficents(pos *engine.Position, norm []float64, safety [][]float
 	piece := pos.Squares[sq]
 	usBB := pos.Sides[piece.Color]
 	allBB := usBB | pos.Sides[piece.Color^1]
+
+	usPawns := pos.Pieces[piece.Color][engine.Pawn]
+	enemyPawns := pos.Pieces[piece.Color^1][engine.Pawn]
+
+	if engine.OutpostMasks[piece.Color][sq]&enemyPawns == 0 &&
+		engine.PawnAttacks[piece.Color^1][sq]&usPawns != 0 &&
+		engine.FlipRank[piece.Color][engine.RankOf(sq)] >= engine.Rank5 {
+
+		norm[925] += sign * mgPhase
+		norm[926] += sign * egPhase
+	}
 
 	moves := engine.GenBishopMoves(sq, allBB) & ^usBB
 	mobility := float64(moves.CountBits())
@@ -657,9 +674,12 @@ func printParameters(weights []float64) {
 	fmt.Println("\nRook On Open File Bonus MG:", weights[923])
 	fmt.Println("Tempo Bonus MG:", weights[924])
 
-	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[925:929]))
-	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[929:933]))
-	fmt.Println("Semi-Open File Next To King Penalty:", weights[933])
+	fmt.Println("\nBishop On Outpost Bonus MG:", weights[925])
+	fmt.Println("Bishop On Outpost Bonus EG:", weights[926])
+
+	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[927:931]))
+	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[931:935]))
+	fmt.Println("Semi-Open File Next To King Penalty:", weights[935])
 
 	prettyPrintPSQT("MG Pawn PST", convertFloatSiceToInt(weights[0:64]))
 	prettyPrintPSQT("MG Knight PST", convertFloatSiceToInt(weights[64:128]))
