@@ -636,3 +636,15 @@ Elo difference: 6.1 +/- 7.8, LOS: 93.6 %, DrawRatio: 47.1 %
 SPRT: llr 0.772 (26.2%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Progress check against Blunder 7.6.0
+------------------------------------
+```
+Score of Blunder 8.3.3 vs Blunder 7.6.0: 300 - 141 - 270  [0.612] 711
+...      Blunder 8.3.3 playing White: 159 - 65 - 132  [0.632] 356
+...      Blunder 8.3.3 playing Black: 141 - 76 - 138  [0.592] 355
+...      White vs Black: 235 - 206 - 270  [0.520] 711
+Elo difference: 79.0 +/- 20.3, LOS: 100.0 %, DrawRatio: 38.0 %
+SPRT: llr 2.95 (100.3%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```
