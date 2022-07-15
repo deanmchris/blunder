@@ -51,6 +51,9 @@ const (
 	WindowSize                      int16 = 35
 	IID_Depth_Reduction             int8  = 2
 	IID_Depth_Limit                 int8  = 4
+	SingularMoveMargin              int16 = 100
+	SingularExtensionDepthLimit     int8  = 4
+	SingularMoveExtension           int8  = 2
 )
 
 // Precomputed reductions
@@ -188,7 +191,7 @@ func (search *Search) Search() Move {
 		pvLine.Clear()
 
 		startTime := time.Now()
-		score := search.negamax(int8(depth), 0, alpha, beta, &pvLine, true, NullMove)
+		score := search.negamax(int8(depth), 0, alpha, beta, &pvLine, true, NullMove, NullMove, false)
 		endTime := time.Since(startTime)
 
 		if search.Timer.Stop {
@@ -269,7 +272,7 @@ func getMateOrCPScore(score int16) string {
 }
 
 // The primary negamax function.
-func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *PVLine, doNull bool, prevMove Move) int16 {
+func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *PVLine, doNull bool, prevMove, skipMove Move, isExtended bool) int16 {
 	// Update the number of nodes searched.
 	search.nodes++
 
@@ -300,6 +303,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	isPVNode := beta-alpha != 1
 	childPVLine := PVLine{}
 	canFutilityPrune := false
+	ttHit := false
 
 	// =====================================================================//
 	// CHECK EXTENSION: Extend the search depth by one if we're in check,   //
@@ -341,8 +345,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	entry := search.TT.Probe(search.Pos.Hash)
 	ttScore, shouldUse := entry.Get(search.Pos.Hash, ply, uint8(depth), alpha, beta, &ttMove)
+	ttHit = entry.Hash == search.Pos.Hash
 
-	if shouldUse && !isRoot {
+	if shouldUse && !isRoot && !skipMove.Equal(ttMove) {
 		return ttScore
 	}
 
@@ -376,7 +381,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		search.AddHistory(search.Pos.Hash)
 
 		R := 3 + depth/6
-		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &childPVLine, false, NullMove)
+		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &childPVLine, false, NullMove, NullMove, isExtended)
 
 		search.RemoveHistory()
 		search.Pos.UndoNullMove()
@@ -430,7 +435,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if depth >= IID_Depth_Limit && (isPVNode || entry.Flag == BetaFlag) && ttMove.Equal(NullMove) {
-		search.negamax(depth-IID_Depth_Reduction-1, ply+1, -beta, -alpha, &childPVLine, true, NullMove)
+		search.negamax(depth-IID_Depth_Reduction-1, ply+1, -beta, -alpha, &childPVLine, true, NullMove, NullMove, isExtended)
 		if len(childPVLine.Moves) > 0 {
 			ttMove = childPVLine.GetPVMove()
 			childPVLine.Clear()
@@ -449,6 +454,12 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	for index := uint8(0); index < moves.Count; index++ {
 		orderMoves(index, &moves)
 		move := moves.Moves[index]
+
+		// Useful for skipping the candidate singular move when doing
+		// singular move extension.
+		if move.Equal(skipMove) {
+			continue
+		}
 
 		if !search.Pos.DoMove(move) {
 			search.Pos.UndoMove(move)
@@ -499,7 +510,34 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 		score := int16(0)
 		if legalMoves == 1 {
-			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move)
+			nextDepth := depth - 1
+
+			// Singular move extension
+			if !isExtended &&
+				depth >= SingularExtensionDepthLimit &&
+				ttMove.Equal(move) &&
+				isPVNode && ttHit &&
+				(entry.Flag == ExactFlag || entry.Flag == BetaFlag) {
+
+				search.Pos.UndoMove(move)
+				search.RemoveHistory()
+
+				scoreToBeat := ttScore - SingularMoveMargin
+				nextBestScore := search.negamax(depth/2, ply+1, scoreToBeat, scoreToBeat+1, &PVLine{}, true, prevMove, move, true)
+
+				// If the next best score is less than or equal to the score to beat,
+				// we know the above search failed-low, a move wasn't found that could beat
+				// the tt move score even with a margin, and so the tt move is singular. So
+				// we should spend some extra time searching it.
+				if nextBestScore <= scoreToBeat {
+					nextDepth += SingularMoveExtension
+				}
+
+				search.Pos.DoMove(move)
+				search.AddHistory(search.Pos.Hash)
+			}
+
+			score = -search.negamax(nextDepth, ply+1, -beta, -alpha, &childPVLine, true, move, NullMove, isExtended)
 		} else {
 			tactical := inCheck || move.MoveType() == Attack
 			reduction := int8(0)
@@ -508,15 +546,15 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 				reduction = LMR[depth][legalMoves]
 			}
 
-			score = -search.negamax(depth-1-reduction, ply+1, -(alpha + 1), -alpha, &childPVLine, true, move)
+			score = -search.negamax(depth-1-reduction, ply+1, -(alpha + 1), -alpha, &childPVLine, true, move, NullMove, isExtended)
 
 			if score > alpha && reduction > 0 {
-				score = -search.negamax(depth-1, ply+1, -(alpha + 1), -alpha, &childPVLine, true, move)
+				score = -search.negamax(depth-1, ply+1, -(alpha + 1), -alpha, &childPVLine, true, move, NullMove, isExtended)
 				if score > alpha {
-					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move)
+					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move, NullMove, isExtended)
 				}
 			} else if score > alpha && score < beta {
-				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move)
+				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move, NullMove, isExtended)
 			}
 		}
 
