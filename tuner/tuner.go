@@ -12,18 +12,41 @@ import (
 )
 
 const (
-	Iterations              = 2000
-	NumWeights              = 936
-	NumSafetyEvalTerms      = 9
-	SafetyEvalTermsStartIdx = 927
-	ScalingFactor           = 0.01
-	Epsilon                 = 0.00000001
-	LearningRate            = 0.5
+	Iterations         = 2000
+	NumWeights         = 936
+	NumSafetyEvalTerms = 9
+	ScalingFactor      = 0.01
+	Epsilon            = 0.00000001
+	LearningRate       = 0.5
 
 	Draw     float64 = 0.5
 	WhiteWin float64 = 1.0
 	BlackWin float64 = 0.0
 )
+
+type Indexes struct {
+	EG_PSQT_StartIndex            uint16
+	MG_Material_StartIndex        uint16
+	EG_Material_StartIndex        uint16
+	MG_BishopPairIndex            uint16
+	EG_BishopPairIndex            uint16
+	MG_IsoPawnIndex               uint16
+	EG_IsoPawnIndex               uint16
+	MG_DoubledPawnIndex           uint16
+	EG_DoubledPawnIndex           uint16
+	MG_PassedPawn_PSQT_StartIndex uint16
+	EG_PassedPawn_PSQT_StartIndex uint16
+	MG_KnightOutpostIndex         uint16
+	EG_KnightOutpostIndex         uint16
+	MG_MobilityStartIndex         uint16
+	EG_MobilityStartIndex         uint16
+	MG_BishopOutpostIndex         uint16
+	EG_BishopOutpostIndex         uint16
+	EG_RookOrQueenOnSeventhIndex  uint16
+	MG_RookOnOpenFileIndex        uint16
+	TempoBonusIndex               uint16
+	KingSafteyStartIndex          uint16
+}
 
 // An object to hold the feature coefficents of a positon, as well
 // as the index of the weight the feature corresponds to. Structuring
@@ -52,106 +75,172 @@ type SafetyTracer struct {
 }
 
 // Load the weights for tuning from the current evaluation terms.
-func loadWeights() (weights []float64) {
+func loadWeights() (weights []float64, indexes Indexes) {
 	tempWeights := make([]int16, NumWeights)
 	weights = make([]float64, NumWeights)
 
-	copy(tempWeights[0:64], engine.PSQT_MG[engine.Pawn][:])
-	copy(tempWeights[64:128], engine.PSQT_MG[engine.Knight][:])
-	copy(tempWeights[128:192], engine.PSQT_MG[engine.Bishop][:])
-	copy(tempWeights[192:256], engine.PSQT_MG[engine.Rook][:])
-	copy(tempWeights[256:320], engine.PSQT_MG[engine.Queen][:])
-	copy(tempWeights[320:384], engine.PSQT_MG[engine.King][:])
+	index := uint16(0)
+	indexes.EG_PSQT_StartIndex = 64 * 6
 
-	copy(tempWeights[384:448], engine.PSQT_EG[engine.Pawn][:])
-	copy(tempWeights[448:512], engine.PSQT_EG[engine.Knight][:])
-	copy(tempWeights[512:576], engine.PSQT_EG[engine.Bishop][:])
-	copy(tempWeights[576:640], engine.PSQT_EG[engine.Rook][:])
-	copy(tempWeights[640:704], engine.PSQT_EG[engine.Queen][:])
-	copy(tempWeights[704:768], engine.PSQT_EG[engine.King][:])
+	for piece := engine.Pawn; piece <= engine.King; piece++ {
+		copy(tempWeights[index:index+64], engine.PSQT_MG[piece][:])
+		copy(tempWeights[384+index:384+index+64], engine.PSQT_EG[piece][:])
+		index += 64
+	}
+	index *= 2
 
-	copy(tempWeights[768:773], engine.PieceValueMG[0:5])
-	copy(tempWeights[773:778], engine.PieceValueEG[0:5])
+	indexes.MG_Material_StartIndex = index
+	indexes.EG_Material_StartIndex = index + 5
 
-	tempWeights[778] = engine.BishopPairBonusMG
-	tempWeights[779] = engine.BishopPairBonusEG
+	copy(tempWeights[index:index+5], engine.PieceValueMG[0:5])
+	copy(tempWeights[index+5:index+10], engine.PieceValueEG[0:5])
+	index += 10
 
-	copy(tempWeights[780:784], engine.PieceMobilityMG[1:5])
-	copy(tempWeights[784:788], engine.PieceMobilityEG[1:5])
+	indexes.MG_BishopPairIndex = index
+	indexes.EG_BishopPairIndex = index + 1
 
-	copy(tempWeights[788:852], engine.PassedPawnPSQT_MG[:])
-	copy(tempWeights[852:916], engine.PassedPawnPSQT_EG[:])
+	tempWeights[index] = engine.BishopPairBonusMG
+	tempWeights[index+1] = engine.BishopPairBonusEG
+	index += 2
 
-	tempWeights[916] = engine.DoubledPawnPenatlyMG
-	tempWeights[917] = engine.DoubledPawnPenatlyEG
-	tempWeights[918] = engine.IsolatedPawnPenatlyMG
-	tempWeights[919] = engine.IsolatedPawnPenatlyEG
+	indexes.MG_MobilityStartIndex = index
+	indexes.EG_MobilityStartIndex = index + 4
 
-	tempWeights[920] = engine.RookOrQueenOnSeventhBonusEG
+	copy(tempWeights[index:index+4], engine.PieceMobilityMG[1:5])
+	copy(tempWeights[index+4:index+8], engine.PieceMobilityEG[1:5])
+	index += 8
 
-	tempWeights[921] = engine.KnightOnOutpostBonusMG
-	tempWeights[922] = engine.KnightOnOutpostBonusEG
+	indexes.MG_PassedPawn_PSQT_StartIndex = index
+	indexes.EG_PassedPawn_PSQT_StartIndex = index + 64
 
-	tempWeights[923] = engine.RookOnOpenFileBonusMG
-	tempWeights[924] = engine.TempoBonusMG
+	copy(tempWeights[index:index+64], engine.PassedPawnPSQT_MG[:])
+	copy(tempWeights[index+64:index+128], engine.PassedPawnPSQT_EG[:])
+	index += 128
 
-	tempWeights[925] = engine.BishopOutPostBonusMG
-	tempWeights[926] = engine.BishopOutPostBonusEG
+	indexes.MG_DoubledPawnIndex = index
+	indexes.EG_DoubledPawnIndex = index + 1
+	indexes.MG_IsoPawnIndex = index + 2
+	indexes.EG_IsoPawnIndex = index + 3
 
-	copy(tempWeights[927:931], engine.OuterRingAttackPoints[1:5])
-	copy(tempWeights[931:935], engine.InnerRingAttackPoints[1:5])
-	tempWeights[935] = engine.SemiOpenFileNextToKingPenalty
+	tempWeights[index] = engine.DoubledPawnPenatlyMG
+	tempWeights[index+1] = engine.DoubledPawnPenatlyEG
+	tempWeights[index+2] = engine.IsolatedPawnPenatlyMG
+	tempWeights[index+3] = engine.IsolatedPawnPenatlyEG
+	index += 4
+
+	indexes.EG_RookOrQueenOnSeventhIndex = index
+	indexes.MG_KnightOutpostIndex = index + 1
+	indexes.EG_KnightOutpostIndex = index + 2
+
+	tempWeights[index] = engine.RookOrQueenOnSeventhBonusEG
+	tempWeights[index+1] = engine.KnightOnOutpostBonusMG
+	tempWeights[index+2] = engine.KnightOnOutpostBonusEG
+	index += 3
+
+	indexes.MG_BishopOutpostIndex = index
+	indexes.EG_BishopOutpostIndex = index + 1
+
+	tempWeights[index] = engine.BishopOutPostBonusMG
+	tempWeights[index+1] = engine.BishopOutPostBonusEG
+	index += 2
+
+	indexes.MG_RookOnOpenFileIndex = index
+	indexes.TempoBonusIndex = index + 1
+
+	tempWeights[index] = engine.RookOnOpenFileBonusMG
+	tempWeights[index+1] = engine.TempoBonusMG
+	index += 2
+
+	indexes.KingSafteyStartIndex = index
+	copy(tempWeights[index:index+4], engine.OuterRingAttackPoints[1:5])
+	copy(tempWeights[index+4:index+8], engine.InnerRingAttackPoints[1:5])
+	tempWeights[index+8] = engine.SemiOpenFileNextToKingPenalty
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
 	}
 
-	return weights
+	return weights, indexes
 }
 
 // Load the weights for tuning, setting them to reasonable default values.
-func loadDefaultWeights() (weights []float64) {
+func loadDefaultWeights() (weights []float64, indexes Indexes) {
 	tempWeights := make([]int16, NumWeights)
 	weights = make([]float64, NumWeights)
 
-	copy(tempWeights[768:773], []int16{100, 300, 310, 500, 950})
-	copy(tempWeights[773:778], []int16{100, 300, 310, 500, 950})
+	indexes.EG_PSQT_StartIndex = 64 * 6
+	index := uint16(768)
 
-	tempWeights[778] = 10
-	tempWeights[779] = 10
+	indexes.MG_Material_StartIndex = index
+	indexes.EG_Material_StartIndex = index + 5
 
-	copy(tempWeights[780:784], []int16{1, 1, 1, 1})
-	copy(tempWeights[784:788], []int16{1, 1, 1, 1})
+	copy(tempWeights[index:index+5], []int16{100, 300, 310, 500, 950})
+	copy(tempWeights[index+5:index+10], []int16{100, 300, 310, 500, 950})
+	index += 10
 
-	tempWeights[916] = 5
-	tempWeights[917] = 10
-	tempWeights[918] = 5
-	tempWeights[919] = 10
+	indexes.MG_BishopPairIndex = index
+	indexes.EG_BishopPairIndex = index + 1
 
-	tempWeights[920] = 15
+	tempWeights[index] = 10
+	tempWeights[index+1] = 10
+	index += 2
 
-	tempWeights[921] = 15
-	tempWeights[922] = 20
+	indexes.MG_MobilityStartIndex = index
+	indexes.EG_MobilityStartIndex = index + 4
 
-	tempWeights[923] = 10
-	tempWeights[924] = 10
+	copy(tempWeights[index:index+4], []int16{1, 1, 1, 1})
+	copy(tempWeights[index+4:index+8], []int16{1, 1, 1, 1})
+	index += 8
+	index += 128
 
-	tempWeights[925] = 10
-	tempWeights[926] = 15
+	indexes.MG_DoubledPawnIndex = index
+	indexes.EG_DoubledPawnIndex = index + 1
+	indexes.MG_IsoPawnIndex = index + 2
+	indexes.EG_IsoPawnIndex = index + 3
 
-	copy(tempWeights[927:931], []int16{1, 1, 1, 1})
-	copy(tempWeights[931:935], []int16{1, 1, 1, 1})
-	tempWeights[935] = 1
+	tempWeights[index] = 5
+	tempWeights[index+1] = 10
+	tempWeights[index+2] = 5
+	tempWeights[index+3] = 10
+	index += 4
+
+	indexes.EG_RookOrQueenOnSeventhIndex = index
+	indexes.MG_KnightOutpostIndex = index + 1
+	indexes.EG_KnightOutpostIndex = index + 2
+
+	tempWeights[index] = 15
+	tempWeights[index+1] = 15
+	tempWeights[index+2] = 20
+	index += 3
+
+	indexes.MG_BishopOutpostIndex = index
+	indexes.EG_BishopOutpostIndex = index + 1
+
+	tempWeights[index] = 10
+	tempWeights[index+1] = 15
+	index += 2
+
+	indexes.MG_RookOnOpenFileIndex = index
+	indexes.TempoBonusIndex = index + 1
+
+	tempWeights[index] = 10
+	tempWeights[index+1] = 10
+	index += 2
+
+	indexes.KingSafteyStartIndex = index
+	copy(tempWeights[index:index+4], []int16{1, 1, 1, 1})
+	copy(tempWeights[index+4:index+8], []int16{1, 1, 1, 1})
+	tempWeights[index+8] = 1
 
 	for i := range tempWeights {
 		weights[i] = float64(tempWeights[i])
 	}
 
-	return weights
+	return weights, indexes
 }
 
 // Load the given number of positions from the training set file.
-func loadEntries(infile string, numPositions int) (entries []Entry) {
+func loadEntries(infile string, numPositions int, indexes Indexes) (entries []Entry) {
 	file, err := os.Open(infile)
 	if err != nil {
 		panic(err)
@@ -176,7 +265,7 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 		pos := engine.Position{}
 		pos.LoadFEN(fen)
 
-		normalCoefficents, safetyCoefficents := getCoefficents(&pos)
+		normalCoefficents, safetyCoefficents := getCoefficents(&pos, indexes)
 		phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
 		mgPhase := float64(256-phase) / 256
 
@@ -197,7 +286,7 @@ func loadEntries(infile string, numPositions int) (entries []Entry) {
 
 // Get the evaluation coefficents of the position so it can be used to calculate
 // the evaluation.
-func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safetyCoefficents [][]Coefficent) {
+func getCoefficents(pos *engine.Position, indexes Indexes) (normalCoefficents []Coefficent, safetyCoefficents [][]Coefficent) {
 	phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
 	mgPhase := float64(256-phase) / 256
 	egPhase := float64(phase) / 256
@@ -226,29 +315,29 @@ func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safet
 			sign = -1
 		}
 
-		getPSQT_Coefficents(rawNormCoefficents, piece, sq, sign, mgPhase, egPhase)
+		getPSQT_Coefficents(rawNormCoefficents, indexes, piece, sq, sign, mgPhase, egPhase)
 
 		switch piece.Type {
 		case engine.Pawn:
-			getPawnCoefficents(pos, rawNormCoefficents, sq, mgPhase, egPhase, sign)
+			getPawnCoefficents(pos, rawNormCoefficents, indexes, sq, mgPhase, egPhase, sign)
 		case engine.Knight:
-			getKnightCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, sq, mgPhase, egPhase, sign)
+			getKnightCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, indexes, sq, mgPhase, egPhase, sign)
 		case engine.Bishop:
-			getBishopCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, sq, mgPhase, egPhase, sign)
+			getBishopCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, indexes, sq, mgPhase, egPhase, sign)
 		case engine.Rook:
-			getRookCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, sq, mgPhase, egPhase, sign)
+			getRookCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, indexes, sq, mgPhase, egPhase, sign)
 		case engine.Queen:
-			getQueenCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, sq, mgPhase, egPhase, sign)
+			getQueenCoefficents(pos, rawNormCoefficents, rawSafetyCoefficents, &safetyTracer, indexes, sq, mgPhase, egPhase, sign)
 		}
 	}
 
-	getMaterialCoeffficents(pos, rawNormCoefficents, mgPhase, egPhase)
-	getBishopPairCoefficents(pos, rawNormCoefficents, mgPhase, egPhase)
+	getMaterialCoeffficents(pos, rawNormCoefficents, indexes, mgPhase, egPhase)
+	getBishopPairCoefficents(pos, rawNormCoefficents, indexes, mgPhase, egPhase)
 
 	getPawnShieldCoefficents(pos, pos.Pieces[engine.White][engine.King].Msb(), engine.White, rawSafetyCoefficents)
 	getPawnShieldCoefficents(pos, pos.Pieces[engine.Black][engine.King].Msb(), engine.Black, rawSafetyCoefficents)
 
-	getTempoBonusCoefficent(pos, rawNormCoefficents, mgPhase)
+	getTempoBonusCoefficent(pos, rawNormCoefficents, indexes, mgPhase)
 
 	for i, coefficent := range rawNormCoefficents {
 		if coefficent != 0 {
@@ -264,7 +353,7 @@ func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safet
 
 		safetyCoefficents[engine.White] = append(
 			safetyCoefficents[engine.White],
-			Coefficent{Idx: SafetyEvalTermsStartIdx + uint16(i), Value: value},
+			Coefficent{Idx: indexes.KingSafteyStartIndex + uint16(i), Value: value},
 		)
 	}
 
@@ -276,7 +365,7 @@ func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safet
 
 		safetyCoefficents[engine.Black] = append(
 			safetyCoefficents[engine.Black],
-			Coefficent{Idx: SafetyEvalTermsStartIdx + uint16(i), Value: value},
+			Coefficent{Idx: indexes.KingSafteyStartIndex + uint16(i), Value: value},
 		)
 	}
 
@@ -284,62 +373,62 @@ func getCoefficents(pos *engine.Position) (normalCoefficents []Coefficent, safet
 }
 
 // Get the piece square table coefficents of the position.
-func getPSQT_Coefficents(coefficents []float64, piece engine.Piece, sq uint8, sign, mgPhase, egPhase float64) {
+func getPSQT_Coefficents(coefficents []float64, indexes Indexes, piece engine.Piece, sq uint8, sign, mgPhase, egPhase float64) {
 	mgIndex := uint16(piece.Type)*64 + uint16(engine.FlipSq[piece.Color][sq])
-	egIndex := 384 + mgIndex
+	egIndex := indexes.EG_PSQT_StartIndex + mgIndex
 	coefficents[mgIndex] += sign * mgPhase
 	coefficents[egIndex] += sign * egPhase
 }
 
 // Get the material coefficents of the position.
-func getMaterialCoeffficents(pos *engine.Position, coefficents []float64, mgPhase, egPhase float64) {
-	for piece := 0; piece <= 4; piece++ {
-		coefficents[768+piece] = float64(
+func getMaterialCoeffficents(pos *engine.Position, coefficents []float64, indexes Indexes, mgPhase, egPhase float64) {
+	for piece := uint16(0); piece <= 4; piece++ {
+		coefficents[indexes.MG_Material_StartIndex+piece] = float64(
 			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
 		) * mgPhase
-		coefficents[773+piece] = float64(
+		coefficents[indexes.EG_Material_StartIndex+piece] = float64(
 			(pos.Pieces[engine.White][piece].CountBits() - pos.Pieces[engine.Black][piece].CountBits()),
 		) * egPhase
 	}
 }
 
 // Get the bishop pair coefficents of the position.
-func getBishopPairCoefficents(pos *engine.Position, coefficents []float64, mgPhase, egPhase float64) {
+func getBishopPairCoefficents(pos *engine.Position, coefficents []float64, indexes Indexes, mgPhase, egPhase float64) {
 	if pos.Pieces[engine.White][engine.Bishop].CountBits() >= 2 {
-		coefficents[778] += mgPhase
-		coefficents[779] += egPhase
+		coefficents[indexes.MG_BishopPairIndex] += mgPhase
+		coefficents[indexes.EG_BishopPairIndex] += egPhase
 	}
 
 	if pos.Pieces[engine.Black][engine.Bishop].CountBits() >= 2 {
-		coefficents[778] -= mgPhase
-		coefficents[779] -= egPhase
+		coefficents[indexes.MG_BishopPairIndex] -= mgPhase
+		coefficents[indexes.EG_BishopPairIndex] -= egPhase
 	}
 }
 
 // Get the coefficents of the position related to the given pawn.
-func getPawnCoefficents(pos *engine.Position, norm []float64, sq uint8, mgPhase, egPhase, sign float64) {
+func getPawnCoefficents(pos *engine.Position, norm []float64, indexes Indexes, sq uint8, mgPhase, egPhase, sign float64) {
 	piece := pos.Squares[sq]
 	enemyPawns := pos.Pieces[piece.Color^1][engine.Pawn]
 	usPawns := pos.Pieces[piece.Color][engine.Pawn]
 
 	// Evaluate isolated pawns.
 	if engine.IsolatedPawnMasks[engine.FileOf(sq)]&usPawns == 0 {
-		norm[918] -= sign * mgPhase
-		norm[919] -= sign * egPhase
+		norm[indexes.MG_IsoPawnIndex] -= sign * mgPhase
+		norm[indexes.EG_IsoPawnIndex] -= sign * egPhase
 	}
 
 	// Evaluate doubled pawns.
 	if engine.DoubledPawnMasks[piece.Color][sq]&usPawns != 0 {
-		norm[916] -= sign * mgPhase
-		norm[917] -= sign * egPhase
+		norm[indexes.MG_DoubledPawnIndex] -= sign * mgPhase
+		norm[indexes.EG_DoubledPawnIndex] -= sign * egPhase
 	}
 
 	// Evaluate passed pawns, but make sure they're not behind a friendly pawn.
 	if engine.PassedPawnMasks[piece.Color][sq]&enemyPawns == 0 &&
 		usPawns&engine.DoubledPawnMasks[piece.Color][sq] == 0 {
 
-		mgIndex := 788 + uint16(engine.FlipSq[piece.Color][sq])
-		egIndex := 852 + uint16(engine.FlipSq[piece.Color][sq])
+		mgIndex := indexes.MG_PassedPawn_PSQT_StartIndex + uint16(engine.FlipSq[piece.Color][sq])
+		egIndex := indexes.EG_PassedPawn_PSQT_StartIndex + uint16(engine.FlipSq[piece.Color][sq])
 
 		norm[mgIndex] += sign * mgPhase
 		norm[egIndex] += sign * egPhase
@@ -347,7 +436,7 @@ func getPawnCoefficents(pos *engine.Position, norm []float64, sq uint8, mgPhase,
 }
 
 // Get the coefficents of the position related to the given knight.
-func getKnightCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer,
+func getKnightCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer, indexes Indexes,
 	sq uint8, mgPhase, egPhase, sign float64) {
 
 	piece := pos.Squares[sq]
@@ -360,8 +449,8 @@ func getKnightCoefficents(pos *engine.Position, norm []float64, safety [][]float
 		engine.PawnAttacks[piece.Color^1][sq]&usPawns != 0 &&
 		engine.FlipRank[piece.Color][engine.RankOf(sq)] >= engine.Rank5 {
 
-		norm[921] += sign * mgPhase
-		norm[922] += sign * egPhase
+		norm[indexes.MG_KnightOutpostIndex] += sign * mgPhase
+		norm[indexes.EG_KnightOutpostIndex] += sign * egPhase
 	}
 
 	moves := engine.KnightMoves[sq] & ^usBB
@@ -373,8 +462,8 @@ func getKnightCoefficents(pos *engine.Position, norm []float64, safety [][]float
 	}
 
 	mobility := float64(safeMoves.CountBits())
-	norm[780+uint16(piece.Type)-1] += (mobility - 4) * sign * mgPhase
-	norm[784+uint16(piece.Type)-1] += (mobility - 4) * sign * egPhase
+	norm[indexes.MG_MobilityStartIndex+uint16(piece.Type)-1] += (mobility - 4) * sign * mgPhase
+	norm[indexes.EG_MobilityStartIndex+uint16(piece.Type)-1] += (mobility - 4) * sign * egPhase
 
 	outerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].OuterRing
 	innerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].InnerRing
@@ -387,7 +476,7 @@ func getKnightCoefficents(pos *engine.Position, norm []float64, safety [][]float
 }
 
 // Get the coefficents of the position related to the given bishop.
-func getBishopCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer,
+func getBishopCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer, indexes Indexes,
 	sq uint8, mgPhase, egPhase, sign float64) {
 
 	piece := pos.Squares[sq]
@@ -401,15 +490,15 @@ func getBishopCoefficents(pos *engine.Position, norm []float64, safety [][]float
 		engine.PawnAttacks[piece.Color^1][sq]&usPawns != 0 &&
 		engine.FlipRank[piece.Color][engine.RankOf(sq)] >= engine.Rank5 {
 
-		norm[925] += sign * mgPhase
-		norm[926] += sign * egPhase
+		norm[indexes.MG_BishopOutpostIndex] += sign * mgPhase
+		norm[indexes.EG_BishopOutpostIndex] += sign * egPhase
 	}
 
 	moves := engine.GenBishopMoves(sq, allBB) & ^usBB
 	mobility := float64(moves.CountBits())
 
-	norm[780+uint16(piece.Type)-1] += (mobility - 7) * sign * mgPhase
-	norm[784+uint16(piece.Type)-1] += (mobility - 7) * sign * egPhase
+	norm[indexes.MG_MobilityStartIndex+uint16(piece.Type)-1] += (mobility - 7) * sign * mgPhase
+	norm[indexes.EG_MobilityStartIndex+uint16(piece.Type)-1] += (mobility - 7) * sign * egPhase
 
 	outerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].OuterRing
 	innerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].InnerRing
@@ -422,7 +511,7 @@ func getBishopCoefficents(pos *engine.Position, norm []float64, safety [][]float
 }
 
 // Get the coefficents of the position related to the given rook.
-func getRookCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer,
+func getRookCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer, indexes Indexes,
 	sq uint8, mgPhase, egPhase, sign float64) {
 
 	piece := pos.Squares[sq]
@@ -433,19 +522,19 @@ func getRookCoefficents(pos *engine.Position, norm []float64, safety [][]float64
 	if engine.FlipRank[piece.Color][engine.RankOf(sq)] == engine.Rank7 &&
 		engine.FlipRank[piece.Color][engine.RankOf(enemyKingSq)] >= engine.Rank7 {
 
-		norm[920] += sign * egPhase
+		norm[indexes.EG_RookOrQueenOnSeventhIndex] += sign * egPhase
 	}
 
 	pawns := pos.Pieces[engine.White][engine.Pawn] | pos.Pieces[engine.Black][engine.Pawn]
 	if engine.MaskFile[engine.FileOf(sq)]&pawns == 0 {
-		norm[923] += sign * mgPhase
+		norm[indexes.MG_RookOnOpenFileIndex] += sign * mgPhase
 	}
 
 	moves := engine.GenRookMoves(sq, allBB) & ^usBB
 	mobility := float64(moves.CountBits())
 
-	norm[780+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(mgPhase)
-	norm[784+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(egPhase)
+	norm[indexes.MG_MobilityStartIndex+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(mgPhase)
+	norm[indexes.EG_MobilityStartIndex+uint16(piece.Type)-1] += (mobility - 7) * sign * float64(egPhase)
 
 	outerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].OuterRing
 	innerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].InnerRing
@@ -458,7 +547,7 @@ func getRookCoefficents(pos *engine.Position, norm []float64, safety [][]float64
 }
 
 // Get the coefficents of the position related to the given queen.
-func getQueenCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer,
+func getQueenCoefficents(pos *engine.Position, norm []float64, safety [][]float64, safetyTracer *SafetyTracer, indexes Indexes,
 	sq uint8, mgPhase, egPhase, sign float64) {
 
 	piece := pos.Squares[sq]
@@ -469,14 +558,14 @@ func getQueenCoefficents(pos *engine.Position, norm []float64, safety [][]float6
 	if engine.FlipRank[piece.Color][engine.RankOf(sq)] == engine.Rank7 &&
 		engine.FlipRank[piece.Color][engine.RankOf(enemyKingSq)] >= engine.Rank7 {
 
-		norm[920] += sign * egPhase
+		norm[indexes.EG_RookOrQueenOnSeventhIndex] += sign * egPhase
 	}
 
 	moves := (engine.GenBishopMoves(sq, allBB) | engine.GenRookMoves(sq, allBB)) & ^usBB
 	mobility := float64(moves.CountBits())
 
-	norm[780+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(mgPhase)
-	norm[784+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(egPhase)
+	norm[indexes.MG_MobilityStartIndex+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(mgPhase)
+	norm[indexes.EG_MobilityStartIndex+uint16(piece.Type)-1] += (mobility - 14) * sign * float64(egPhase)
 
 	outerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].OuterRing
 	innerRingAttacks := moves & safetyTracer.KingZones[piece.Color^1].InnerRing
@@ -510,12 +599,12 @@ func getPawnShieldCoefficents(pos *engine.Position, sq, color uint8, safety [][]
 }
 
 // Compute the tempo bonus coefficent
-func getTempoBonusCoefficent(pos *engine.Position, coefficents []float64, mgPhase float64) {
+func getTempoBonusCoefficent(pos *engine.Position, coefficents []float64, indexes Indexes, mgPhase float64) {
 	sign := float64(1)
 	if pos.SideToMove != engine.White {
 		sign = -1
 	}
-	coefficents[924] = sign * mgPhase
+	coefficents[indexes.TempoBonusIndex] = sign * mgPhase
 }
 
 // Compute the dot product between an array of king safety coefficents and the appropriate
@@ -528,14 +617,14 @@ func computeSafetyDotProduct(v1 []float64, v2 []Coefficent) (sum float64) {
 }
 
 // Evaluate the position from the training set file.
-func evaluate(weights []float64, normalCoefficents []Coefficent, safetyCoefficents [][]Coefficent, mgPhase float64) (score float64) {
+func evaluate(weights []float64, normalCoefficents []Coefficent, safetyCoefficents [][]Coefficent, indexes Indexes, mgPhase float64) (score float64) {
 	for i := range normalCoefficents {
 		coefficent := &normalCoefficents[i]
 		score += weights[coefficent.Idx] * coefficent.Value
 	}
 
-	whiteSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], safetyCoefficents[engine.White])
-	blackSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], safetyCoefficents[engine.Black])
+	whiteSafety := computeSafetyDotProduct(weights[indexes.KingSafteyStartIndex:NumWeights], safetyCoefficents[engine.White])
+	blackSafety := computeSafetyDotProduct(weights[indexes.KingSafteyStartIndex:NumWeights], safetyCoefficents[engine.Black])
 
 	whiteSafety = ((whiteSafety * whiteSafety) / 4) * mgPhase
 	blackSafety = ((blackSafety * blackSafety) / 4) * mgPhase
@@ -543,7 +632,7 @@ func evaluate(weights []float64, normalCoefficents []Coefficent, safetyCoefficen
 	return score + whiteSafety - blackSafety
 }
 
-func computeGradientNumerically(entries []Entry, weights []float64, epsilon float64) (gradients []float64) {
+func computeGradientNumerically(entries []Entry, weights []float64, indexes Indexes, epsilon float64) (gradients []float64) {
 	N := float64(len(entries))
 	gradients = make([]float64, len(weights))
 	epsilonAddedErrSums := make([]float64, len(entries))
@@ -553,14 +642,14 @@ func computeGradientNumerically(entries []Entry, weights []float64, epsilon floa
 		for k := range weights {
 			weights[k] += epsilon
 
-			score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, entries[i].MGPhase)
+			score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, indexes, entries[i].MGPhase)
 			sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 			err := entries[i].Outcome - sigmoid
 			epsilonAddedErrSums[k] += math.Pow(err, 2)
 
 			weights[k] -= epsilon * 2
 
-			score = evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, entries[i].MGPhase)
+			score = evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, indexes, entries[i].MGPhase)
 			sigmoid = 1 / (1 + math.Exp(-(ScalingFactor * score)))
 			err = entries[i].Outcome - sigmoid
 			epsilonSubtractedErrSums[k] += math.Pow(err, 2)
@@ -578,11 +667,11 @@ func computeGradientNumerically(entries []Entry, weights []float64, epsilon floa
 	return gradients
 }
 
-func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
+func computeGradient(entries []Entry, weights []float64, indexes Indexes) (gradients []float64) {
 	gradients = make([]float64, NumWeights)
 
 	for i := range entries {
-		score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, entries[i].MGPhase)
+		score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, indexes, entries[i].MGPhase)
 		sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 		err := entries[i].Outcome - sigmoid
 
@@ -596,8 +685,8 @@ func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
 			gradients[coefficent.Idx] += term * coefficent.Value
 		}
 
-		whiteSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], entries[i].SafetyCoefficents[engine.White])
-		blackSafety := computeSafetyDotProduct(weights[SafetyEvalTermsStartIdx:NumWeights], entries[i].SafetyCoefficents[engine.Black])
+		whiteSafety := computeSafetyDotProduct(weights[indexes.KingSafteyStartIndex:NumWeights], entries[i].SafetyCoefficents[engine.White])
+		blackSafety := computeSafetyDotProduct(weights[indexes.KingSafteyStartIndex:NumWeights], entries[i].SafetyCoefficents[engine.Black])
 
 		for k := range entries[i].SafetyCoefficents[engine.White] {
 			whiteCoefficent := &entries[i].SafetyCoefficents[engine.White][k]
@@ -613,9 +702,9 @@ func computeGradient(entries []Entry, weights []float64) (gradients []float64) {
 	return gradients
 }
 
-func computeMSE(entries []Entry, weights []float64) (errSum float64) {
+func computeMSE(entries []Entry, weights []float64, indexes Indexes) (errSum float64) {
 	for i := range entries {
-		score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, entries[i].MGPhase)
+		score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, indexes, entries[i].MGPhase)
 		sigmoid := 1 / (1 + math.Exp(-(ScalingFactor * score)))
 		err := entries[i].Outcome - sigmoid
 		errSum += math.Pow(err, 2)
@@ -650,36 +739,48 @@ func prettyPrintPSQT(name string, psqt []int16) {
 	fmt.Print("\n},\n")
 }
 
-func printParameters(weights []float64) {
-	printSlice("\nMG Piece Values", convertFloatSiceToInt(weights[768:773]))
-	printSlice("EG Piece Values", convertFloatSiceToInt(weights[773:778]))
+func printParameters(weights []float64, indexes Indexes) {
+	printSlice("\nMG Piece Values", convertFloatSiceToInt(weights[indexes.MG_Material_StartIndex:indexes.MG_Material_StartIndex+5]))
+	printSlice("EG Piece Values", convertFloatSiceToInt(weights[indexes.EG_Material_StartIndex:indexes.EG_Material_StartIndex+5]))
 
-	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[780:784]))
-	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[784:788]))
+	printSlice("\nMG Piece Mobility Coefficents", convertFloatSiceToInt(weights[indexes.MG_MobilityStartIndex:indexes.MG_MobilityStartIndex+4]))
+	printSlice("EG Piece Mobility Coefficents", convertFloatSiceToInt(weights[indexes.EG_MobilityStartIndex:indexes.EG_MobilityStartIndex+4]))
 
-	fmt.Println("\nBishop Pair Bonus MG:", weights[778])
-	fmt.Println("Bishop Pair Bonus EG:", weights[779])
+	fmt.Println("\nBishop Pair Bonus MG:", weights[indexes.MG_BishopPairIndex])
+	fmt.Println("Bishop Pair Bonus EG:", weights[indexes.EG_BishopPairIndex])
 
-	fmt.Println("\nIsolated Pawn Penalty MG:", weights[918])
-	fmt.Println("Isolated Pawn Penalty EG:", weights[919])
+	fmt.Println("\nIsolated Pawn Penalty MG:", weights[indexes.MG_IsoPawnIndex])
+	fmt.Println("Isolated Pawn Penalty EG:", weights[indexes.EG_IsoPawnIndex])
 
-	fmt.Println("\nDoubled Pawn Penalty MG:", weights[916])
-	fmt.Println("Doubled Pawn Penalty EG:", weights[917])
+	fmt.Println("\nDoubled Pawn Penalty MG:", weights[indexes.MG_DoubledPawnIndex])
+	fmt.Println("Doubled Pawn Penalty EG:", weights[indexes.EG_DoubledPawnIndex])
 
-	fmt.Println("\nRook Or Queen On Seventh Bonus EG:", weights[920])
+	fmt.Println("\nRook Or Queen On Seventh Bonus EG:", weights[indexes.EG_RookOrQueenOnSeventhIndex])
 
-	fmt.Println("\nKnight On Outpost Bonus MG:", weights[921])
-	fmt.Println("Knight On Outpost Bonus EG:", weights[922])
+	fmt.Println("\nKnight On Outpost Bonus MG:", weights[indexes.MG_KnightOutpostIndex])
+	fmt.Println("Knight On Outpost Bonus EG:", weights[indexes.EG_KnightOutpostIndex])
 
-	fmt.Println("\nRook On Open File Bonus MG:", weights[923])
-	fmt.Println("Tempo Bonus MG:", weights[924])
+	fmt.Println("\nRook On Open File Bonus MG:", weights[indexes.MG_RookOnOpenFileIndex])
+	fmt.Println("Tempo Bonus MG:", weights[indexes.TempoBonusIndex])
 
-	fmt.Println("\nBishop On Outpost Bonus MG:", weights[925])
-	fmt.Println("Bishop On Outpost Bonus EG:", weights[926])
+	fmt.Println("\nBishop On Outpost Bonus MG:", weights[indexes.MG_BishopOutpostIndex])
+	fmt.Println("Bishop On Outpost Bonus EG:", weights[indexes.EG_BishopOutpostIndex])
 
-	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[927:931]))
-	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[931:935]))
-	fmt.Println("Semi-Open File Next To King Penalty:", weights[935])
+	printSlice("\nOuter Ring Attack Coefficents", convertFloatSiceToInt(weights[indexes.KingSafteyStartIndex:indexes.KingSafteyStartIndex+4]))
+	printSlice("Inner Ring Attack Coefficents", convertFloatSiceToInt(weights[indexes.KingSafteyStartIndex+4:indexes.KingSafteyStartIndex+8]))
+	fmt.Println("Semi-Open File Next To King Penalty:", weights[indexes.KingSafteyStartIndex+8])
+
+	pieceNames := []string{"Pawn", "Knight", "Bishop", "Rook", "Queen", "King"}
+
+	for piece, index := uint8(0), uint16(0); piece <= engine.King; piece, index = piece+1, index+64 {
+		tableName := fmt.Sprintf("MG %s PST", pieceNames[piece])
+		prettyPrintPSQT(tableName, convertFloatSiceToInt(weights[index:index+64]))
+	}
+
+	for piece, index := uint8(0), uint16(0); piece <= engine.King; piece, index = piece+1, index+64 {
+		tableName := fmt.Sprintf("MG %s PST", pieceNames[piece])
+		prettyPrintPSQT(tableName, convertFloatSiceToInt(weights[indexes.EG_PSQT_StartIndex+index:indexes.EG_PSQT_StartIndex+index+64]))
+	}
 
 	prettyPrintPSQT("MG Pawn PST", convertFloatSiceToInt(weights[0:64]))
 	prettyPrintPSQT("MG Knight PST", convertFloatSiceToInt(weights[64:128]))
@@ -695,24 +796,29 @@ func printParameters(weights []float64) {
 	prettyPrintPSQT("EG Queen PST", convertFloatSiceToInt(weights[640:704]))
 	prettyPrintPSQT("EG King PST", convertFloatSiceToInt(weights[704:768]))
 
-	prettyPrintPSQT("MG Passed Pawn PST", convertFloatSiceToInt(weights[788:852]))
-	prettyPrintPSQT("EG Passed Pawn PST", convertFloatSiceToInt(weights[852:916]))
+	prettyPrintPSQT("MG Passed Pawn PST", convertFloatSiceToInt(weights[indexes.MG_PassedPawn_PSQT_StartIndex:indexes.MG_PassedPawn_PSQT_StartIndex+64]))
+	prettyPrintPSQT("EG Passed Pawn PST", convertFloatSiceToInt(weights[indexes.EG_PassedPawn_PSQT_StartIndex:indexes.EG_PassedPawn_PSQT_StartIndex+64]))
 
 	fmt.Println()
 }
 
 func Tune(infile string, epochs, numPositions int, recordErrorRate bool, useDefaultWeights bool) {
 	var weights []float64
+	var indexes Indexes
+
 	if useDefaultWeights {
-		weights = loadDefaultWeights()
+		weights, indexes = loadDefaultWeights()
 	} else {
-		weights = loadWeights()
+		weights, indexes = loadWeights()
 	}
 
-	entries := loadEntries(infile, numPositions)
+	printParameters(weights, indexes)
+	return
+
+	entries := loadEntries(infile, numPositions, indexes)
 
 	gradientsSumsSquared := make([]float64, len(weights))
-	beforeErr := computeMSE(entries, weights)
+	beforeErr := computeMSE(entries, weights, indexes)
 
 	N := float64(numPositions)
 	learningRate := LearningRate
@@ -721,7 +827,7 @@ func Tune(infile string, epochs, numPositions int, recordErrorRate bool, useDefa
 	errorRecordingRate := epochs / 100
 
 	for epoch := 0; epoch < epochs; epoch++ {
-		gradients := computeGradient(entries, weights)
+		gradients := computeGradient(entries, weights, indexes)
 		for k, gradient := range gradients {
 			leadingCoefficent := (-2 * ScalingFactor) / N
 			gradientsSumsSquared[k] += (leadingCoefficent * gradient) * (leadingCoefficent * gradient)
@@ -731,12 +837,12 @@ func Tune(infile string, epochs, numPositions int, recordErrorRate bool, useDefa
 		fmt.Printf("Epoch number %d completed\n", epoch+1)
 
 		if recordErrorRate && epoch > 0 && epoch%errorRecordingRate == 0 {
-			errors = append(errors, computeMSE(entries, weights))
+			errors = append(errors, computeMSE(entries, weights, indexes))
 		}
 	}
 
 	if recordErrorRate {
-		errors = append(errors, computeMSE(entries, weights))
+		errors = append(errors, computeMSE(entries, weights, indexes))
 		file, err := os.Create("errors.txt")
 		if err != nil {
 			fmt.Println("Couldn't create \"errors.txt\" to store recored error rates")
@@ -752,7 +858,7 @@ func Tune(infile string, epochs, numPositions int, recordErrorRate bool, useDefa
 		}
 	}
 
-	printParameters(weights)
+	printParameters(weights, indexes)
 	fmt.Println("Best error before tuning:", beforeErr)
-	fmt.Println("Best error after tuning:", computeMSE(entries, weights))
+	fmt.Println("Best error after tuning:", computeMSE(entries, weights, indexes))
 }

@@ -220,7 +220,7 @@ var TestFENs = []string{
 // is calculated and gradient descent will converge.
 
 func TestTuner(t *testing.T) {
-	weights := loadWeights()
+	weights, indexes := loadWeights()
 	for _, fen := range TestFENs {
 		pos := engine.Position{}
 		pos.LoadFEN(fen)
@@ -230,10 +230,10 @@ func TestTuner(t *testing.T) {
 			normalEval = -normalEval
 		}
 
-		normalCoefficents, safetyCoefficents := getCoefficents(&pos)
+		normalCoefficents, safetyCoefficents := getCoefficents(&pos, indexes)
 		phase := (pos.Phase*256 + (engine.TotalPhase / 2)) / engine.TotalPhase
 		mgPhase := float64(256-phase) / 256
-		tunerEval := evaluate(weights, normalCoefficents, safetyCoefficents, mgPhase)
+		tunerEval := evaluate(weights, normalCoefficents, safetyCoefficents, indexes, mgPhase)
 
 		if abs_float64(normalEval-tunerEval) > 1.5 {
 			t.Errorf(
