@@ -812,9 +812,6 @@ func Tune(infile string, epochs, numPositions int, recordErrorRate bool, useDefa
 		weights, indexes = loadWeights()
 	}
 
-	printParameters(weights, indexes)
-	return
-
 	entries := loadEntries(infile, numPositions, indexes)
 
 	gradientsSumsSquared := make([]float64, len(weights))
