@@ -51,9 +51,9 @@ const (
 	WindowSize                      int16 = 35
 	IID_Depth_Reduction             int8  = 2
 	IID_Depth_Limit                 int8  = 4
-	SingularMoveMargin              int16 = 100
+	SingularMoveMargin              int16 = 125
 	SingularExtensionDepthLimit     int8  = 4
-	SingularMoveExtension           int8  = 2
+	SingularMoveExtension           int8  = 1
 )
 
 // Precomputed reductions
@@ -512,7 +512,22 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		if legalMoves == 1 {
 			nextDepth := depth - 1
 
-			// Singular move extension
+			// =====================================================================//
+			// SINGULAR EXTENSIONS: If the best move in the position is from the    //
+			// transposition table, check if it's "singular", i.e. substantially    //
+			// better than any of the other moves in the position. We do this by    //
+			// getting the move's score from the transposition table, and subtract- //
+			// ing from it a certian margin. We then do a reduced depth search, in  //
+			// the current position, with a window centered around the reduced      //
+			// score, to see if any of the other moves can match or beat the        //
+			// reduced score. If any of the moves can't even beat the reduced score //
+			// let's extend the search, since the best move seems particularly      //
+			// important, and we don't want to miss something. We just need to be   //
+			// careful not to let the search "explode", by repeadtly extending the  //
+			// the depth, so once we've extended the search down a certian path,    //
+			// make sure to stop extending any children nodes.                      //
+			// =====================================================================//
+
 			if !isExtended &&
 				depth >= SingularExtensionDepthLimit &&
 				ttMove.Equal(move) &&
@@ -523,7 +538,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 				search.RemoveHistory()
 
 				scoreToBeat := ttScore - SingularMoveMargin
-				nextBestScore := search.negamax(depth/2, ply+1, scoreToBeat, scoreToBeat+1, &PVLine{}, true, prevMove, move, true)
+				R := 3 + depth/6
+
+				nextBestScore := search.negamax(depth-1-R, ply+1, scoreToBeat, scoreToBeat+1, &PVLine{}, true, prevMove, move, true)
 
 				// If the next best score is less than or equal to the score to beat,
 				// we know the above search failed-low, a move wasn't found that could beat
