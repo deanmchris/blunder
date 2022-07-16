@@ -648,3 +648,15 @@ Elo difference: 79.0 +/- 20.3, LOS: 100.0 %, DrawRatio: 38.0 %
 SPRT: llr 2.95 (100.3%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
+
+Add Singular Extensions
+-----------------------
+```
+Score of Blunder 8.4.3 vs Blunder 8.3.3: 1102 - 1024 - 1874  [0.510] 4000
+...      Blunder 8.4.3 playing White: 597 - 477 - 926  [0.530] 2000
+...      Blunder 8.4.3 playing Black: 505 - 547 - 948  [0.489] 2000
+...      White vs Black: 1144 - 982 - 1874  [0.520] 4000
+Elo difference: 6.8 +/- 7.8, LOS: 95.5 %, DrawRatio: 46.9 %
+SPRT: llr 0.942 (32.0%), lbound -2.94, ubound 2.94
+Finished match
+```
