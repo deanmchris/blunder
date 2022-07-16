@@ -660,3 +660,17 @@ Elo difference: 6.8 +/- 7.8, LOS: 95.5 %, DrawRatio: 46.9 %
 SPRT: llr 0.942 (32.0%), lbound -2.94, ubound 2.94
 Finished match
 ```
+
+Fix bug where the max depth limit wasn't respected once quiescene search
+was entered
+------------------------------------------------------------------------
+```
+Score of Blunder 8.4.4 vs Blunder 8.4.3: 191 - 174 - 335  [0.512] 700
+...      Blunder 8.4.4 playing White: 96 - 90 - 164  [0.509] 350
+...      Blunder 8.4.4 playing Black: 95 - 84 - 171  [0.516] 350
+...      White vs Black: 180 - 185 - 335  [0.496] 700
+Elo difference: 8.4 +/- 18.6, LOS: 81.3 %, DrawRatio: 47.9 %
+SPRT: llr 0.242 (8.2%), lbound -2.94, ubound 2.94
+```
+
+Tested for regression not strength gain, so test stopped early.

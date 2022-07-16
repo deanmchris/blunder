@@ -646,6 +646,10 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, ply uint8) int16 {
 	search.nodes++
 
+	if maxPly+ply >= MaxDepth {
+		return EvaluatePos(&search.Pos)
+	}
+
 	if search.totalNodes+search.nodes >= search.Timer.MaxNodeCount {
 		search.Timer.Stop = true
 	}
