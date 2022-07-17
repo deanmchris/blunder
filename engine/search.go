@@ -434,7 +434,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// hopes of getting a quick beta-cutoff.          						//
 	// =====================================================================//
 
-	if depth >= IID_Depth_Limit && (isPVNode || entry.Flag == BetaFlag) && ttMove.Equal(NullMove) {
+	if depth >= IID_Depth_Limit && (isPVNode || entry.GetFlag() == BetaFlag) && ttMove.Equal(NullMove) {
 		search.negamax(depth-IID_Depth_Reduction-1, ply+1, -beta, -alpha, &childPVLine, true, NullMove, NullMove, isExtended)
 		if len(childPVLine.Moves) > 0 {
 			ttMove = childPVLine.GetPVMove()
@@ -532,7 +532,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 				depth >= SingularExtensionDepthLimit &&
 				ttMove.Equal(move) &&
 				isPVNode && ttHit &&
-				(entry.Flag == ExactFlag || entry.Flag == BetaFlag) {
+				(entry.GetFlag() == ExactFlag || entry.GetFlag() == BetaFlag) {
 
 				search.Pos.UndoMove(move)
 				search.RemoveHistory()
@@ -628,8 +628,8 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	// If we're not out of time, store the result of the search for this position.
 	if !search.Timer.Stop {
-		e := search.TT.Store(search.Pos.Hash, uint8(depth), search.age)
-		e.Set(
+		entry := search.TT.Store(search.Pos.Hash, uint8(depth), search.age)
+		entry.Set(
 			search.Pos.Hash, bestScore, bestMove, ply, uint8(depth), ttFlag, search.age,
 		)
 	}

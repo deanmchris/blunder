@@ -674,3 +674,15 @@ SPRT: llr 0.242 (8.2%), lbound -2.94, ubound 2.94
 ```
 
 Tested for regression not strength gain, so test stopped early.
+
+Fix bug in transposition table replacement scheme
+-------------------------------------------------
+```
+Score of Blunder 8.4.5 vs Blunder 8.4.4: 557 - 404 - 815  [0.543] 1776
+...      Blunder 8.4.5 playing White: 299 - 183 - 406  [0.565] 888
+...      Blunder 8.4.5 playing Black: 258 - 221 - 409  [0.521] 888
+...      White vs Black: 520 - 441 - 815  [0.522] 1776
+Elo difference: 30.0 +/- 11.9, LOS: 100.0 %, DrawRatio: 45.9 %
+SPRT: llr 2.95 (100.3%), lbound -2.94, ubound 2.94 - H1 was accepted
+Finished match
+```

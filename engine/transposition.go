@@ -20,9 +20,9 @@ const (
 	// a fail-low node (alpha wasn't raised), it's an alpha entry. If the entry has
 	// a score from a fail-high node (a beta cutoff occured), it's a beta entry. And
 	// if the entry has an exact score (alpha was raised), it's an exact entry.
-	AlphaFlag uint8 = iota
-	BetaFlag
-	ExactFlag
+	AlphaFlag uint8 = 1
+	BetaFlag  uint8 = 2
+	ExactFlag uint8 = 3
 
 	// A constant representing the minimum or maximum value that a score from the search
 	// must be below or above to be a checkmate score. The score assumes that the engine
@@ -32,11 +32,11 @@ const (
 
 // A struct for a transposition table entry used in the search.
 type SearchEntry struct {
-	Hash        uint64
-	DepthAndAge uint8
-	Score       int16
-	Flag        uint8
-	Best        Move
+	Hash       uint64
+	Depth      uint8
+	Score      int16
+	Best       Move
+	FlagAndAge uint8
 }
 
 // A struct for a transposition table entry used in perft.
@@ -51,21 +51,25 @@ func (entry SearchEntry) GetHash() uint64 {
 }
 
 func (entry SearchEntry) GetDepth() uint8 {
-	return (entry.DepthAndAge & 0xfe) >> 1
+	return entry.Depth
+}
+
+func (entry SearchEntry) GetFlag() uint8 {
+	return (entry.FlagAndAge & 0xc0) >> 6
 
 }
-func (entry *SearchEntry) SetDepth(depth uint8) {
-	entry.DepthAndAge &= 0x1
-	entry.DepthAndAge |= depth << 1
+func (entry *SearchEntry) SetFlag(flag uint8) {
+	entry.FlagAndAge &= 0x3f
+	entry.FlagAndAge |= flag << 6
 }
 
 func (entry SearchEntry) GetAge() uint8 {
-	return entry.DepthAndAge & 0x1
+	return (entry.FlagAndAge & 0x30) >> 4
 }
 
 func (entry *SearchEntry) SetAge(age uint8) {
-	entry.DepthAndAge &= 0xfe
-	entry.DepthAndAge |= age
+	entry.FlagAndAge &= 0xcf
+	entry.FlagAndAge |= age << 4
 }
 
 func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, best *Move) (int16, bool) {
@@ -88,7 +92,7 @@ func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, 
 		// To be able to get an accurate value from this entry, make sure the results of
 		// this entry are from a search that is equal or greater than the current
 		// depth of our search.
-		if entry.GetDepth() >= depth {
+		if entry.Depth >= depth {
 			score := entry.Score
 
 			// If the score we get from the transposition table is a checkmate score, we need
@@ -106,13 +110,13 @@ func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, 
 				score += int16(ply)
 			}
 
-			if entry.Flag == ExactFlag {
+			if entry.GetFlag() == ExactFlag {
 				// If we have an exact entry, we can use the saved score.
 				adjustedScore = score
 				shouldUse = true
 			}
 
-			if entry.Flag == AlphaFlag && score <= alpha {
+			if entry.GetFlag() == AlphaFlag && score <= alpha {
 				// If we have an alpha entry, and the entry's score is less than our
 				// current alpha, then we know that our current alpha is the best score
 				// we can get in this node, so we can stop searching and use alpha.
@@ -120,7 +124,7 @@ func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, 
 				shouldUse = true
 			}
 
-			if entry.Flag == BetaFlag && score >= beta {
+			if entry.GetFlag() == BetaFlag && score >= beta {
 				// If we have a beta entry, and the entry's score is greater than our
 				// current beta, then we have a beta-cutoff, since while
 				// searching this node previously, we found a value greater than the current
@@ -137,9 +141,9 @@ func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, 
 
 func (entry *SearchEntry) Set(hash uint64, score int16, best Move, ply, depth, flag, age uint8) {
 	entry.Hash = hash
-	entry.SetDepth(depth)
-	entry.Flag = flag
+	entry.Depth = depth
 	entry.Best = best
+	entry.SetFlag(flag)
 	entry.SetAge(age)
 
 	// If the score we get from the transposition table is a checkmate score, we need
@@ -233,8 +237,8 @@ func (tt *TransTable[Entry]) Store(hash uint64, depth uint8, currAge uint8) *Ent
 		return &tt.entries[index]
 	}
 
-	first := tt.entries[index+1]
-	if first.GetDepth() < depth || first.GetAge() != currAge {
+	first := tt.entries[index]
+	if first.GetDepth() <= depth || first.GetAge() != currAge {
 		// Note that returning &first caused a bug where the transposition
 		// table entry was never modifed, and so the table was always empty.
 		// Have to figure out why that is, but for now return &tt.entries[index]
