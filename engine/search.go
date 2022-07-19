@@ -127,7 +127,6 @@ type Search struct {
 
 	side              uint8
 	age               uint8
-	nodes             uint64
 	totalNodes        uint64
 	killers           [MaxDepth + 1][MaxKillers]Move
 	history           [2][64][64]int32
@@ -187,7 +186,6 @@ func (search *Search) Search() Move {
 		depth <= search.Timer.MaxDepth &&
 		search.Timer.MaxNodeCount > 0; depth++ {
 
-		search.nodes = 0
 		pvLine.Clear()
 
 		startTime := time.Now()
@@ -238,13 +236,12 @@ func (search *Search) Search() Move {
 		totalTime += endTime.Milliseconds()
 
 		bestMove = pvLine.GetPVMove()
-		nps := uint64(float64(search.nodes) / float64(endTime.Seconds()))
-		search.totalNodes += search.nodes
+		nps := uint64(float64(search.totalNodes*1000) / float64(totalTime))
 
 		fmt.Printf(
 			"info depth %d score %s nodes %d nps %d time %d pv %s\n",
 			depth, getMateOrCPScore(score),
-			search.nodes, nps,
+			search.totalNodes, nps,
 			totalTime,
 			pvLine,
 		)
@@ -274,19 +271,19 @@ func getMateOrCPScore(score int16) string {
 // The primary negamax function.
 func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *PVLine, doNull bool, prevMove, skipMove Move, isExtended bool) int16 {
 	// Update the number of nodes searched.
-	search.nodes++
+	search.totalNodes++
 
 	if ply >= MaxDepth {
 		return EvaluatePos(&search.Pos)
 	}
 
 	// Make sure we haven't gone pass the node count limit.
-	if search.totalNodes+search.nodes >= search.Timer.MaxNodeCount {
+	if search.totalNodes >= search.Timer.MaxNodeCount {
 		search.Timer.Stop = true
 	}
 
 	// Every 2048 nodes, check if our time has expired.
-	if (search.nodes & 2047) == 0 {
+	if (search.totalNodes & 2047) == 0 {
 		search.Timer.Check()
 	}
 
@@ -319,7 +316,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// search to stabilize the position before returning a static
 	// score.
 	if depth <= 0 {
-		search.nodes--
+		search.totalNodes--
 		return search.Qsearch(alpha, beta, ply, pvLine, ply)
 	}
 
@@ -644,17 +641,17 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 // winning tatical captures). Doing this is known as quiescence search, and
 // it makes the static evaluation much more accurate.
 func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, ply uint8) int16 {
-	search.nodes++
+	search.totalNodes++
 
 	if maxPly+ply >= MaxDepth {
 		return EvaluatePos(&search.Pos)
 	}
 
-	if search.totalNodes+search.nodes >= search.Timer.MaxNodeCount {
+	if search.totalNodes >= search.Timer.MaxNodeCount {
 		search.Timer.Stop = true
 	}
 
-	if (search.nodes & 2047) == 0 {
+	if (search.totalNodes & 2047) == 0 {
 		search.Timer.Check()
 	}
 

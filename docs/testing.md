@@ -686,3 +686,16 @@ Elo difference: 30.0 +/- 11.9, LOS: 100.0 %, DrawRatio: 45.9 %
 SPRT: llr 2.95 (100.3%), lbound -2.94, ubound 2.94 - H1 was accepted
 Finished match
 ```
+
+Count and display nodes cumulatively during search
+--------------------------------------------------
+```
+Score of Blunder 8.4.5-nc vs Blunder 8.4.5: 167 - 139 - 294  [0.523] 600
+...      Blunder 8.4.5-nc playing White: 89 - 67 - 145  [0.537] 301
+...      Blunder 8.4.5-nc playing Black: 78 - 72 - 149  [0.510] 299
+...      White vs Black: 161 - 145 - 294  [0.513] 600
+Elo difference: 16.2 +/- 19.8, LOS: 94.5 %, DrawRatio: 49.0 %
+SPRT: llr 0.517 (17.5%), lbound -2.94, ubound 2.94
+```
+
+Tested for regression not strength gain, so test stopped early.
