@@ -82,15 +82,15 @@ func (tm *TimeManager) Start(gamePly uint16) {
 	}
 
 	// Give an bonus from the increment
-	timeForMove += tm.Increment / 2
+	timeForMove += (3 * tm.Increment) / 4
 
 	// If the increment bonus puts us outside of the actual time we
-	// have left, use the time we have left minus 500ms.
+	// have left, use the time we have left minus 150ms.
 	if timeForMove >= tm.TimeLeft {
-		timeForMove = tm.TimeLeft - 500
+		timeForMove = tm.TimeLeft - 150
 	}
 
-	// If taking away 500ms puts us below zero, use 100ms
+	// If taking away 150ms puts us at orbelow zero, use 100ms
 	// to just get a move to return.
 	if timeForMove <= 0 {
 		timeForMove = 100

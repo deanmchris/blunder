@@ -699,3 +699,14 @@ SPRT: llr 0.517 (17.5%), lbound -2.94, ubound 2.94
 ```
 
 Tested for regression not strength gain, so test stopped early.
+
+Improve the time management scheme for games with fixed time and/or increment
+-----------------------------------------------------------------------------
+```
+Score of Blunder 8.5.5 vs Blunder 8.4.5: 857 - 727 - 1416  [0.522] 3000
+...      Blunder 8.5.5 playing White: 479 - 319 - 702  [0.553] 1500
+...      Blunder 8.5.5 playing Black: 378 - 408 - 714  [0.490] 1500
+...      White vs Black: 887 - 697 - 1416  [0.532] 3000
+Elo difference: 15.1 +/- 9.0, LOS: 99.9 %, DrawRatio: 47.2 %
+SPRT: llr 2.28 (77.3%), lbound -2.94, ubound 2.94
+```
