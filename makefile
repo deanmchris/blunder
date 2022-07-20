@@ -1,4 +1,4 @@
-BINARY_NAME=blunder-8.0.0
+BINARY_NAME=blunder-8.5.5
 
 build:
 	GOARCH=amd64 GOAMD64=v1 go build -o ${BINARY_NAME}-default blunder/main.go
