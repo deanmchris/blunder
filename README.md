@@ -11,7 +11,7 @@ History
 
 The inspiration for Blunder started near the beginning of 2021. Me and many of my friends had recently started playing chess more seriously, and having a couple of years of programming knowledge, I imagined it would be fun to create my own chess playing program. I started a very rough first version, written in Python, but soon abandonded it, as I realized writing a chess engine was a much more daunting project then I had first anticpated. 
 
-With my intial failure, I started doing more research and discovered the rich field of computer programming, and the many helpful people that are a part of it. About 5 months and ten attempts later, I released the first version of Blunder! And I've been working to improve Blunder ever since. As for the programming language switch, though Python is an amazing language (I think anyway), and the first language I learned, it's simply not fast enough for the purpose of writing a relatively strong chess engine. So instead of writing another C/C++ chess engine, I decided to give Go a try, and I've enjoyed working with its tools.
+With my intial failure, I started doing more research and discovered the rich field of computer chess programming, and the many helpful people that are a part of it. About 5 months and ten attempts later, I released the first version of Blunder! And I've been working to improve Blunder ever since. As for the programming language switch, though Python is an amazing language (I think anyway), and the first language I learned, it's simply not fast enough for the purpose of writing a relatively strong chess engine. So instead of writing another C/C++ chess engine, I decided to give Go a try, and I've enjoyed working with its tools.
 
 I've also [started a blog](https://algerbrex.github.io/) to track and write about the development of Blunder.
 
@@ -38,7 +38,8 @@ With that said, several people have been kind enough to test various versions of
 | 7.4.0       | 2510                   | 2532                    | 2554                             |
 | 7.5.0       | 2540                   | ?                       | 2593                             |
 | 7.6.0       | 2620                   | 2631                    | 2658                             |
-| 8.0.0       | 2670                   | ?                       | ?
+| 8.0.0       | 2670                   | 2674                    | ?
+| 8.5.5       | 2700                   | ?                       | ?
 
 
 * [CCRL Blitz Rating List](http://ccrl.chessdom.com/ccrl/404/)
@@ -119,6 +120,7 @@ Features
     - [Late-move pruning/move-count based pruning](https://www.chessprogramming.org/Futility_Pruning#MoveCountBasedPruning)
     - [Internal Iterative Deepening](https://www.chessprogramming.org/Internal_Iterative_Deepening)
     - [Razoring](https://www.chessprogramming.org/Razoring)
+    - [Singular Extensions](https://www.chessprogramming.org/Singular_Extensions)
 * Evaluation
     - [Material evaluation](https://www.chessprogramming.org/Material)
     - [Tuned piece-square tables](https://www.chessprogramming.org/Piece-Square_Tables)
@@ -129,6 +131,7 @@ Features
     - [Basic rook structure](https://www.chessprogramming.org/Evaluation_of_Pieces#Rook)
     - [Bishop pair](https://www.chessprogramming.org/Bishop_Pair)
     - [Drawn and drawish endgame recognition](https://www.chessprogramming.org/Draw_Evaluation)
+    - [Knight and bishop outposts](https://www.chessprogramming.org/Outposts)
     - Gradient descent [Texel Tuner](https://www.chessprogramming.org/Texel%27s_Tuning_Method)
 
 See `docs/testing.md` for a log of the specfic features I've implemented in Blunder, as well

@@ -1,5 +1,7 @@
 Changelog
 ---------
+* Blunder 8.5.5
+* Blunder 8.0.0
 * Blunder 7.6.0
 * Blunder 7.5.0
 * Blunder 7.4.0
@@ -14,6 +16,17 @@ Changelog
 * Blunder 3.0.0
 * Blunder 2.0.0
 * Blunder 1.0.0 (Initial release)
+
+Blunder 8.5.5
+-------------
+
+Blunder 8.5.5 includes several new features, as well as some strength gaining tweaks to the engine.
+Singular extensions have been added, as well as bishop outposts. The time management has been tweaked
+to be a bit stronger, as well as late-move reductions. Bugs where the fifty-move rule wasn't reset for
+a capture and checkmate didn't trump the fifty-move rule have been corrected, as well as a bug in the
+transposition table replacement scheme.
+
+This version of Blunder should be ~40-50 Elo stronger than 8.0.0 at bullet time controls.
 
 Blunder 8.0.0
 -------------
