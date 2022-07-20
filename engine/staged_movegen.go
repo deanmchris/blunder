@@ -1,7 +1,5 @@
 package engine
 
-import "fmt"
-
 // staged_movegen.go implements a simple staged move generator for the search phase.
 
 const (
@@ -85,11 +83,6 @@ mainLoop:
 
 			break mainLoop
 		}
-	}
-
-	if nextMove.Equal(NullMove) && mg.stage != QuietsStage {
-		fmt.Println(mg.stage)
-		panic("Returning null move from staged move generator")
 	}
 
 	return nextMove
