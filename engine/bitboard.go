@@ -25,12 +25,12 @@ var SquareBB [65]Bitboard
 
 // Set the bit at given square.
 func (bitboard *Bitboard) SetBit(sq uint8) {
-	*bitboard |= SquareBB[sq]
+	*bitboard |= (0x8000000000000000 >> sq)
 }
 
 // Clear the bit at given square.
 func (bitboard *Bitboard) ClearBit(sq uint8) {
-	*bitboard &= ^SquareBB[sq]
+	*bitboard &= ^(0x8000000000000000 >> sq)
 }
 
 // Test whether the bit of the given bitbord at the given
