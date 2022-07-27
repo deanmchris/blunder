@@ -202,29 +202,32 @@ type TransTable[Entry interface {
 }] struct {
 	entries []Entry
 	size    uint64
+	mask    uint64
 }
 
 // Resize the transposition table given what the size should be in MB.
 func (tt *TransTable[Entry]) Resize(sizeInMB uint64, entrySize uint64) {
-	size := (sizeInMB * 1024 * 1024) / entrySize
+	size := roundToNearestPowerOfTwo((sizeInMB * 1024 * 1024) / entrySize)
 	tt.entries = make([]Entry, size)
 	tt.size = size
+	tt.mask = size - 1
 }
 
 // Get an entry from the table to use it.
 func (tt *TransTable[Entry]) Probe(hash uint64) *Entry {
-	// Get the entry from the table, calculating an index by modulo-ing the hash of
-	// the position by the size of the table. A two-bucket system is used to
+	// Get the entry from the table, calculating an index by bitwise and-ing the hash of
+	// the position by the size of the table - 1. A two-bucket system is used to
 	// more efficently make use of the table.
 
-	index := hash % tt.size
+	index := hash & tt.mask
 	if index+1 == tt.size {
 		return &tt.entries[index]
 	}
 
-	first := tt.entries[index]
-	if first.GetHash() == hash {
-		return &tt.entries[index]
+	first := &tt.entries[index]
+
+	if (*first).GetHash() == hash {
+		return first
 	}
 
 	return &tt.entries[index+1]
@@ -232,18 +235,15 @@ func (tt *TransTable[Entry]) Probe(hash uint64) *Entry {
 
 // Get an entry from the table to store in it.
 func (tt *TransTable[Entry]) Store(hash uint64, depth uint8, currAge uint8) *Entry {
-	index := hash % tt.size
+	index := hash & tt.mask
 	if index+1 == tt.size {
 		return &tt.entries[index]
 	}
 
-	first := tt.entries[index]
-	if first.GetDepth() <= depth || first.GetAge() != currAge {
-		// Note that returning &first caused a bug where the transposition
-		// table entry was never modifed, and so the table was always empty.
-		// Have to figure out why that is, but for now return &tt.entries[index]
-		// directly.
-		return &tt.entries[index]
+	first := &tt.entries[index]
+
+	if (*first).GetDepth() <= depth || (*first).GetAge() != currAge {
+		return first
 	}
 
 	return &tt.entries[index+1]
@@ -253,6 +253,7 @@ func (tt *TransTable[Entry]) Store(hash uint64, depth uint8, currAge uint8) *Ent
 func (tt *TransTable[Entry]) Unitialize() {
 	tt.entries = nil
 	tt.size = 0
+	tt.mask = 0
 }
 
 // Clear the transposition table
@@ -260,4 +261,18 @@ func (tt *TransTable[Entry]) Clear() {
 	for idx := uint64(0); idx < tt.size; idx++ {
 		tt.entries[idx] = *new(Entry)
 	}
+}
+
+func roundToNearestPowerOfTwo(n uint64) uint64 {
+	// The transposition table size can never be smaller than 1MB, or 2^16
+	// entries, so we can start there, instead of at 1.
+	nearestPowerOfTwo := uint64(2 << 15)
+	shift := uint64(15)
+
+	for n > nearestPowerOfTwo {
+		shift++
+		nearestPowerOfTwo = 2 << shift
+	}
+
+	return nearestPowerOfTwo
 }

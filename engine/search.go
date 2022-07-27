@@ -138,7 +138,6 @@ type Search struct {
 // Setup the necessary internals of the engine when given a new FEN string.
 func (search *Search) Setup(FEN string) {
 	search.Pos.LoadFEN(FEN)
-	search.age = 0
 	search.zobristHistoryPly = 0
 	search.zobristHistory[search.zobristHistoryPly] = search.Pos.Hash
 }
@@ -150,6 +149,7 @@ func (search *Search) Reset() {
 	search.ClearKillers()
 	search.ClearHistoryTable()
 	search.ClearCounterMoves()
+	search.age = 0
 }
 
 // Add a zobrist hash to the history.

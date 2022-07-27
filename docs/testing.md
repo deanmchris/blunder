@@ -710,3 +710,29 @@ Score of Blunder 8.5.5 vs Blunder 8.4.5: 857 - 727 - 1416  [0.522] 3000
 Elo difference: 15.1 +/- 9.0, LOS: 99.9 %, DrawRatio: 47.2 %
 SPRT: llr 2.28 (77.3%), lbound -2.94, ubound 2.94
 ```
+
+Clean-up and improve the TT code
+--------------------------------
+
+No major regression was observered in testing.
+
+```
+Score of Blunder 8.6.5 vs Blunder 8.5.5: 1063 - 1041 - 1896  [0.503] 4000
+...      Blunder 8.6.5 playing White: 581 - 468 - 951  [0.528] 2000
+...      Blunder 8.6.5 playing Black: 482 - 573 - 945  [0.477] 2000
+...      White vs Black: 1154 - 950 - 1896  [0.525] 4000
+Elo difference: 1.9 +/- 7.8, LOS: 68.4 %, DrawRatio: 47.4 %
+SPRT: llr -0.274 (-9.3%), lbound -2.94, ubound 2.94
+Finished match
+```
+
+And the number of low-depth/high-time searches (score < 1cp, depth <= 8, and search time > 400ms)
+was reduced:
+
+```
+Blunder 8.5.5: 262
+Blunder 8.6.5: 217
+```
+
+So this change is kept for now, although it may be modified in the future depending on more
+testing on the nature of these low-depth/high-time searches.
