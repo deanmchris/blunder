@@ -736,3 +736,28 @@ Blunder 8.6.5: 217
 
 So this change is kept for now, although it may be modified in the future depending on more
 testing on the nature of these low-depth/high-time searches.
+
+Tweak Aspiration Window Values
+------------------------------
+
+Little to no Elo gain was recorded after testing:
+
+```
+Rank Name                          Elo     +/-   Games   Score    Draw
+   0 Blunder 8.6.5                  -8      10    2400   48.9%   52.2%
+   1 Blunder 8.6.5-aw-25            11      14    1200   51.6%   52.0%
+   2 Blunder 8.6.5-aw-45             4      14    1200   50.6%   52.4%
+
+Finished match
+```
+
+But the number of low-depth searches for the most promising aspiration window 
+value, 25 centi-pawn, was half that of the engine using the orginal value:
+
+```
+Blunder 8.6.5: 73
+Blunder 8.6.5-aw-25: 27
+Blunder 8.6.5-aw-45: 30
+```
+
+So the changes will be kept, even though they could be a 3 Elo loss in strength.

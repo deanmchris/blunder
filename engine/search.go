@@ -48,7 +48,7 @@ const (
 	StaticNullMovePruningBaseMargin int16 = 85
 	LMRLegalMovesLimit              int   = 4
 	LMRDepthLimit                   int8  = 3
-	WindowSize                      int16 = 35
+	WindowSize                      int16 = 25
 	IID_Depth_Reduction             int8  = 2
 	IID_Depth_Limit                 int8  = 4
 	SingularMoveMargin              int16 = 125
