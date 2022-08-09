@@ -168,8 +168,8 @@ func ConvertSANToLAN(pos *Position, moveStr string) Move {
 				}
 			}
 		} else if len(coords) == 4 {
-			toSq := coordinateToPos(coords[0:2])
-			fromSq := coordinateToPos(coords[2:4])
+			fromSq := coordinateToPos(coords[0:2])
+			toSq := coordinateToPos(coords[2:4])
 			if toSq == move.ToSq() && fromSq == move.FromSq() {
 				matchingMove = move
 			}
