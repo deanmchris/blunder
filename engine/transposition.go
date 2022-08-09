@@ -241,12 +241,21 @@ func (tt *TransTable[Entry]) Store(hash uint64, depth uint8, currAge uint8) *Ent
 	}
 
 	first := &tt.entries[index]
+	second := &tt.entries[index+1]
 
 	if (*first).GetDepth() <= depth || (*first).GetAge() != currAge {
 		return first
 	}
 
-	return &tt.entries[index+1]
+	if (*second).GetDepth() <= depth || (*second).GetAge() != currAge {
+		return second
+	}
+
+	if (*first).GetDepth() < (*second).GetDepth() {
+		return first
+	} else {
+		return second
+	}
 }
 
 // Unitialize the memory used by the transposition table

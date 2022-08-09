@@ -761,3 +761,15 @@ Blunder 8.6.5-aw-45: 30
 ```
 
 So the changes will be kept, even though they could be a 3 Elo loss in strength.
+
+Tweak transposition table replacement scheme
+--------------------------------------------
+```
+Score of Blunder 8.7.6 vs Blunder 8.6.6: 2180 - 2029 - 3791  [0.509] 8000
+...      Blunder 8.7.6 playing White: 1249 - 879 - 1872  [0.546] 4000
+...      Blunder 8.7.6 playing Black: 931 - 1150 - 1919  [0.473] 4000
+...      White vs Black: 2399 - 1810 - 3791  [0.537] 8000
+Elo difference: 6.6 +/- 5.5, LOS: 99.0 %, DrawRatio: 47.4 %
+SPRT: llr 1.79 (60.9%), lbound -2.94, ubound 2.94
+Finished match
+```
