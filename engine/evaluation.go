@@ -17,8 +17,13 @@ const (
 	ScaleFactor int16 = 16
 )
 
-// A constant representing a draw value.
+// A variable representing a draw value. Not a constant as it can be changed via a UCI
+// contempt option.
 var Draw int16 = 0
+
+// A variable representing the agressitivity multiplier to use for when scaling king safety.
+// Not a constant as it can be changed via a UCI contempt option.
+var Aggressitivity uint16 = 4
 
 type Eval struct {
 	MGScores [2]int16
@@ -510,7 +515,7 @@ func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 
 	// Take all the king saftey points collected for the enemy,
 	// and see what kind of penatly we should get.
-	penatly := int16((enemyPoints * enemyPoints) / 4)
+	penatly := int16((enemyPoints * enemyPoints) / Aggressitivity)
 	if eval.KingAttackers[color^1] >= 2 && pos.Pieces[color^1][Queen] != 0 {
 		eval.MGScores[color] -= penatly
 	}
