@@ -196,8 +196,8 @@ func InitTables() {
 		}
 	}()
 
-	genRookMagics()
-	genBishopMagics()
+	GenRookMagics()
+	GenBishopMagics()
 
 	quit <- true
 	fmt.Println("\nDone finding rook and bishop magics.")

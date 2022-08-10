@@ -175,7 +175,7 @@ func genBishopMovesHQ(sq uint8, occupied Bitboard, genMask bool) Bitboard {
 }
 
 // Find magic numbers for rooks.
-func genRookMagics() {
+func GenRookMagics() {
 	var prng PseduoRandomGenerator
 
 	for sq := uint8(0); sq < 64; sq++ {
@@ -220,7 +220,7 @@ func genRookMagics() {
 }
 
 // Find magic numbers for bishops.
-func genBishopMagics() {
+func GenBishopMagics() {
 	var prng PseduoRandomGenerator
 	for sq := uint8(0); sq < 64; sq++ {
 		magic := &BishopMagics[sq]

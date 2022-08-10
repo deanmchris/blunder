@@ -92,6 +92,18 @@ So to use Blunder, it's reccomend you install one of these programs. Popular fre
 Once you have a program downloaded, you'll need to follow that specfic programs guide on how to install a chess engine. When prompted 
 for a command or executable, direct the GUI to the Golang exectuable you built.
 
+In addition to running the UCI protocl, Blunder does have some useful commands that can be run
+as command-line arguments:
+
+* `blunder gen-magics` will generate a new set of magic numbers for bishops and rooks.
+* `blunder gen-fens` will generate a set of quiet fens from a pgn file providied.
+* `blunder tune` will run Blunder's tune to tune a new set of evaluation weights.
+
+For more information on how to use the above commands, type `blunder <command> -h` in the command line.
+
+No command given simply starts the modified UCI protocol, where from the actual UCI
+protocol can be started.
+
 Features
 --------
 
