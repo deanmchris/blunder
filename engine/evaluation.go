@@ -15,10 +15,10 @@ const (
 	// A constant to scale the evaluation score by if the position is considered
 	// drawish (e.g. king and queen vs king and queen).
 	ScaleFactor int16 = 16
-
-	// A constant representing a draw value.
-	Draw int16 = 0
 )
+
+// A constant representing a draw value.
+var Draw int16 = 0
 
 type Eval struct {
 	MGScores [2]int16
