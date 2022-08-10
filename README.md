@@ -22,24 +22,24 @@ When discussing an engine's (or human chess player's) strength, it's important t
 
 With that said, several people have been kind enough to test various versions of Blunder, and a summary of the rating list and their ratings for the versions are listed below:
 
-| Version     | Estimated Rating (Elo) | CCRL Blitz Rating (Elo) | Bruce's Bullet Rating List (ELo) |
+| Version     | Estimated Rating (Elo) | CCRL Blitz Rating (Elo) | CCRL 40/15 Rating (Elo)          |
 | ----------- | -----------------------|-------------------------|----------------------------------|
 | 1.0.0       | 1400                   | -                       | -                                |
 | 2.0.0       | 1570                   | -                       | -                                |
 | 3.0.0       | 1782                   | -                       | -                                |
 | 4.0.0       | 1832                   | 1734                    | -                                |
-| 5.0.0       | 2000                   | 2080                    | 2174                             |
-| 6.0.0       | 2200                   | -                       | 2248                             |
-| 6.1.0       | 2200                   | 2155                    | 2226                             |
-| 7.0.0       | 2280                   | -                       | 2374                             |
-| 7.1.0       | 2395                   | -                       | 2455                             |
-| 7.2.0       | 2395                   | 2425                    | 2472                             |
-| 7.3.0       | 2450                   | -                       | 2499                             |
-| 7.4.0       | 2510                   | 2532                    | 2554                             |
-| 7.5.0       | 2540                   | ?                       | 2593                             |
-| 7.6.0       | 2620                   | 2631                    | 2658                             |
-| 8.0.0       | 2670                   | 2674                    | ?
-| 8.5.5       | 2700                   | ?                       | ?
+| 5.0.0       | 2000                   | 2080                    | -                                |
+| 6.0.0       | 2200                   | -                       | -                                |
+| 6.1.0       | 2200                   | 2155                    | -                                |
+| 7.0.0       | 2280                   | -                       | -                                |
+| 7.1.0       | 2395                   | -                       | -                                |
+| 7.2.0       | 2395                   | 2425                    | -                                |
+| 7.3.0       | 2450                   | -                       | -                                |
+| 7.4.0       | 2510                   | 2532                    | -                                |
+| 7.5.0       | 2540                   | -                       | -                                |
+| 7.6.0       | 2620                   | 2631                    | -                                |
+| 8.0.0       | 2670                   | 2662                    | 2684                             |
+| 8.5.5       | 2700                   | -                       | 2702                             |
 
 
 * [CCRL Blitz Rating List](http://ccrl.chessdom.com/ccrl/404/)
