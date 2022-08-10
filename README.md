@@ -37,7 +37,7 @@ With that said, several people have been kind enough to test various versions of
 | 7.3.0       | 2450                   | -                       | -                                |
 | 7.4.0       | 2510                   | 2532                    | -                                |
 | 7.5.0       | 2540                   | -                       | -                                |
-| 7.6.0       | 2620                   | 2631                    | -                                |
+| 7.6.0       | 2620                   | 2631                    | 2636                             |
 | 8.0.0       | 2670                   | 2662                    | 2684                             |
 | 8.5.5       | 2700                   | -                       | 2702                             |
 
