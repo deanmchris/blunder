@@ -12,12 +12,11 @@ import (
 )
 
 const (
-	Iterations         = 2000
+	PrintInterval      = 100
 	NumWeights         = 936
 	NumSafetyEvalTerms = 9
 	ScalingFactor      = 0.01
 	Epsilon            = 0.00000001
-	LearningRate       = 0.5
 
 	Draw     float64 = 0.5
 	WhiteWin float64 = 1.0
@@ -191,6 +190,9 @@ func loadDefaultWeights() (weights []float64, indexes Indexes) {
 	copy(tempWeights[index:index+4], []int16{1, 1, 1, 1})
 	copy(tempWeights[index+4:index+8], []int16{1, 1, 1, 1})
 	index += 8
+
+	indexes.MG_PassedPawn_PSQT_StartIndex = index
+	indexes.EG_PassedPawn_PSQT_StartIndex = index + 64
 	index += 128
 
 	indexes.MG_DoubledPawnIndex = index
@@ -667,8 +669,8 @@ func computeGradientNumerically(entries []Entry, weights []float64, indexes Inde
 	return gradients
 }
 
-func computeGradient(entries []Entry, weights []float64, indexes Indexes) (gradients []float64) {
-	gradients = make([]float64, NumWeights)
+func computePartialGradient(partialGradients chan []float64, entries []Entry, weights []float64, indexes Indexes) {
+	gradients := make([]float64, NumWeights)
 
 	for i := range entries {
 		score := evaluate(weights, entries[i].NormalCoefficents, entries[i].SafetyCoefficents, indexes, entries[i].MGPhase)
@@ -699,6 +701,26 @@ func computeGradient(entries []Entry, weights []float64, indexes Indexes) (gradi
 		}
 	}
 
+	partialGradients <- gradients
+}
+
+func computeGradient(entries []Entry, weights []float64, indexes Indexes, numCores int) (gradients []float64) {
+	gradients = make([]float64, NumWeights)
+	partialGradients := make(chan []float64, numCores)
+
+	entriesPerProcess := len(entries) / numCores
+	for i := 0; i < len(entries); i += entriesPerProcess {
+		go computePartialGradient(partialGradients, entries[i:i+entriesPerProcess], weights, indexes)
+	}
+
+	for i := 0; i < numCores; i++ {
+		partialGradient := <-partialGradients
+		for i := range partialGradient {
+			gradients[i] += partialGradient[i]
+		}
+	}
+
+	close(partialGradients)
 	return gradients
 }
 
@@ -778,23 +800,9 @@ func printParameters(weights []float64, indexes Indexes) {
 	}
 
 	for piece, index := uint8(0), uint16(0); piece <= engine.King; piece, index = piece+1, index+64 {
-		tableName := fmt.Sprintf("MG %s PST", pieceNames[piece])
+		tableName := fmt.Sprintf("EG %s PST", pieceNames[piece])
 		prettyPrintPSQT(tableName, convertFloatSiceToInt(weights[indexes.EG_PSQT_StartIndex+index:indexes.EG_PSQT_StartIndex+index+64]))
 	}
-
-	prettyPrintPSQT("MG Pawn PST", convertFloatSiceToInt(weights[0:64]))
-	prettyPrintPSQT("MG Knight PST", convertFloatSiceToInt(weights[64:128]))
-	prettyPrintPSQT("MG Bishop PST", convertFloatSiceToInt(weights[128:192]))
-	prettyPrintPSQT("MG Rook PST", convertFloatSiceToInt(weights[192:256]))
-	prettyPrintPSQT("MG Queen PST", convertFloatSiceToInt(weights[256:320]))
-	prettyPrintPSQT("MG King PST", convertFloatSiceToInt(weights[320:384]))
-
-	prettyPrintPSQT("EG Pawn PST", convertFloatSiceToInt(weights[384:448]))
-	prettyPrintPSQT("EG Knight PST", convertFloatSiceToInt(weights[448:512]))
-	prettyPrintPSQT("EG Bishop PST", convertFloatSiceToInt(weights[512:576]))
-	prettyPrintPSQT("EG Rook PST", convertFloatSiceToInt(weights[576:640]))
-	prettyPrintPSQT("EG Queen PST", convertFloatSiceToInt(weights[640:704]))
-	prettyPrintPSQT("EG King PST", convertFloatSiceToInt(weights[704:768]))
 
 	prettyPrintPSQT("MG Passed Pawn PST", convertFloatSiceToInt(weights[indexes.MG_PassedPawn_PSQT_StartIndex:indexes.MG_PassedPawn_PSQT_StartIndex+64]))
 	prettyPrintPSQT("EG Passed Pawn PST", convertFloatSiceToInt(weights[indexes.EG_PassedPawn_PSQT_StartIndex:indexes.EG_PassedPawn_PSQT_StartIndex+64]))
@@ -802,7 +810,7 @@ func printParameters(weights []float64, indexes Indexes) {
 	fmt.Println()
 }
 
-func Tune(infile string, epochs, numPositions int, recordErrorRate bool, useDefaultWeights bool) {
+func Tune(infile string, epochs, numPositions int, learningRate float64, numCores int, recordErrorRate bool, useDefaultWeights bool) {
 	var weights []float64
 	var indexes Indexes
 
@@ -818,13 +826,12 @@ func Tune(infile string, epochs, numPositions int, recordErrorRate bool, useDefa
 	beforeErr := computeMSE(entries, weights, indexes)
 
 	N := float64(numPositions)
-	learningRate := LearningRate
 
 	errors := []float64{beforeErr}
 	errorRecordingRate := epochs / 100
 
 	for epoch := 0; epoch < epochs; epoch++ {
-		gradients := computeGradient(entries, weights, indexes)
+		gradients := computeGradient(entries, weights, indexes, numCores)
 		for k, gradient := range gradients {
 			leadingCoefficent := (-2 * ScalingFactor) / N
 			gradientsSumsSquared[k] += (leadingCoefficent * gradient) * (leadingCoefficent * gradient)
@@ -835,6 +842,10 @@ func Tune(infile string, epochs, numPositions int, recordErrorRate bool, useDefa
 
 		if recordErrorRate && epoch > 0 && epoch%errorRecordingRate == 0 {
 			errors = append(errors, computeMSE(entries, weights, indexes))
+		}
+
+		if epoch > 0 && epoch%PrintInterval == 0 {
+			printParameters(weights, indexes)
 		}
 	}
 

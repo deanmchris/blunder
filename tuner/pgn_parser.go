@@ -3,8 +3,8 @@ package tuner
 import (
 	"blunder/engine"
 	"io/ioutil"
-	"log"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -15,11 +15,14 @@ const (
 	BlackWon uint8 = 1
 	Drawn    uint8 = 2
 
-	EventTagPattern  = "\\[Event .*\\]"
-	FenTagPattern    = "\\[FEN .*\\]"
-	ResultTagPattern = "\\[Result .*\\]"
-	TagPattern       = "\\[.*\\]"
-	MovePattern      = "([a-h]x)?([a-h][81]=[QRBN])|(([QRBNK])?([a-h])?([1-8])?(x)?[a-h][1-8])|(O-O-O)|(O-O)"
+	EventTagPattern    = "\\[Event .*\\]"
+	VariantTagPattern  = "\\[Variant .*\\]"
+	WhiteEloTagPattern = "\\[WhiteElo .*\\]"
+	BlackEloTagPattern = "\\[BlackElo .*\\]"
+	FenTagPattern      = "\\[FEN .*\\]"
+	ResultTagPattern   = "\\[Result .*\\]"
+	TagPattern         = "\\[.*\\]"
+	MovePattern        = "([a-h]x)?([a-h][81]=[QRBN])|(([QRBNK])?([a-h])?([1-8])?(x)?[a-h][1-8])|(O-O-O)|(O-O)"
 )
 
 type PGN struct {
@@ -30,7 +33,7 @@ type PGN struct {
 
 // Parse a file of PGNs. The file name is assumed to be the name of a
 // file in the blunder/tuner directory.
-func parsePGNs(filename string) (pgns []PGN) {
+func parsePGNs(filename string, minElo uint16) (pgns []PGN) {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
@@ -57,6 +60,9 @@ func parsePGNs(filename string) (pgns []PGN) {
 
 	var pos engine.Position
 	fenTagRegex, _ := regexp.Compile(FenTagPattern)
+	variantTagRegex, _ := regexp.Compile(VariantTagPattern)
+	whiteEloTagRegex, _ := regexp.Compile(WhiteEloTagPattern)
+	blackEloTagRegex, _ := regexp.Compile(BlackEloTagPattern)
 	resultTagRegex, _ := regexp.Compile(ResultTagPattern)
 	tagRegex, _ := regexp.Compile(TagPattern)
 	moveRegex, _ := regexp.Compile(MovePattern)
@@ -65,6 +71,12 @@ func parsePGNs(filename string) (pgns []PGN) {
 		var fen string
 		var outcome uint8
 		var moves []engine.Move
+
+		// Variants are skipped
+		variantTag := variantTagRegex.FindString(chunk)
+		if variantTag != "" {
+			continue
+		}
 
 		fenTag := fenTagRegex.FindString(chunk)
 		if fenTag == "" {
@@ -79,7 +91,6 @@ func parsePGNs(filename string) (pgns []PGN) {
 
 		resultTag := resultTagRegex.FindString(chunk)
 		if resultTag == "" {
-			log.Println("invalid pgn skipped")
 			continue
 		} else {
 			result := strings.Fields(resultTag)[1]
@@ -93,7 +104,42 @@ func parsePGNs(filename string) (pgns []PGN) {
 			} else if result == "1/2-1/2" {
 				outcome = Drawn
 			} else {
-				log.Println("no result, skipped")
+				continue
+			}
+		}
+
+		whiteEloTag := whiteEloTagRegex.FindString(chunk)
+		if whiteEloTag == "" && minElo > 0 {
+			continue
+		} else {
+			elo := strings.Fields(whiteEloTag)[1]
+			elo = strings.TrimPrefix(elo, "\"")
+			elo = strings.TrimSuffix(elo, "\"]")
+
+			eloNumber, err := strconv.Atoi(elo)
+			if err != nil {
+				continue
+			}
+
+			if uint16(eloNumber) < minElo {
+				continue
+			}
+		}
+
+		blackEloTag := blackEloTagRegex.FindString(chunk)
+		if blackEloTag == "" && minElo > 0 {
+			continue
+		} else {
+			elo := strings.Fields(blackEloTag)[1]
+			elo = strings.TrimPrefix(elo, "\"")
+			elo = strings.TrimSuffix(elo, "\"]")
+
+			eloNumber, err := strconv.Atoi(elo)
+			if err != nil {
+				continue
+			}
+
+			if uint16(eloNumber) < minElo {
 				continue
 			}
 		}

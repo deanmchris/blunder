@@ -21,7 +21,7 @@ var OutcomeToResult = []string{
 
 // Given an infile containg the PGNs, extract quiet positions from the files,
 // and write them to the given outfile.
-func GenTrainingData(infile, outfile string, samplingSizePerGame int) {
+func GenTrainingData(infile, outfile string, samplingSizePerGame int, minElo uint16) {
 	search := engine.Search{}
 	search.TT.Resize(engine.DefaultTTSize, engine.SearchEntrySize)
 	search.Timer.Setup(
@@ -35,7 +35,7 @@ func GenTrainingData(infile, outfile string, samplingSizePerGame int) {
 
 	rand.Seed(time.Now().UnixNano())
 
-	pgns := parsePGNs(infile)
+	pgns := parsePGNs(infile, minElo)
 	numPositions := 0
 	fens := []string{}
 
@@ -88,7 +88,7 @@ func GenTrainingData(infile, outfile string, samplingSizePerGame int) {
 
 	rand.Shuffle(len(fens), func(i, j int) { fens[i], fens[j] = fens[j], fens[i] })
 
-	file, err := os.OpenFile(outfile, os.O_APPEND|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(outfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -102,7 +102,6 @@ func GenTrainingData(infile, outfile string, samplingSizePerGame int) {
 				panic(err)
 			}
 		} else {
-			log.Print("skipping duplicate position")
 			numPositions--
 		}
 	}

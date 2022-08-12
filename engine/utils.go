@@ -144,11 +144,13 @@ func ConvertSANToLAN(pos *Position, moveStr string) Move {
 			if len(moveStr) == 6 && moveStr[4] == '=' {
 				promotionType := pieceType - 1
 				toSq := coordinateToPos(coords[1:])
+				file := moveStr[0] - 'a'
 
 				if captured != NoType &&
 					move.MoveType() == Promotion &&
 					move.Flag() == promotionType &&
-					move.ToSq() == toSq {
+					move.ToSq() == toSq &&
+					FileOf(move.FromSq()) == uint8(file) {
 					matchingMove = move
 				}
 			} else {
