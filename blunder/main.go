@@ -25,7 +25,7 @@ func main() {
 			"<full fen> [<result float>], where 'result float' is either 1.0 (white won),\n"+
 			"0.0 (black won), or 0.5 (draw).",
 	)
-	tuneEpochs := tuneCommand.Int("epochs", 500000, "The number of epochs to run the tuner for.")
+	tuneEpochs := tuneCommand.Int("epochs", 50000, "The number of epochs to run the tuner for.")
 	tuneLearningRate := tuneCommand.Float64("learning-rate", 0.5, "The learning rate of the gradient descent algorithm.")
 	tuneNumCores := tuneCommand.Int("num-cores", 1, "The number of cores to assume can be used while tuning.")
 	tuneNumPositions := tuneCommand.Int(
@@ -44,6 +44,7 @@ func main() {
 	genFENsInputFile := genFENsCommand.String("input-file", "", "The input pgn file to extract quiet fens/positions from.")
 	genFENsOutputFile := genFENsCommand.String("output-file", "fens.epd", "The file to output the quiet fens too. If one is not given, a file will be created.")
 	genFENsSampleSize := genFENsCommand.Int("sample-size", 10, "The number of random quiet positions to extract from each game.")
+	genFENsMaxGames := genFENsCommand.Int("max-games", 200000, "The maximum number of games to attempt to extract quiet positions from.")
 	genFENsMinElo := genFENsCommand.Int(
 		"min-elo",
 		0,
@@ -86,7 +87,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			tuner.GenTrainingData(*genFENsInputFile, *genFENsOutputFile, *genFENsSampleSize, uint16(*genFENsMinElo))
+			tuner.GenTrainingData(*genFENsInputFile, *genFENsOutputFile, *genFENsSampleSize, uint16(*genFENsMinElo), uint32(*genFENsMaxGames))
 		case "tune":
 			tuneCommand.Parse(os.Args[2:])
 

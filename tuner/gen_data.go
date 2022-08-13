@@ -21,7 +21,7 @@ var OutcomeToResult = []string{
 
 // Given an infile containg the PGNs, extract quiet positions from the files,
 // and write them to the given outfile.
-func GenTrainingData(infile, outfile string, samplingSizePerGame int, minElo uint16) {
+func GenTrainingData(infile, outfile string, samplingSizePerGame int, minElo uint16, maxGames uint32) {
 	search := engine.Search{}
 	search.TT.Resize(engine.DefaultTTSize, engine.SearchEntrySize)
 	search.Timer.Setup(
@@ -35,7 +35,7 @@ func GenTrainingData(infile, outfile string, samplingSizePerGame int, minElo uin
 
 	rand.Seed(time.Now().UnixNano())
 
-	pgns := parsePGNs(infile, minElo)
+	pgns := parsePGNs(infile, minElo, maxGames)
 	numPositions := 0
 	fens := []string{}
 
