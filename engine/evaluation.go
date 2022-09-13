@@ -1,5 +1,7 @@
 package engine
 
+import "blunder/neural_network"
+
 const (
 	// Constants which map a piece to how much weight it should have on the phase of the game.
 	PawnPhase   int16 = 0
@@ -274,6 +276,31 @@ var FlipSq [2][64]int = [2][64]int{
 var FlipRank = [2][8]uint8{
 	{Rank8, Rank7, Rank6, Rank5, Rank4, Rank3, Rank2, Rank1},
 	{Rank1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8},
+}
+
+var NN neural_network.NeuralNetwork
+
+func NNEvaluatePos(pos *Position) int16 {
+	input := PosToVector(pos)
+	eval := int16(NN.Compute(input)[0] * 100.0)
+
+	if pos.SideToMove == Black {
+		return -eval
+	}
+	return eval
+}
+
+func PosToVector(pos *Position) (v neural_network.Vector) {
+	v = make(neural_network.Vector, neural_network.InputVectorSize)
+	allBB := pos.Sides[White] | pos.Sides[Black]
+	for allBB != 0 {
+		sq := allBB.PopBit()
+		piece := pos.Squares[sq]
+
+		index := (uint16(piece.Type)*2+uint16(piece.Color))*64 + uint16(sq)
+		v[index] = 1.0
+	}
+	return v
 }
 
 // Evaluate a position and give a score, from the perspective of the side to move (
@@ -641,6 +668,9 @@ func sqIsDark(sq uint8) bool {
 }
 
 func InitEvalBitboards() {
+	NN = neural_network.NewNetwork([]int{768, 512, 512, 1})
+	NN.LoadFromFile("C:\\Users\\deanm\\Desktop\\blunder-training\\blunder-training\\nn.txt")
+
 	for file := FileA; file <= FileH; file++ {
 		fileBB := MaskFile[file]
 		mask := (fileBB & ClearFile[FileA]) << 1

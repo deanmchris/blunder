@@ -37,7 +37,7 @@ type PGN struct {
 
 // Parse a file of PGNs. The file name is assumed to be the name of a
 // file in the blunder/tuner directory.
-func parsePGNs(filename string, minElo uint16, maxGames uint32) (pgns []PGN) {
+func ParsePGNs(filename string, minElo uint16, maxGames uint32) (pgns []PGN) {
 	file, err := os.Open(filename)
 	if err != nil {
 		panic(err)

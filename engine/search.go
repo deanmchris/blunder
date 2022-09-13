@@ -274,7 +274,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	search.totalNodes++
 
 	if ply >= MaxDepth {
-		return EvaluatePos(&search.Pos)
+		return NNEvaluatePos(&search.Pos)
 	}
 
 	// Make sure we haven't gone pass the node count limit.
@@ -283,7 +283,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	}
 
 	// Every 2048 nodes, check if our time has expired.
-	if (search.totalNodes & 2047) == 0 {
+	if (search.totalNodes & 50) == 0 {
 		search.Timer.Check()
 	}
 
@@ -401,7 +401,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if depth <= 2 && !isPVNode && !inCheck {
-		staticScore := EvaluatePos(&search.Pos)
+		staticScore := NNEvaluatePos(&search.Pos)
 		if staticScore+FutilityMargins[depth]*3 < alpha {
 			score := search.Qsearch(alpha, beta, ply, &PVLine{}, 0)
 			if score < alpha {
@@ -419,7 +419,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// =====================================================================//
 
 	if depth <= FutilityPruningDepthLimit && !isPVNode && !inCheck && alpha < Checkmate && beta < Checkmate {
-		staticScore := EvaluatePos(&search.Pos)
+		staticScore := NNEvaluatePos(&search.Pos)
 		margin := FutilityMargins[depth]
 		canFutilityPrune = staticScore+margin <= alpha
 	}
@@ -644,14 +644,14 @@ func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, p
 	search.totalNodes++
 
 	if maxPly+ply >= MaxDepth {
-		return EvaluatePos(&search.Pos)
+		return NNEvaluatePos(&search.Pos)
 	}
 
 	if search.totalNodes >= search.Timer.MaxNodeCount {
 		search.Timer.Stop = true
 	}
 
-	if (search.totalNodes & 2047) == 0 {
+	if (search.totalNodes & 50) == 0 {
 		search.Timer.Check()
 	}
 
@@ -659,7 +659,7 @@ func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, p
 		return 0
 	}
 
-	bestScore := EvaluatePos(&search.Pos)
+	bestScore := NNEvaluatePos(&search.Pos)
 	inCheck := ply <= 2 && search.Pos.InCheck()
 
 	// If the score is greater than beta, what our opponet can

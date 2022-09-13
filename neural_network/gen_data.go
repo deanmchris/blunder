@@ -1,7 +1,8 @@
-package tuner
+package neural_network
 
-import (
+/*import (
 	"blunder/engine"
+	"blunder/tuner"
 	"fmt"
 	"log"
 	"math"
@@ -11,7 +12,7 @@ import (
 	"time"
 )
 
-// gen_data.go generates training data for the texel tuner from the PGNs of games played.
+// gen_data.go generates training data for training the neural network.
 
 var OutcomeToResult = []string{
 	"1.0",
@@ -19,7 +20,7 @@ var OutcomeToResult = []string{
 	"0.5",
 }
 
-// Given an infile containg the PGNs, extract quiet positions from the files,
+// Given an infile containg the PGNs, extract positions from the files,
 // and write them to the given outfile.
 func GenTrainingData(infile, outfile string, samplingSizePerGame int, minElo uint16, maxGames uint32) {
 	search := engine.Search{}
@@ -35,7 +36,7 @@ func GenTrainingData(infile, outfile string, samplingSizePerGame int, minElo uin
 
 	rand.Seed(time.Now().UnixNano())
 
-	pgns := ParsePGNs(infile, minElo, maxGames)
+	pgns := tuner.ParsePGNs(infile, minElo, maxGames)
 	numPositions := 0
 	fens := []string{}
 
@@ -70,13 +71,19 @@ func GenTrainingData(infile, outfile string, samplingSizePerGame int, minElo uin
 				continue
 			}
 
-			pvLine := engine.PVLine{}
-			search.Qsearch(-engine.Inf, engine.Inf, 0, &pvLine, 0)
+			// pvLine := engine.PVLine{}
+			//search.Qsearch(-engine.Inf, engine.Inf, 0, &pvLine, 0)
 
-			fields := strings.Fields(applyPV(&search.Pos, pvLine))
-			result := OutcomeToResult[pgn.Outcome]
+			fields := strings.Fields(search.Pos.GenFEN())
 
-			possibleFens = append(possibleFens, fmt.Sprintf("%s %s - - 0 1 [%s]\n", fields[0], fields[1], result))
+			// result := OutcomeToResult[pgn.Outcome]
+
+			eval := float64(engine.EvaluatePos(&search.Pos)) / 100
+			if search.Pos.SideToMove == engine.Black {
+				eval = -eval
+			}
+
+			possibleFens = append(possibleFens, fmt.Sprintf("%s %s - - 0 1|%f\n", fields[0], fields[1], eval))
 		}
 
 		samplingSize := engine.Min(samplingSizePerGame, len(possibleFens))
@@ -108,18 +115,4 @@ func GenTrainingData(infile, outfile string, samplingSizePerGame int, minElo uin
 
 	log.Printf("%d positions succesfully extracted!\n", numPositions)
 	file.Close()
-}
-
-func applyPV(pos *engine.Position, pvLine engine.PVLine) (fen string) {
-	for _, move := range pvLine.Moves {
-		pos.DoMove(move)
-	}
-
-	fen = pos.GenFEN()
-
-	for i := len(pvLine.Moves) - 1; i >= 0; i-- {
-		pos.UndoMove(pvLine.Moves[i])
-	}
-
-	return fen
-}
+}*/
