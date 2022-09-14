@@ -21,9 +21,9 @@ func NewMatrix(numRows, numColumns int) (m Matrix) {
 
 func ComputeMatrixVectorMult(m Matrix, v Vector) (res Vector) {
 	res = make([]float32, len(m))
-	for i, row := range m {
-		for j, el := range row {
-			res[i] += el * v[j]
+	for i := range m {
+		for j := range m[i] {
+			res[i] += m[i][j] * v[j]
 		}
 	}
 

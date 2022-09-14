@@ -281,26 +281,11 @@ var FlipRank = [2][8]uint8{
 var NN neural_network.NeuralNetwork
 
 func NNEvaluatePos(pos *Position) int16 {
-	input := PosToVector(pos)
-	eval := int16(NN.Compute(input)[0] * 100.0)
-
+	eval := int16(NN.Compute(pos.PosVector)[0] * 100.0)
 	if pos.SideToMove == Black {
 		return -eval
 	}
 	return eval
-}
-
-func PosToVector(pos *Position) (v neural_network.Vector) {
-	v = make(neural_network.Vector, neural_network.InputVectorSize)
-	allBB := pos.Sides[White] | pos.Sides[Black]
-	for allBB != 0 {
-		sq := allBB.PopBit()
-		piece := pos.Squares[sq]
-
-		index := (uint16(piece.Type)*2+uint16(piece.Color))*64 + uint16(sq)
-		v[index] = 1.0
-	}
-	return v
 }
 
 // Evaluate a position and give a score, from the perspective of the side to move (
@@ -668,8 +653,8 @@ func sqIsDark(sq uint8) bool {
 }
 
 func InitEvalBitboards() {
-	NN = neural_network.NewNetwork([]int{768, 512, 512, 1})
-	NN.LoadFromFile("C:\\Users\\deanm\\Desktop\\blunder-training\\blunder-training\\nn.txt")
+	NN = neural_network.NewNetwork([]int{768, 16, 1})
+	NN.LoadFromFile("C:\\Users\\deanm\\Desktop\\blunder-training\\blunder-training\\nn3.txt")
 
 	for file := FileA; file <= FileH; file++ {
 		fileBB := MaskFile[file]
