@@ -283,7 +283,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	}
 
 	// Every 2048 nodes, check if our time has expired.
-	if (search.totalNodes & 100) == 0 {
+	if (search.totalNodes & 2047) == 0 {
 		search.Timer.Check()
 	}
 
@@ -651,7 +651,7 @@ func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, p
 		search.Timer.Stop = true
 	}
 
-	if (search.totalNodes & 100) == 0 {
+	if (search.totalNodes & 2047) == 0 {
 		search.Timer.Check()
 	}
 

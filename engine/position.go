@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"blunder/neural_network"
 	"fmt"
 	"strconv"
 	"strings"
@@ -144,10 +143,9 @@ type Position struct {
 	prevStates     [100]State
 	StatePly       uint8
 
-	MGScores  [2]int16
-	EGScores  [2]int16
-	Phase     int16
-	PosVector neural_network.Vector
+	MGScores [2]int16
+	EGScores [2]int16
+	Phase    int16
 }
 
 // Setup the position using a fen string.
@@ -164,8 +162,6 @@ func (pos *Position) LoadFEN(FEN string) {
 	for square := range pos.Squares {
 		pos.Squares[square] = Piece{Type: NoType, Color: NoColor}
 	}
-
-	pos.PosVector = neural_network.NewVector(768)
 
 	// Load in each field of the FEN string.
 	fields := strings.Fields(FEN)
@@ -676,9 +672,6 @@ func (pos *Position) putPiece(pieceType, pieceColor, to uint8) {
 	pos.MGScores[pieceColor] += PieceValueMG[pieceType] + PSQT_MG[pieceType][FlipSq[pieceColor][to]]
 	pos.EGScores[pieceColor] += PieceValueEG[pieceType] + PSQT_EG[pieceType][FlipSq[pieceColor][to]]
 	pos.Phase -= PhaseValues[pieceType]
-
-	index := (uint16(pieceType)*2+uint16(pieceColor))*64 + uint16(to)
-	pos.PosVector[index] = 1.0
 }
 
 // Clear a piece of a given color and type from a square.
@@ -690,9 +683,6 @@ func (pos *Position) clearPiece(from uint8) {
 	pos.MGScores[piece.Color] -= PieceValueMG[piece.Type] + PSQT_MG[piece.Type][FlipSq[piece.Color][from]]
 	pos.EGScores[piece.Color] -= PieceValueEG[piece.Type] + PSQT_EG[piece.Type][FlipSq[piece.Color][from]]
 	pos.Phase += PhaseValues[piece.Type]
-
-	index := (uint16(piece.Type)*2+uint16(piece.Color))*64 + uint16(from)
-	pos.PosVector[index] = 0.0
 
 	piece.Type = NoType
 	piece.Color = NoColor
@@ -710,9 +700,6 @@ func (pos *Position) zobristPutPiece(pieceType, pieceColor, to uint8) {
 	pos.MGScores[pieceColor] += PieceValueMG[pieceType] + PSQT_MG[pieceType][FlipSq[pieceColor][to]]
 	pos.EGScores[pieceColor] += PieceValueEG[pieceType] + PSQT_EG[pieceType][FlipSq[pieceColor][to]]
 	pos.Phase -= PhaseValues[pieceType]
-
-	index := (uint16(pieceType)*2+uint16(pieceColor))*64 + uint16(to)
-	pos.PosVector[index] = 1.0
 }
 
 // Clear the piece given from the given square.
@@ -726,10 +713,6 @@ func (pos *Position) zobristClearPiece(from uint8) {
 	pos.Phase += PhaseValues[piece.Type]
 
 	pos.Hash ^= Zobrist.PieceNumber(piece.Type, piece.Color, from)
-
-	index := (uint16(piece.Type)*2+uint16(piece.Color))*64 + uint16(from)
-	pos.PosVector[index] = 0.0
-
 	piece.Type = NoType
 	piece.Color = NoColor
 }

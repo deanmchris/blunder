@@ -35,15 +35,19 @@ func NewNetwork(sizes []int) (nn NeuralNetwork) {
 	return nn
 }
 
-func (nn *NeuralNetwork) Compute(input Vector) Vector {
-	for l := 0; l < nn.layers-1; l++ {
-		product := ComputeMatrixVectorMult(nn.weights[l], input)
+func (nn *NeuralNetwork) Compute(input SparseVector) Vector {
+	product := ComputeMatrixSparseVectorMult(nn.weights[0], input)
+	sum := ComputeVectorAdd(product, nn.biases[0])
+	activation := VectorizeFunction(ReLU, sum)
+
+	for l := 1; l < nn.layers-1; l++ {
+		product := ComputeMatrixVectorMult(nn.weights[l], activation)
 		sum := ComputeVectorAdd(product, nn.biases[l])
-		input = VectorizeFunction(ReLU, sum)
+		activation = VectorizeFunction(ReLU, sum)
 	}
 
-	product := ComputeMatrixVectorMult(nn.weights[nn.layers-1], input)
-	sum := ComputeVectorAdd(product, nn.biases[nn.layers-1])
+	product = ComputeMatrixVectorMult(nn.weights[nn.layers-1], activation)
+	sum = ComputeVectorAdd(product, nn.biases[nn.layers-1])
 	return VectorizeFunction(ModifiedTanh, sum)
 }
 

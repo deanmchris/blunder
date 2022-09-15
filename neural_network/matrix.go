@@ -2,6 +2,7 @@ package neural_network
 
 type Matrix [][]float32
 type Vector []float32
+type SparseVector []uint16
 
 func NewVectorFromSlice(slice []float32) (v Vector) {
 	return Vector(slice)
@@ -24,6 +25,21 @@ func ComputeMatrixVectorMult(m Matrix, v Vector) (res Vector) {
 	for i := range m {
 		for j := range m[i] {
 			res[i] += m[i][j] * v[j]
+		}
+	}
+
+	return res
+}
+
+func ComputeMatrixSparseVectorMult(m Matrix, sv SparseVector) (res Vector) {
+	res = make([]float32, len(m))
+	for i := range m {
+		for _, nonZeroIdx := range sv {
+			// Our sparse vector is only used as the input vector,
+			// so we know all of it's values that are non-zero are 1,
+			// so no need to store them. And since we just multiply by
+			// 1, no need to even write it out.
+			res[i] += m[i][nonZeroIdx]
 		}
 	}
 

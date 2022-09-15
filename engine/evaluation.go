@@ -281,11 +281,24 @@ var FlipRank = [2][8]uint8{
 var NN neural_network.NeuralNetwork
 
 func NNEvaluatePos(pos *Position) int16 {
-	eval := int16(NN.Compute(pos.PosVector)[0] * 100.0)
+	eval := int16(NN.Compute(PosToVector(pos))[0] * 100.0)
 	if pos.SideToMove == Black {
 		return -eval
 	}
 	return eval
+}
+
+func PosToVector(pos *Position) (v neural_network.SparseVector) {
+	v = neural_network.SparseVector{}
+	allBB := pos.Sides[White] | pos.Sides[Black]
+	for allBB != 0 {
+		sq := allBB.PopBit()
+		piece := pos.Squares[sq]
+
+		index := (uint16(piece.Type)*2+uint16(piece.Color))*64 + uint16(sq)
+		v = append(v, index)
+	}
+	return v
 }
 
 // Evaluate a position and give a score, from the perspective of the side to move (
