@@ -23,10 +23,6 @@ const (
 // contempt option.
 var Draw int16 = 0
 
-// A variable representing the agressitivity multiplier to use for when scaling king safety.
-// Not a constant as it can be changed via a UCI contempt option.
-var Aggressitivity uint16 = 4
-
 type Eval struct {
 	MGScores [2]int16
 	EGScores [2]int16
@@ -540,7 +536,7 @@ func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 
 	// Take all the king saftey points collected for the enemy,
 	// and see what kind of penatly we should get.
-	penatly := int16((enemyPoints * enemyPoints) / Aggressitivity)
+	penatly := int16((enemyPoints * enemyPoints) / 4)
 	if eval.KingAttackers[color^1] >= 2 && pos.Pieces[color^1][Queen] != 0 {
 		eval.MGScores[color] -= penatly
 	}
@@ -666,8 +662,8 @@ func sqIsDark(sq uint8) bool {
 }
 
 func InitEvalBitboards() {
-	NN = neural_network.NewNetwork([]int{768, 16, 1})
-	NN.LoadFromFile("C:\\Users\\deanm\\Desktop\\blunder-training\\blunder-training\\nn3.txt")
+	NN = neural_network.NewNetwork([]int{768, 128, 1})
+	NN.LoadFromFile("C:\\Users\\deanm\\Desktop\\blunder-training\\blunder-training\\nn5.txt")
 
 	for file := FileA; file <= FileH; file++ {
 		fileBB := MaskFile[file]

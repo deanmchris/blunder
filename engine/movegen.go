@@ -323,7 +323,7 @@ func DividePerft(pos *Position, depth, divdeAt uint8, TT *TransTable[PerftEntry]
 	}
 
 	if TT.size > 0 {
-		TT.Store(pos.Hash, 0, 0).Set(pos.Hash, depth, nodes)
+		TT.Probe(pos.Hash).Set(pos.Hash, depth, nodes)
 	}
 
 	// Return the total amount of nodes for the given position.
@@ -359,7 +359,7 @@ func Perft(pos *Position, depth uint8, TT *TransTable[PerftEntry]) uint64 {
 	}
 
 	if TT.size > 0 {
-		TT.Store(pos.Hash, 0, 0).Set(pos.Hash, depth, nodes)
+		TT.Probe(pos.Hash).Set(pos.Hash, depth, nodes)
 	}
 
 	// Return the total amount of nodes for the given position.

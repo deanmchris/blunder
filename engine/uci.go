@@ -32,14 +32,11 @@ func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Printf("id author %v\n", EngineAuthor)
 	fmt.Printf("\noption name Hash type spin default 64 min 1 max 32000\n")
 	fmt.Print("option name Clear Hash type button\n")
-	fmt.Print("option name Clear History type button\n")
 	fmt.Print("option name Clear Killers type button\n")
-	fmt.Print("option name Clear Counters type button\n")
 	fmt.Print("option name UseBook type check default false\n")
 	fmt.Print("option name BookPath type string default\n")
 	fmt.Print("option name BookMoveDelay type spin default 2 min 0 max 10\n")
 	fmt.Print("option name Contempt type spin default 0 min 0 max 100\n")
-	fmt.Print("option name Aggressitivity type spin default 5 min 1 max 8")
 	fmt.Print("\nAvailable UCI commands:\n")
 
 	fmt.Print("    * uci\n    * isready\n    * ucinewgame")
@@ -126,12 +123,8 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 		}
 	case "Clear Hash":
 		inter.Search.TT.Clear()
-	case "Clear History":
-		inter.Search.ClearHistoryTable()
 	case "Clear Killers":
 		inter.Search.ClearKillers()
-	case "Clear Counters":
-		inter.Search.ClearCounterMoves()
 	case "UseBook":
 		if value == "true" {
 			inter.OptionUseBook = true
@@ -156,28 +149,6 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 		contempt, err := strconv.Atoi(value)
 		if err == nil {
 			Draw = int16(contempt)
-		}
-	case "Aggressitivity":
-		level, err := strconv.Atoi(value)
-		if err == nil {
-			switch level {
-			case 1:
-				Aggressitivity = 8
-			case 2:
-				Aggressitivity = 7
-			case 3:
-				Aggressitivity = 6
-			case 4:
-				Aggressitivity = 5
-			case 5:
-				Aggressitivity = 4
-			case 6:
-				Aggressitivity = 3
-			case 7:
-				Aggressitivity = 2
-			case 8:
-				Aggressitivity = 1
-			}
 		}
 	}
 }

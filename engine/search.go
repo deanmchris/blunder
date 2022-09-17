@@ -33,48 +33,14 @@ const (
 	// pv moves, captures, and killer moves.
 	MaxHistoryScore int32 = int32(MvvLvaOffset - 30)
 
-	// A bonus given to moves scored by history that refuted
-	// the previous move played by causing a beta-cutoff
-	CounterMoveBonus uint16 = 5
-
 	// A constant representing the maximum game ply,
 	// used to initalize the array for holding repetition
 	// detection history.
 	MaxGamePly = 1024
 
 	// Pruning constants
-	NMR_Depth_Limit                 int8  = 2
-	FutilityPruningDepthLimit       int8  = 8
-	StaticNullMovePruningBaseMargin int16 = 85
-	LMRLegalMovesLimit              int   = 4
-	LMRDepthLimit                   int8  = 3
-	WindowSize                      int16 = 25
-	IID_Depth_Reduction             int8  = 2
-	IID_Depth_Limit                 int8  = 4
-	SingularMoveMargin              int16 = 125
-	SingularExtensionDepthLimit     int8  = 4
-	SingularMoveExtension           int8  = 1
+	NMR_Depth_Limit int8 = 2
 )
-
-// Precomputed reductions
-var LMR = [MaxDepth + 1][100]int8{}
-
-// Futility margins
-var FutilityMargins = [9]int16{
-	0,
-	100, // depth 1
-	160, // depth 2
-	220, // depth 3
-	280, // depth 4
-	340, // depth 5
-	400, // depth 6
-	460, // depth 7
-	520, // depth 8
-
-}
-
-// Late-move pruning margins
-var LateMovePruningMargins = [6]int{0, 8, 12, 16, 20, 24}
 
 // An array that maps move scores to attacker and victim piece types
 // for MVV-LVA move ordering: https://www.chessprogramming.org/MVV-LVA.
@@ -129,8 +95,6 @@ type Search struct {
 	age               uint8
 	totalNodes        uint64
 	killers           [MaxDepth + 1][MaxKillers]Move
-	history           [2][64][64]int32
-	counter           [2][64][64]Move
 	zobristHistory    [MaxGamePly]uint64
 	zobristHistoryPly uint16
 }
@@ -147,8 +111,6 @@ func (search *Search) Setup(FEN string) {
 func (search *Search) Reset() {
 	search.TT.Clear()
 	search.ClearKillers()
-	search.ClearHistoryTable()
-	search.ClearCounterMoves()
 	search.age = 0
 }
 
@@ -173,13 +135,11 @@ func (search *Search) Search() Move {
 	pvLine := PVLine{}
 	bestMove := NullMove
 
-	timeExtended := false
 	totalTime := int64(0)
 	depth := uint8(0)
 	alpha := -Inf
 	beta := Inf
 
-	search.ageHistoryTable()
 	search.Timer.Start(search.Pos.Ply)
 
 	for depth = 1; depth <= MaxDepth &&
@@ -198,40 +158,6 @@ func (search *Search) Search() Move {
 			}
 			break
 		}
-
-		// ========================================================================//
-		// ASPIRATION WINDOWS: Many times, the scores returned between iterations  //
-		// are close to each other. So to achieve more beta-cutoffs and speed up   //
-		// the search, we can use a window centered around the score of the last   //
-		// iterations value instead of (-INF, INF). When the score returned from a //
-		// search with a narrow window is outside of the window, we need to do a   //
-		// research to make sure we're getting the true score. However, if the     //
-		// window size is picked well, this should rare enough to where the        //
-		// benefits of a quicker search easily outweigh the few extra searches.    //
-		// ========================================================================//
-
-		if score <= alpha || score >= beta {
-			alpha = -Inf
-			beta = Inf
-			depth--
-
-			// If we get a score outside of the bounds we expect,
-			// spend a little more time in the position to make
-			// sure we aren't missing anything.
-			if depth >= 6 && !timeExtended {
-				search.Timer.Update(search.Timer.TimeForMove * 13 / 10)
-
-				// Make sure we don't repeatedly keep extending the search time if
-				// we encounter subsequent fail lows at the root. Extending the search
-				// time once is enough.
-				timeExtended = true
-			}
-
-			continue
-		}
-
-		alpha = score - WindowSize
-		beta = score + WindowSize
 
 		totalTime += endTime.Milliseconds()
 
@@ -299,8 +225,6 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	inCheck := search.Pos.InCheck()
 	isPVNode := beta-alpha != 1
 	childPVLine := PVLine{}
-	canFutilityPrune := false
-	ttHit := false
 
 	// =====================================================================//
 	// CHECK EXTENSION: Extend the search depth by one if we're in check,   //
@@ -327,7 +251,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// don't return a draw evaluation for such a situation.
 	possibleMateInOne := inCheck && ply == 1
 	if !isRoot && ((search.Pos.Rule50 >= 100 && !possibleMateInOne) || search.isDrawByRepition()) {
-		return search.contempt()
+		return Draw
 	}
 
 	// Create a variable to store the possible best move we'll get from probing the transposition
@@ -342,26 +266,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	entry := search.TT.Probe(search.Pos.Hash)
 	ttScore, shouldUse := entry.Get(search.Pos.Hash, ply, uint8(depth), alpha, beta, &ttMove)
-	ttHit = entry.Hash == search.Pos.Hash
 
 	if shouldUse && !isRoot && !skipMove.Equal(ttMove) {
 		return ttScore
-	}
-
-	// =====================================================================//
-	// STATIC NULL MOVE PRUNING: If our current material score is so good   //
-	// that even if we give ourselves a big hit materially and subtract a   //
-	// large amount of our material score (the "score margin") and our      //
-	// material score is still greater than beta, we assume this node will  //
-	// fail-high and we can prune its branch.                               //
-	// =====================================================================//
-
-	if !inCheck && !isPVNode && abs(beta) < Checkmate {
-		staticScore := NNEvaluatePos(&search.Pos)
-		scoreMargin := StaticNullMovePruningBaseMargin * int16(depth)
-		if staticScore-scoreMargin >= beta {
-			return staticScore - scoreMargin
-		}
 	}
 
 	// =====================================================================//
@@ -377,7 +284,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		search.Pos.DoNullMove()
 		search.AddHistory(search.Pos.Hash)
 
-		R := 3 + depth/6
+		R := int8(2)
 		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &childPVLine, false, NullMove, NullMove, isExtended)
 
 		search.RemoveHistory()
@@ -390,52 +297,6 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 		if score >= beta && abs(score) < Checkmate {
 			return beta
-		}
-	}
-
-	// =====================================================================//
-	// RAZORING: If we're close to the horzion and the static evaluation is //
-	// very bad, let's try to immediately drop to qsearch and confirm the   //
-	// position will likely fail low. If the qsearch score does fail-low,   //
-	// trust it and return alpha.         									//
-	// =====================================================================//
-
-	if depth <= 2 && !isPVNode && !inCheck {
-		staticScore := NNEvaluatePos(&search.Pos)
-		if staticScore+FutilityMargins[depth]*3 < alpha {
-			score := search.Qsearch(alpha, beta, ply, &PVLine{}, 0)
-			if score < alpha {
-				return alpha
-			}
-		}
-	}
-
-	// =====================================================================//
-	// FUTILITY PRUNING: If we're close to the horizon, and even with a     //
-	// large margin the static evaluation can't be raised above alpha,      //
-	// we're probably in a fail-low node, and many moves can be probably    //
-	// be pruned. So set a flag so we don't waste time searching moves that //
-	// suck and probably don't even have a chance of raise alpha.           //
-	// =====================================================================//
-
-	if depth <= FutilityPruningDepthLimit && !isPVNode && !inCheck && alpha < Checkmate && beta < Checkmate {
-		staticScore := NNEvaluatePos(&search.Pos)
-		margin := FutilityMargins[depth]
-		canFutilityPrune = staticScore+margin <= alpha
-	}
-
-	// =====================================================================//
-	// INTERNAL ITERATIVE DEEPENING: If we're in a situation where we have  //
-	// no PV move, it'll be more efficent to spend some time doing a quick, //
-	// reduced depth search to get a PV move that we can search first, in   //
-	// hopes of getting a quick beta-cutoff.          						//
-	// =====================================================================//
-
-	if depth >= IID_Depth_Limit && (isPVNode || entry.GetFlag() == BetaFlag) && ttMove.Equal(NullMove) {
-		search.negamax(depth-IID_Depth_Reduction-1, ply+1, -beta, -alpha, &childPVLine, true, NullMove, NullMove, isExtended)
-		if len(childPVLine.Moves) > 0 {
-			ttMove = childPVLine.GetPVMove()
-			childPVLine.Clear()
 		}
 	}
 
@@ -452,12 +313,6 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		orderMoves(index, &moves)
 		move := moves.Moves[index]
 
-		// Useful for skipping the candidate singular move when doing
-		// singular move extension.
-		if move.Equal(skipMove) {
-			continue
-		}
-
 		if !search.Pos.DoMove(move) {
 			search.Pos.UndoMove(move)
 			continue
@@ -465,112 +320,9 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 		legalMoves++
 
-		// =====================================================================//
-		// LATE MOVE PRUNING: Because of move ordering, moves late in the move  //
-		// list are not very likely to be interesting, so save time by          //
-		// completing pruning such moves without searching them. Cauation needs //
-		// to be taken we don't miss a tactical move however, so the further    //
-		// away we prune from the horizon, the "later" the move needs to be.    //
-		// =====================================================================//
-		if depth <= 5 && !isPVNode && !inCheck && legalMoves > LateMovePruningMargins[depth] {
-			tactical := search.Pos.InCheck() || move.MoveType() == Promotion
-			if !tactical {
-				search.Pos.UndoMove(move)
-				continue
-			}
-		}
-
-		// Futility prune if possible
-
-		if canFutilityPrune &&
-			legalMoves > 1 &&
-			!search.Pos.InCheck() &&
-			move.MoveType() != Attack &&
-			move.MoveType() != Promotion {
-
-			search.Pos.UndoMove(move)
-			continue
-		}
-
 		search.AddHistory(search.Pos.Hash)
 
-		// =====================================================================//
-		// LATE MOVE REDUCTION: Since our move ordering is good, the            //
-		// first move is likely to be the best move in the position, which      //
-		// means it's part of the principal variation. So instead of searching  //
-		// every move equally, search the first move with full-depth and full-  //
-		// window, and search every move after with a reduced-depth and null-   //
-		// window to prove it'll fail low cheaply. If it raises alpha however,  //
-		// we have to use a full-window, a full-depth, or both to get an        //
-		// accurate score for the move.                                         //
-		// =====================================================================//
-
-		score := int16(0)
-		if legalMoves == 1 {
-			nextDepth := depth - 1
-
-			// =====================================================================//
-			// SINGULAR EXTENSIONS: If the best move in the position is from the    //
-			// transposition table, check if it's "singular", i.e. substantially    //
-			// better than any of the other moves in the position. We do this by    //
-			// getting the move's score from the transposition table, and subtract- //
-			// ing from it a certian margin. We then do a reduced depth search, in  //
-			// the current position, with a window centered around the reduced      //
-			// score, to see if any of the other moves can match or beat the        //
-			// reduced score. If any of the moves can't even beat the reduced score //
-			// let's extend the search, since the best move seems particularly      //
-			// important, and we don't want to miss something. We just need to be   //
-			// careful not to let the search "explode", by repeadtly extending the  //
-			// the depth, so once we've extended the search down a certian path,    //
-			// make sure to stop extending any children nodes.                      //
-			// =====================================================================//
-
-			if !isExtended &&
-				depth >= SingularExtensionDepthLimit &&
-				ttMove.Equal(move) &&
-				isPVNode && ttHit &&
-				(entry.GetFlag() == ExactFlag || entry.GetFlag() == BetaFlag) {
-
-				search.Pos.UndoMove(move)
-				search.RemoveHistory()
-
-				scoreToBeat := ttScore - SingularMoveMargin
-				R := 3 + depth/6
-
-				nextBestScore := search.negamax(depth-1-R, ply+1, scoreToBeat, scoreToBeat+1, &PVLine{}, true, prevMove, move, true)
-
-				// If the next best score is less than or equal to the score to beat,
-				// we know the above search failed-low, a move wasn't found that could beat
-				// the tt move score even with a margin, and so the tt move is singular. So
-				// we should spend some extra time searching it.
-				if nextBestScore <= scoreToBeat {
-					nextDepth += SingularMoveExtension
-				}
-
-				search.Pos.DoMove(move)
-				search.AddHistory(search.Pos.Hash)
-			}
-
-			score = -search.negamax(nextDepth, ply+1, -beta, -alpha, &childPVLine, true, move, NullMove, isExtended)
-		} else {
-			tactical := inCheck || move.MoveType() == Attack
-			reduction := int8(0)
-
-			if !isPVNode && legalMoves >= LMRLegalMovesLimit && depth >= LMRDepthLimit && !tactical {
-				reduction = LMR[depth][legalMoves]
-			}
-
-			score = -search.negamax(depth-1-reduction, ply+1, -(alpha + 1), -alpha, &childPVLine, true, move, NullMove, isExtended)
-
-			if score > alpha && reduction > 0 {
-				score = -search.negamax(depth-1, ply+1, -(alpha + 1), -alpha, &childPVLine, true, move, NullMove, isExtended)
-				if score > alpha {
-					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move, NullMove, isExtended)
-				}
-			} else if score > alpha && score < beta {
-				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move, NullMove, isExtended)
-			}
-		}
+		score := -search.negamax(depth-1, ply+1, -beta, -alpha, &childPVLine, true, move, NullMove, isExtended)
 
 		search.Pos.UndoMove(move)
 		search.RemoveHistory()
@@ -586,11 +338,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		if score >= beta {
 			ttFlag = BetaFlag
 			search.storeKiller(ply, move)
-			search.storeCounterMove(prevMove, move)
-			search.incrementHistoryScore(move, depth)
 			break
-		} else {
-			search.decrementHistoryScore(move)
 		}
 
 		// If the score of this move is better than alpha (i.e better than the score
@@ -600,9 +348,6 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			alpha = score
 			ttFlag = ExactFlag
 			pvLine.Update(move, childPVLine)
-			search.incrementHistoryScore(move, depth)
-		} else {
-			search.decrementHistoryScore(move)
 		}
 
 		// Clear this child node's principal variation line for the
@@ -620,15 +365,13 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		}
 
 		// If it's a draw, return the draw value.
-		return search.contempt()
+		return Draw
 	}
 
 	// If we're not out of time, store the result of the search for this position.
 	if !search.Timer.Stop {
-		entry := search.TT.Store(search.Pos.Hash, uint8(depth), search.age)
-		entry.Set(
-			search.Pos.Hash, bestScore, bestMove, ply, uint8(depth), ttFlag, search.age,
-		)
+		entry := search.TT.Probe(search.Pos.Hash)
+		entry.Set(search.Pos.Hash, bestScore, bestMove, ply, uint8(depth), ttFlag)
 	}
 
 	// Return the best score.
@@ -660,16 +403,11 @@ func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, p
 	}
 
 	bestScore := NNEvaluatePos(&search.Pos)
-	inCheck := ply <= 2 && search.Pos.InCheck()
 
 	// If the score is greater than beta, what our opponet can
 	// already guarantee early in the search tree, then we
 	// have a beta-cutoff.
-	//
-	// Be sure not to do this though if we're considering checks,
-	// since the position isn't quiet enough, and the check might
-	// reveal something important on the horizon.
-	if !inCheck && bestScore >= beta {
+	if bestScore >= beta {
 		return bestScore
 	}
 
@@ -679,24 +417,13 @@ func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, p
 		alpha = bestScore
 	}
 
-	moves := MoveList{}
-	if inCheck {
-		moves = genMoves(&search.Pos)
-	} else {
-		moves = genCapturesAndQueenPromotions(&search.Pos)
-	}
-
+	moves := genCapturesAndQueenPromotions(&search.Pos)
 	search.scoreMoves(&moves, NullMove, maxPly, NullMove)
 	childPVLine := PVLine{}
 
 	for index := uint8(0); index < moves.Count; index++ {
 		orderMoves(index, &moves)
 		move := moves.Moves[index]
-		see := search.Pos.See(move)
-
-		if see < 0 {
-			continue
-		}
 
 		if !search.Pos.DoMove(move) {
 			search.Pos.UndoMove(move)
@@ -744,69 +471,6 @@ func (search *Search) ClearKillers() {
 	}
 }
 
-// Given a counter move (a move that caused the previous move made to be refuted, i.e.
-// cause a beta-cutoff)
-func (search *Search) storeCounterMove(prevMove, currMove Move) {
-	if search.Pos.Squares[currMove.ToSq()].Type == NoType {
-		search.counter[search.Pos.SideToMove][prevMove.FromSq()][prevMove.ToSq()] = currMove
-	}
-}
-
-// Clear the counter move table.
-func (search *Search) ClearCounterMoves() {
-	for sq1 := 0; sq1 < 64; sq1++ {
-		for sq2 := 0; sq2 < 64; sq2++ {
-			search.counter[White][sq1][sq2] = NullMove
-			search.counter[Black][sq1][sq2] = NullMove
-		}
-	}
-}
-
-// Increment the history score for the given move if it caused a beta-cutoff and is quiet.
-func (search *Search) incrementHistoryScore(move Move, depth int8) {
-	if search.Pos.Squares[move.ToSq()].Type == NoType {
-		search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] += int32(depth) * int32(depth)
-	}
-
-	if search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] >= MaxHistoryScore {
-		search.ageHistoryTable()
-	}
-}
-
-// Decrement the history score for the given move if it didn't cause a beta-cutoff and is quiet.
-func (search *Search) decrementHistoryScore(move Move) {
-	if search.Pos.Squares[move.ToSq()].Type == NoType {
-		if search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] > 0 {
-			search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()] -= 1
-		}
-	}
-}
-
-// Age the values in the history table by halving them.
-func (search *Search) ageHistoryTable() {
-	for sq1 := 0; sq1 < 64; sq1++ {
-		for sq2 := 0; sq2 < 64; sq2++ {
-			search.history[search.Pos.SideToMove][sq1][sq2] /= 2
-		}
-	}
-}
-
-// Clear the values in the history table.
-func (search *Search) ClearHistoryTable() {
-	for sq1 := 0; sq1 < 64; sq1++ {
-		for sq2 := 0; sq2 < 64; sq2++ {
-			search.history[search.Pos.SideToMove][sq1][sq2] = 0
-		}
-	}
-}
-
-// Determine the draw score based on the phase of the game and whose moving,
-// to encourge the engine to strive for a win in the middle-game, but be
-// satisified with a draw in the endgame.
-func (search *Search) contempt() int16 {
-	return Draw
-}
-
 // Determine if the current board state is being repeated.
 func (search *Search) isDrawByRepition() bool {
 	for repPly := uint16(0); repPly < search.zobristHistoryPly; repPly++ {
@@ -832,15 +496,6 @@ func (search *Search) scoreMoves(moves *MoveList, pvMove Move, ply uint8, prevMo
 			move.AddScore(MvvLvaOffset - FirstKillerMoveScore)
 		} else if move.Equal(search.killers[ply][1]) {
 			move.AddScore(MvvLvaOffset - SecondKillerMoveScore)
-		} else {
-			counterMove := search.counter[search.Pos.SideToMove][prevMove.FromSq()][prevMove.ToSq()]
-			moveScore := uint16(search.history[search.Pos.SideToMove][move.FromSq()][move.ToSq()])
-
-			if move.Equal(counterMove) {
-				moveScore += CounterMoveBonus
-			}
-
-			move.AddScore(moveScore)
 		}
 	}
 }
@@ -861,12 +516,4 @@ func orderMoves(currIndex uint8, moves *MoveList) {
 	tempMove := moves.Moves[currIndex]
 	moves.Moves[currIndex] = moves.Moves[bestIndex]
 	moves.Moves[bestIndex] = tempMove
-}
-
-func InitSearchTables() {
-	for depth := int8(3); depth < 100; depth++ {
-		for moveCnt := int8(3); moveCnt < 100; moveCnt++ {
-			LMR[depth][moveCnt] = max(2, depth/4) + moveCnt/12
-		}
-	}
 }

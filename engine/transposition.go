@@ -32,11 +32,11 @@ const (
 
 // A struct for a transposition table entry used in the search.
 type SearchEntry struct {
-	Hash       uint64
-	Depth      uint8
-	Score      int16
-	Best       Move
-	FlagAndAge uint8
+	Hash  uint64
+	Depth uint8
+	Score int16
+	Best  Move
+	Flag  uint8
 }
 
 // A struct for a transposition table entry used in perft.
@@ -52,24 +52,6 @@ func (entry SearchEntry) GetHash() uint64 {
 
 func (entry SearchEntry) GetDepth() uint8 {
 	return entry.Depth
-}
-
-func (entry SearchEntry) GetFlag() uint8 {
-	return (entry.FlagAndAge & 0xc0) >> 6
-
-}
-func (entry *SearchEntry) SetFlag(flag uint8) {
-	entry.FlagAndAge &= 0x3f
-	entry.FlagAndAge |= flag << 6
-}
-
-func (entry SearchEntry) GetAge() uint8 {
-	return (entry.FlagAndAge & 0x30) >> 4
-}
-
-func (entry *SearchEntry) SetAge(age uint8) {
-	entry.FlagAndAge &= 0xcf
-	entry.FlagAndAge |= age << 4
 }
 
 func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, best *Move) (int16, bool) {
@@ -110,13 +92,13 @@ func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, 
 				score += int16(ply)
 			}
 
-			if entry.GetFlag() == ExactFlag {
+			if entry.Flag == ExactFlag {
 				// If we have an exact entry, we can use the saved score.
 				adjustedScore = score
 				shouldUse = true
 			}
 
-			if entry.GetFlag() == AlphaFlag && score <= alpha {
+			if entry.Flag == AlphaFlag && score <= alpha {
 				// If we have an alpha entry, and the entry's score is less than our
 				// current alpha, then we know that our current alpha is the best score
 				// we can get in this node, so we can stop searching and use alpha.
@@ -124,7 +106,7 @@ func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, 
 				shouldUse = true
 			}
 
-			if entry.GetFlag() == BetaFlag && score >= beta {
+			if entry.Flag == BetaFlag && score >= beta {
 				// If we have a beta entry, and the entry's score is greater than our
 				// current beta, then we have a beta-cutoff, since while
 				// searching this node previously, we found a value greater than the current
@@ -139,12 +121,11 @@ func (entry *SearchEntry) Get(hash uint64, ply, depth uint8, alpha, beta int16, 
 	return adjustedScore, shouldUse
 }
 
-func (entry *SearchEntry) Set(hash uint64, score int16, best Move, ply, depth, flag, age uint8) {
+func (entry *SearchEntry) Set(hash uint64, score int16, best Move, ply, depth, flag uint8) {
 	entry.Hash = hash
 	entry.Depth = depth
 	entry.Best = best
-	entry.SetFlag(flag)
-	entry.SetAge(age)
+	entry.Flag = flag
 
 	// If the score we get from the transposition table is a checkmate score, we need
 	// to do a little extra work. This is because we store checkmates in the table using
@@ -168,14 +149,6 @@ func (entry PerftEntry) GetHash() uint64 {
 	return entry.Hash
 }
 
-func (entry PerftEntry) GetAge() uint8 {
-	// Age doesn't matter when considering perft transposition table
-	// entries, so 1 will always be returned, so that a current age of
-	// 0 will be given when probing the table, meaning the ages
-	// will never match and a replace-always scheme will still be used.
-	return 1
-}
-
 func (entry PerftEntry) GetDepth() uint8 {
 	return entry.Depth
 }
@@ -197,7 +170,6 @@ func (entry *PerftEntry) Set(hash uint64, depth uint8, nodes uint64) {
 type TransTable[Entry interface {
 	SearchEntry | PerftEntry
 	GetHash() uint64
-	GetAge() uint8
 	GetDepth() uint8
 }] struct {
 	entries []Entry
@@ -215,47 +187,8 @@ func (tt *TransTable[Entry]) Resize(sizeInMB uint64, entrySize uint64) {
 
 // Get an entry from the table to use it.
 func (tt *TransTable[Entry]) Probe(hash uint64) *Entry {
-	// Get the entry from the table, calculating an index by bitwise and-ing the hash of
-	// the position by the size of the table - 1. A two-bucket system is used to
-	// more efficently make use of the table.
-
 	index := hash & tt.mask
-	if index+1 == tt.size {
-		return &tt.entries[index]
-	}
-
-	first := &tt.entries[index]
-
-	if (*first).GetHash() == hash {
-		return first
-	}
-
-	return &tt.entries[index+1]
-}
-
-// Get an entry from the table to store in it.
-func (tt *TransTable[Entry]) Store(hash uint64, depth uint8, currAge uint8) *Entry {
-	index := hash & tt.mask
-	if index+1 == tt.size {
-		return &tt.entries[index]
-	}
-
-	first := &tt.entries[index]
-	second := &tt.entries[index+1]
-
-	if (*first).GetDepth() <= depth || (*first).GetAge() != currAge {
-		return first
-	}
-
-	if (*second).GetDepth() <= depth || (*second).GetAge() != currAge {
-		return second
-	}
-
-	if (*first).GetDepth() < (*second).GetDepth() {
-		return first
-	} else {
-		return second
-	}
+	return &tt.entries[index]
 }
 
 // Unitialize the memory used by the transposition table
