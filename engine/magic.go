@@ -35,7 +35,7 @@ the blocker mask would look like for that rook.
 
 Next, every permutation of the blocker mask is generated. The number of possible permutations
 is 2^n, where n is the number of bits that are within the given blocker mask. It's common
-to used a pre-intialized, static array of perumations, so the size of the array is set to be
+to used a pre-initialized, static array of permutations, so the size of the array is set to be
 N, where N is the largest possible number of bits for any given blocker board. For rooks,
 N=4096 (2^12), and for bishops N=512 (2^9).
 
@@ -84,7 +84,7 @@ We care about the index being unique, because the index is used to map *each* pe
 to a moves bitboard. This way, possible moves for sliders can quickly be found by getting a
 sliders blocker board permutation, given the current state of the board, and using this
 permutation in the same above formula to generate a unique index that maps the permutation to
-its specfic moves bitboard, for that slider, on that square.
+its specific moves bitboard, for that slider, on that square.
 
 However, a random number can actually still be magic even if it is creates an index collision
 between two, or more, blocker mask permutations. But what must be the case if a collision occurs
@@ -93,11 +93,11 @@ all have the same moves bitboard.
 
 So for every square, and random number is generated, and tested using the above two conditions.
 If it passes both conditions, it's a magic number. If it doesn't, then it's not, and we need to
-generate a new random number and start the process over. This is done repeadtly until we have
+generate a new random number and start the process over. This is done repeatedly until we have
 magic numbers for every square, for rooks and bishops.
 
 These numbers only need to be generated once, and can then be saved into an array and used in the
-program. So magic.go isn't actually used into releases of Blunder, but serves as a didatic example
+program. So magic.go isn't actually used into releases of Blunder, but serves as a didactic example
 of how to construct a program to generate magic numbers.
 */
 
@@ -176,7 +176,7 @@ func genBishopMovesHQ(sq uint8, occupied Bitboard, genMask bool) Bitboard {
 
 // Find magic numbers for rooks.
 func genRookMagics() {
-	var prng PseduoRandomGenerator
+	var prng PseudoRandomGenerator
 
 	for sq := uint8(0); sq < 64; sq++ {
 		magic := &RookMagics[sq]
@@ -221,7 +221,7 @@ func genRookMagics() {
 
 // Find magic numbers for bishops.
 func genBishopMagics() {
-	var prng PseduoRandomGenerator
+	var prng PseudoRandomGenerator
 	for sq := uint8(0); sq < 64; sq++ {
 		magic := &BishopMagics[sq]
 

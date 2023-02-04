@@ -49,13 +49,13 @@ const (
 	// A constant representing no square
 	NoSq = 64
 
-	// Common fen strings used in debugging and initalizing the engine.
+	// Common fen strings used in debugging and initializing the engine.
 	FENStartPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0"
 	FENKiwiPete      = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 )
 
 // A 64 element array where each entry, when bitwise ANDed with the
-// castling rights, destorys the correct bit in the castling rights
+// castling rights, destroys the correct bit in the castling rights
 // if a move to or from that square would take away castling rights.
 var Spoilers = [64]uint8{
 	0xb, 0xf, 0xf, 0xf, 0x3, 0xf, 0xf, 0x7,
@@ -129,7 +129,7 @@ type State struct {
 	Moved          Piece
 }
 
-// A struct reprenting Blunder's core internal position representation.
+// A struct reprinting Blunder's core internal position representation.
 type Position struct {
 	Pieces         [2][6]Bitboard
 	Sides          [2]Bitboard
@@ -232,7 +232,7 @@ func (pos *Position) LoadFEN(FEN string) {
 	pos.Hash = Zobrist.GenHash(pos)
 }
 
-// Generate the FEN string represention of the current board.
+// Generate the FEN string representation of the current board.
 func (pos Position) GenFEN() string {
 	positionStr := strings.Builder{}
 
@@ -514,7 +514,7 @@ func (pos *Position) UndoMove(move Move) {
 	moveType := move.MoveType()
 	flag := move.Flag()
 
-	// Put the moving piece back on it's orgin square
+	// Put the moving piece back on its origin square
 	pos.putPiece(state.Moved.Type, state.Moved.Color, from)
 
 	switch moveType {
@@ -609,8 +609,8 @@ func (pos *Position) InCheck() bool {
 		pos.Pieces[pos.SideToMove][King].Msb())
 }
 
-// Determine if the current position has no majors or miniors left.
-func (pos *Position) NoMajorsOrMiniors() bool {
+// Determine if the current position has no majors or minors left.
+func (pos *Position) NoMajorsOrMinors() bool {
 	knights := pos.Pieces[White][Knight].CountBits() + pos.Pieces[Black][Knight].CountBits()
 	bishops := pos.Pieces[White][Bishop].CountBits() + pos.Pieces[Black][Bishop].CountBits()
 	rook := pos.Pieces[White][Rook].CountBits() + pos.Pieces[Black][Rook].CountBits()
@@ -618,8 +618,8 @@ func (pos *Position) NoMajorsOrMiniors() bool {
 	return knights+bishops+rook+queen == 0
 }
 
-// Determine if a move is pseduo-legally valid.
-func (pos *Position) MoveIsPseduoLegal(move Move) bool {
+// Determine if a move is pseudo-legally valid.
+func (pos *Position) MoveIsPseudoLegal(move Move) bool {
 	fromSq, toSq := move.FromSq(), move.ToSq()
 	moved := pos.Squares[fromSq]
 	captured := pos.Squares[toSq]
@@ -640,7 +640,7 @@ func (pos *Position) MoveIsPseduoLegal(move Move) bool {
 		}
 
 		// Credit to the Stockfish team for the idea behind this section of code to
-		// verify pseduo-legal pawn moves.
+		// verify pseudo-legal pawn moves.
 		if ((PawnAttacks[sideToMove][fromSq] & toBB & allBB) == 0) &&
 			!((fromSq+uint8(getPawnPushDelta(sideToMove)) == toSq) && (captured.Type == NoType)) &&
 			!((fromSq+uint8(getPawnPushDelta(sideToMove)*2) == toSq) &&

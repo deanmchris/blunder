@@ -11,7 +11,7 @@ const (
 	F8_G8, B8_C8_D8 = 0x6, 0x70
 )
 
-// Generate all pseduo-legal moves for a given position.
+// Generate all pseudo-legal moves for a given position.
 func genMoves(pos *Position) (moves MoveList) {
 	// Go through each piece type, and each piece for that type,
 	// and generate the moves for that piece.
@@ -33,7 +33,7 @@ func genMoves(pos *Position) (moves MoveList) {
 	return moves
 }
 
-// Generate all pseduo-legal captures and queen promotions for a given position.
+// Generate all pseudo-legal captures and queen promotions for a given position.
 func genCapturesAndQueenPromotions(pos *Position) (moves MoveList) {
 	// Go through each piece type, and each piece for that type,
 	// and generate the moves for that piece.
@@ -97,7 +97,7 @@ func GenBishopMoves(sq uint8, blockers Bitboard) Bitboard {
 }
 
 // Generate pawn moves for the current side. Pawns are treated
-// seperately from the rest of the pieces as they have more
+// separately from the rest of the pieces as they have more
 // complicated and exceptional rules for how they can move.
 // Only generate the moves that align with the specified
 // target squares.
@@ -207,7 +207,7 @@ func makePromotionMoves(from, to uint8, moves *MoveList) {
 }
 
 // Generate castling moves. Note testing whether or not castling has the king
-// crossing attacked squares is not tested for here, as pseduo-legal move
+// crossing attacked squares is not tested for here, as pseudo-legal move
 // generation is the focus.
 func genCastlingMoves(pos *Position, moves *MoveList) {
 	allPieces := pos.Sides[pos.SideToMove] | pos.Sides[pos.SideToMove^1]
@@ -290,7 +290,7 @@ func sqIsAttacked(pos *Position, usColor, sq uint8) bool {
 // number of nodes explored.  This function is used to
 // debug move generation and ensure it is working by comparing
 // the results to the known results of other engines
-func DividePerft(pos *Position, depth, divdeAt uint8, TT *TransTable[PerftEntry]) uint64 {
+func DividePerft(pos *Position, depth, divideAt uint8, TT *TransTable[PerftEntry]) uint64 {
 	// If depth zero has been reached, return zero...
 	if depth == 0 {
 		return 1
@@ -302,7 +302,7 @@ func DividePerft(pos *Position, depth, divdeAt uint8, TT *TransTable[PerftEntry]
 		}
 	}
 
-	// otherwise genrate the legal moves we have...
+	// otherwise generate the legal moves we have...
 	moves := genMoves(pos)
 	nodes := uint64(0)
 
@@ -311,8 +311,8 @@ func DividePerft(pos *Position, depth, divdeAt uint8, TT *TransTable[PerftEntry]
 	for idx := uint8(0); idx < moves.Count; idx++ {
 		move := moves.Moves[idx]
 		if pos.DoMove(move) {
-			moveNodes := DividePerft(pos, depth-1, divdeAt, TT)
-			if depth == divdeAt {
+			moveNodes := DividePerft(pos, depth-1, divideAt, TT)
+			if depth == divideAt {
 				fmt.Printf("%v: %v\n", move, moveNodes)
 			}
 
@@ -344,7 +344,7 @@ func Perft(pos *Position, depth uint8, TT *TransTable[PerftEntry]) uint64 {
 		}
 	}
 
-	// otherwise genrate the legal moves we have...
+	// otherwise generate the legal moves we have...
 	moves := genMoves(pos)
 	nodes := uint64(0)
 

@@ -18,7 +18,7 @@ const (
 	// Constants representing the different flags for a transposition table entry,
 	// which determine what kind of entry it is. If the entry has a score from
 	// a fail-low node (alpha wasn't raised), it's an alpha entry. If the entry has
-	// a score from a fail-high node (a beta cutoff occured), it's a beta entry. And
+	// a score from a fail-high node (a beta cutoff occurred), it's a beta entry. And
 	// if the entry has an exact score (alpha was raised), it's an exact entry.
 	AlphaFlag uint8 = 1
 	BetaFlag  uint8 = 2
@@ -215,7 +215,7 @@ func (tt *TransTable[Entry]) Resize(sizeInMB uint64, entrySize uint64) {
 func (tt *TransTable[Entry]) Probe(hash uint64) *Entry {
 	// Get the entry from the table, calculating an index by modulo-ing the hash of
 	// the position by the size of the table. A two-bucket system is used to
-	// more efficently make use of the table.
+	// more efficiently make use of the table.
 
 	index := hash % tt.size
 	if index+1 == tt.size {
@@ -240,7 +240,7 @@ func (tt *TransTable[Entry]) Store(hash uint64, depth uint8, currAge uint8) *Ent
 	first := tt.entries[index]
 	if first.GetDepth() <= depth || first.GetAge() != currAge {
 		// Note that returning &first caused a bug where the transposition
-		// table entry was never modifed, and so the table was always empty.
+		// table entry was never modified, and so the table was always empty.
 		// Have to figure out why that is, but for now return &tt.entries[index]
 		// directly.
 		return &tt.entries[index]
@@ -249,8 +249,8 @@ func (tt *TransTable[Entry]) Store(hash uint64, depth uint8, currAge uint8) *Ent
 	return &tt.entries[index+1]
 }
 
-// Unitialize the memory used by the transposition table
-func (tt *TransTable[Entry]) Unitialize() {
+// Uninitialize the memory used by the transposition table
+func (tt *TransTable[Entry]) Uninitialize() {
 	tt.entries = nil
 	tt.size = 0
 }
