@@ -1,8 +1,5 @@
 package engine
 
-// movegen_test.go implements a file parser to read in test positions to ensure
-// Blunder's move generator is working correctly.
-
 import (
 	"bufio"
 	"fmt"
@@ -14,21 +11,19 @@ import (
 	"time"
 )
 
-const (
-	MaxPerftDepth        = 7
-	MaxFenStringLength   = 84
-	MaxDepthNumberLength = 2
-	MaxMoveNumberLength  = 10
-)
-
-type PerftTest struct {
-	FEN         string
-	DepthValues [MaxPerftDepth]uint64
+type TestData struct {
+	Fen               string
+	Depth             uint8
+	ExpectedNodeCount uint64
 }
 
-// Load the perft test suite
-func loadPerftSuite() (perftTests []PerftTest) {
-	wd, _ := os.Getwd()
+func loadTestData() (data []TestData) {
+	wd, err := os.Getwd()
+
+	if err != nil {
+		panic(err)
+	}
+
 	parentFolder := filepath.Dir(wd)
 	filePath := filepath.Join(parentFolder, "/perft_suite/perft_suite.epd")
 
@@ -36,110 +31,74 @@ func loadPerftSuite() (perftTests []PerftTest) {
 	if err != nil {
 		panic(err)
 	}
-	reader := bufio.NewReader(file)
-	scanner := bufio.NewScanner(reader)
 
+	scanner := bufio.NewScanner(bufio.NewReader(file))
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Split(line, ";")
-		perftTest := PerftTest{FEN: strings.TrimSpace(fields[0])}
-		perftTest.DepthValues = [MaxPerftDepth]uint64{}
 
-		for _, nodeCountStr := range fields[1:] {
-			depth, err := strconv.Atoi(string(nodeCountStr[1]))
+		fen := strings.TrimSpace(fields[0])
+
+		for _, field := range fields[1:] {
+			depth, err := strconv.Atoi(string(field[1]))
 			if err != nil {
 				panic(fmt.Sprintf("Parsing error on line: %s\n", line))
 			}
-			nodeCountStr = strings.TrimSpace(nodeCountStr[3:])
-			nodeCount, err := strconv.Atoi(nodeCountStr)
+
+			field = strings.TrimSpace(field[3:])
+			nodeCount, err := strconv.Atoi(field)
+
 			if err != nil {
 				panic(fmt.Sprintf("Parsing error on line: %s\n", line))
 			}
-			perftTest.DepthValues[depth-1] = uint64(nodeCount)
+
+			data = append(data, TestData{fen, uint8(depth), uint64(nodeCount)})
 		}
-		perftTests = append(perftTests, perftTest)
 	}
-	return perftTests
+
+	return data
 }
 
-// Pad a string into the center
-func padToCenter(s string, fill string, w int) string {
-	spaceLeft := w - len(s)
-	extraFill := ""
-	if spaceLeft%2 != 0 {
-		extraFill = fill
-	}
-	return strings.Repeat(fill, spaceLeft/2) + extraFill + s + strings.Repeat(fill, spaceLeft/2)
-}
-
-// Print a row in the perft test output
-func printPerftTestRow(fen, depth, expected, moves, correct string) {
-	fmt.Printf(
-		"| %s | %s | %s | %s | %s |\n",
-		padToCenter(fen, " ", 84),
-		padToCenter(depth, " ", 6),
-		padToCenter(expected, " ", 10),
-		padToCenter(moves, " ", 10),
-		padToCenter(correct, " ", 8),
-	)
-}
-
-// Print a row separator in the perft test output
-func printPerftTestRowSeparator() {
-	fmt.Println("+" + strings.Repeat("-", 86) + "+" + "--------+------------+------------+----------+")
-}
-
-// Test blunder against the perft suite
 func TestMovegen(t *testing.T) {
-	printPerftTestRowSeparator()
-	printPerftTestRow("position", "depth", "expected", "moves", "correct")
-	printPerftTestRowSeparator()
+	InitBitboard()
+	InitTables()
+	InitMagics()
+	InitZobrist()
 
 	pos := Position{}
-	TT := TransTable[PerftEntry]{}
-	totalNodes := uint64(0)
-	testsPassed := true
+	data := loadTestData()
 
-	perftTests := loadPerftSuite()
-	TT.Resize(DefaultTTSize, PerftEntrySize)
-	start := time.Now()
+	fmt.Println("Begin perft testing.")
+	fmt.Println("Format of output: (<depth>) <fen> => <expected number>/<calculated number> [passed/failed]")
+	fmt.Print("------------------------------------------------------------------------------\n\n")
 
-	for _, perftTest := range perftTests {
-		pos.LoadFEN(perftTest.FEN)
+	numberOfTests := 0
+	numerOfFailedTests := 0
+	totalNodes := 0
+	startTime := time.Now()
 
-		for depth, nodeCount := range perftTest.DepthValues {
-			if nodeCount == 0 {
-				continue
-			}
+	for _, testData := range data {
+		numberOfTests++
+		pos.LoadFEN(testData.Fen)
 
-			result := Perft(&pos, uint8(depth)+1, &TT)
-			totalNodes += result
+		nodes := Perft(&pos, testData.Depth)
+		totalNodes += int(nodes)
 
-			correct := ""
-			if nodeCount == result {
-				correct = "yes"
-			} else {
-				testsPassed = false
-				correct = "no"
-			}
-
-			printPerftTestRow(
-				perftTest.FEN,
-				strconv.Itoa(depth+1),
-				strconv.FormatInt(int64(nodeCount), 10),
-				strconv.FormatInt(int64(result), 10),
-				correct,
-			)
-			printPerftTestRowSeparator()
+		if nodes == testData.ExpectedNodeCount {
+			fmt.Printf("(%d) %s => %d/%d [passed]\n", testData.Depth, testData.Fen, testData.ExpectedNodeCount, nodes)
+		} else {
+			fmt.Printf("(%d) %s => %d/%d [failed]\n", testData.Depth, testData.Fen, testData.ExpectedNodeCount, nodes)
+			numerOfFailedTests++
 		}
 	}
 
-	if !testsPassed {
-		t.Error("\nTesting failed on some positions. See table for exact positions.")
+	if numerOfFailedTests != 0 {
+		t.Error("\nTesting failed on some positions.")
 	}
 
-	fmt.Println("\nTotal Nodes:", totalNodes)
-	elapsed := time.Since(start)
-	fmt.Printf("Time: %vms\n", elapsed.Milliseconds())
-	fmt.Printf("Nps: %d\n", int(float64(totalNodes)/elapsed.Seconds()))
+	endTime := time.Since(startTime)
+
+	fmt.Printf("Testing completed in %d seconds.\n", endTime.Milliseconds())
+	fmt.Printf("Nps: %d\n", int(float64(totalNodes)/endTime.Seconds()))
+	fmt.Printf("%d tests were run, and %d were incorrect.\n", numberOfTests, numerOfFailedTests)
 }
