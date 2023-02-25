@@ -196,7 +196,7 @@ var FlipSq = [2][64]uint8{
 	},
 }
 
-func evaluate(pos *Position) int16 {
+func Evaluate(pos *Position) int16 {
 	mgScore := pos.MGScores[pos.SideToMove] - pos.MGScores[pos.SideToMove^1]
 	egScore := pos.EGScores[pos.SideToMove] - pos.EGScores[pos.SideToMove^1]
 

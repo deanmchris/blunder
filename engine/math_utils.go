@@ -5,7 +5,7 @@ import (
 )
 
 // Get the absolute value of an integer.
-func abs[Int constraints.Integer](n Int) Int {
+func Abs[Real constraints.Integer | constraints.Float](n Real) Real {
 	if n < 0 {
 		return -n
 	}

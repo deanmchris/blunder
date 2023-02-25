@@ -29,7 +29,7 @@ func bitScan(bb uint64) uint8 {
 	return uint8(bits.LeadingZeros64(bb))
 }
 
-func bitScanAndClear(bb *uint64) uint8 {
+func BitScanAndClear(bb *uint64) uint8 {
 	sq := uint8(bits.LeadingZeros64(*bb))
 	*bb ^= MostSigBitBB >> sq
 	return sq

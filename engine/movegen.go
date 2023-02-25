@@ -46,34 +46,34 @@ func genAttacks(pos *Position) (moves MoveList) {
 }
 
 func genKingMoves(kingBB, filter, enemyBB, usBB uint64, moves *MoveList) {
-	from := bitScanAndClear(&kingBB)
+	from := BitScanAndClear(&kingBB)
 	genMovesFromBB(KingMoves[from]&^usBB&filter, enemyBB, from, moves)
 }
 
 func genKnightMoves(knightBB, filter, enemyBB, usBB uint64, moves *MoveList) {
 	for knightBB != 0 {
-		from := bitScanAndClear(&knightBB)
+		from := BitScanAndClear(&knightBB)
 		genMovesFromBB(KnightMoves[from]&^usBB&filter, enemyBB, from, moves)
 	}
 }
 
 func genBishopMoves(bishopBB, filter, enemyBB, usBB uint64, moves *MoveList) {
 	for bishopBB != 0 {
-		from := bitScanAndClear(&bishopBB)
+		from := BitScanAndClear(&bishopBB)
 		genMovesFromBB(genBishopMovesBB(from, usBB|enemyBB)&^usBB&filter, enemyBB, from, moves)
 	}
 }
 
 func genRookMoves(rookBB, filter, enemyBB, usBB uint64, moves *MoveList) {
 	for rookBB != 0 {
-		from := bitScanAndClear(&rookBB)
+		from := BitScanAndClear(&rookBB)
 		genMovesFromBB(genRookMovesBB(from, usBB|enemyBB)&^usBB&filter, enemyBB, from, moves)
 	}
 }
 
 func genQueenMoves(queenBB, filter, enemyBB, usBB uint64, moves *MoveList) {
 	for queenBB != 0 {
-		from := bitScanAndClear(&queenBB)
+		from := BitScanAndClear(&queenBB)
 		movesBB := genBishopMovesBB(from, usBB|enemyBB) | genRookMovesBB(from, usBB|enemyBB)
 		genMovesFromBB(movesBB&^usBB&filter, enemyBB, from, moves)
 	}
@@ -81,7 +81,7 @@ func genQueenMoves(queenBB, filter, enemyBB, usBB uint64, moves *MoveList) {
 
 func genPawnMoves(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveList) {
 	for pawnsBB != 0 {
-		from := bitScanAndClear(&pawnsBB)
+		from := BitScanAndClear(&pawnsBB)
 
 		pawnOnePush := PawnPushes[stm][from] & ^(usBB | enemyBB)
 		pawnTwoPush := EmptyBB
@@ -96,7 +96,7 @@ func genPawnMoves(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveLis
 		pawnAttacks := PawnAttacks[stm][from] & (enemyBB | SquareBB[epSq])
 
 		for pawnPush != 0 {
-			to := bitScanAndClear(&pawnPush)
+			to := BitScanAndClear(&pawnPush)
 			if isPromoting(stm, to) {
 				makePromotionMoves(from, to, moves)
 				continue
@@ -105,7 +105,7 @@ func genPawnMoves(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveLis
 		}
 
 		for pawnAttacks != 0 {
-			to := bitScanAndClear(&pawnAttacks)
+			to := BitScanAndClear(&pawnAttacks)
 			if to == epSq {
 				moves.AddMove(newMove(from, to, Attack, AttackEP))
 				continue
@@ -123,11 +123,11 @@ func genPawnMoves(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveLis
 
 func genPawnAttacks(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveList) {
 	for pawnsBB != 0 {
-		from := bitScanAndClear(&pawnsBB)
+		from := BitScanAndClear(&pawnsBB)
 		pawnAttacks := PawnAttacks[stm][from] & (enemyBB | SquareBB[epSq])
 
 		for pawnAttacks != 0 {
-			to := bitScanAndClear(&pawnAttacks)
+			to := BitScanAndClear(&pawnAttacks)
 			if to == epSq {
 				moves.AddMove(newMove(from, to, Attack, AttackEP))
 				continue
@@ -195,7 +195,7 @@ func sqIsAttacked(pos *Position, usColor, sq uint8) bool {
 
 func genMovesFromBB(movesBB, enemyBB uint64, from uint8, moves *MoveList) {
 	for movesBB != 0 {
-		to := bitScanAndClear(&movesBB)
+		to := BitScanAndClear(&movesBB)
 		moveType := Quiet
 		if bitIsSet(enemyBB, to) {
 			moveType = Attack

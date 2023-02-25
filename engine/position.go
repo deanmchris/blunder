@@ -253,7 +253,7 @@ func (pos *Position) DoMove(move uint32) bool {
 
 		if state.MovedType == Pawn {
 			pos.HalfMoveClock = 0
-			if abs(int8(from)-int8(to)) == 16 {
+			if Abs(int8(from)-int8(to)) == 16 {
 				pos.EPSq = to - 8
 				if pos.SideToMove == Black {
 					pos.EPSq = to + 8
@@ -404,7 +404,7 @@ func (pos *Position) computePinnedPieces(kingSq, usColor uint8) uint64 {
 	pinned := EmptyBB
 
 	for potentialPinners != 0 {
-		pinnerSq := bitScanAndClear(&potentialPinners)
+		pinnerSq := BitScanAndClear(&potentialPinners)
 		pinned |= usBB & (RaysBetween[kingSq][pinnerSq])
 	}
 

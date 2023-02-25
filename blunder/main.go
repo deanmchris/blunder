@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"blunder/tuner"
 )
 
 func init() {
@@ -16,6 +17,29 @@ func init() {
 }
 
 func main() {
+	tuneCommand := flag.NewFlagSet("tune", flag.ExitOnError)
+	tuneInputFile := tuneCommand.String(
+		"input-file",
+		"",
+		"A file containing a set of fens to use for tuning. Should be in the format\n"+
+			"<full fen> [<result float>], where 'result float' is either 1.0 (white won),\n"+
+			"0.0 (black won), or 0.5 (draw).",
+	)
+	tuneEpochs := tuneCommand.Int("epochs", 50000, "The number of epochs to run the tuner for.")
+	tuneLearningRate := tuneCommand.Float64("learning-rate", 1e6, "The learning rate of the gradient descent algorithm.")
+	tuneNumCores := tuneCommand.Int("num-cores", 1, "The number of cores to assume can be used while tuning.")
+	tuneNumPositions := tuneCommand.Int(
+		"num-positions",
+		1e6,
+		"The number of positions to try to load for tuning. If there are fewer\n"+
+			"positions, as many will be read as possible.",
+	)
+	tuneUseDefaultWeights := tuneCommand.Bool(
+		"use-default-weights",
+		true,
+		"Use default weights for a fresh tuning session, or the current ones in evaluation.go",
+	)
+
 	perftCmd := flag.NewFlagSet("perft", flag.ExitOnError)
 	perftFen := perftCmd.String("fen", engine.FENStartPosition, "The position to start PERFT from.")
 	perftDepth := perftCmd.Int("depth", 1, "The depth to run PERFT up to.")
@@ -29,6 +53,15 @@ func main() {
 		uciInterface.UCILoop()
 	} else {
 		switch os.Args[1] {
+		case "tune":
+			tuneCommand.Parse(os.Args[2:])
+
+			if *tuneInputFile == "" {
+				fmt.Println("\nInput file is needed for tuning")
+				os.Exit(1)
+			}
+
+			tuner.Tune(*tuneInputFile, *tuneEpochs, *tuneNumPositions, *tuneNumCores, *tuneLearningRate, false, *tuneUseDefaultWeights)
 		case "perft":
 			perftCmd.Parse(os.Args[2:])
 

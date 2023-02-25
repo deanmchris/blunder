@@ -26,8 +26,8 @@ var MVV_LVA = [7][6]uint16{
 	{36, 35, 34, 33, 32, 31}, // victim Bishop
 	{46, 45, 44, 43, 42, 41}, // vitcim Rook
 	{56, 55, 54, 53, 52, 51}, // victim Queen
-	{0,  0,  0,  0,  0,  0},  // victim King
-	{0,  0,  0,  0,  0,  0},  // victom no piece
+	{0, 0, 0, 0, 0, 0},       // victim King
+	{0, 0, 0, 0, 0, 0},       // victom no piece
 }
 
 type PVLine struct {
@@ -150,7 +150,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 	search.totalNodes++
 
 	if ply == MaxPly {
-		return evaluate(&search.Pos)
+		return Evaluate(&search.Pos)
 	}
 
 	if depth == 0 {
@@ -250,7 +250,7 @@ func (search *Search) quiescenceSearch(alpha, beta int16) int16 {
 		return 0
 	}
 
-	bestScore := evaluate(&search.Pos)
+	bestScore := Evaluate(&search.Pos)
 
 	if bestScore >= beta {
 		return bestScore
@@ -313,12 +313,12 @@ func scoreMoves(search *Search, moves *MoveList, ply uint8) {
 		if search.Pos.GetPieceType(toSq(*move)) != NoType {
 			from, to := fromSq(*move), toSq(*move)
 			attackerType, attackedType := search.Pos.GetPieceType(from), search.Pos.GetPieceType(to)
-			addScore(move, Buffer + MVV_LVA[attackedType][attackerType])
+			addScore(move, Buffer+MVV_LVA[attackedType][attackerType])
 		} else {
 			if equals(search.Killers[ply].FirstKiller, *move) {
-				addScore(move, Buffer + FirstKillerScore)
+				addScore(move, Buffer+FirstKillerScore)
 			} else if equals(search.Killers[ply].SecondKiller, *move) {
-				addScore(move, Buffer + SecondKillerScore)
+				addScore(move, Buffer+SecondKillerScore)
 			}
 		}
 	}
