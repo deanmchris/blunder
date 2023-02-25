@@ -20,7 +20,7 @@ type UCIInterface struct {
 }
 
 func (inter *UCIInterface) reset() {
-	inter.search = Search{}
+	inter.search = NewSearch(FENStartPosition)
 }
 
 func (inter *UCIInterface) uciCommandResponse() {
@@ -138,7 +138,6 @@ func (inter *UCIInterface) UCILoop() {
 	inter.uciCommandResponse()
 	inter.reset()
 
-	inter.search.Setup(FENStartPosition)
 	for {
 		command, _ := reader.ReadString('\n')
 		command = strings.Replace(command, "\r\n", "\n", -1)
