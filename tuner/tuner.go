@@ -14,7 +14,7 @@ const (
 	WhiteWin float64 = 1.0
 	BlackWin float64 = 0.0
 	Draw     float64 = 0.5
-	K        float64 = 0.5
+	K        float64 = 0.008
 
 	// Make PSQT tags correspond to piece types to use
 	// piece type iterator variable to compute right tag value.
