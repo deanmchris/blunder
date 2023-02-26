@@ -155,7 +155,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 
 	if depth == 0 {
 		search.totalNodes--
-		return search.quiescenceSearch(alpha, beta)
+		return search.quiescenceSearch(alpha, beta, pv)
 	}
 
 	if search.totalNodes >= search.Timer.MaxNodeCount {
@@ -235,7 +235,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 	return bestScore
 }
 
-func (search *Search) quiescenceSearch(alpha, beta int16) int16 {
+func (search *Search) quiescenceSearch(alpha, beta int16, pv *PVLine) int16 {
 	search.totalNodes++
 
 	if search.totalNodes >= search.Timer.MaxNodeCount {
@@ -263,6 +263,8 @@ func (search *Search) quiescenceSearch(alpha, beta int16) int16 {
 	search.Pos.ComputePinAndCheckInfo()
 
 	moves := genAttacks(&search.Pos)
+	childPV := PVLine{}
+
 	scoreMoves(search, &moves, 0)
 
 	for i := uint8(0); i < moves.Count; i++ {
@@ -276,7 +278,7 @@ func (search *Search) quiescenceSearch(alpha, beta int16) int16 {
 
 		search.AddHistory(search.Pos.Hash)
 
-		score := -search.quiescenceSearch(-beta, -alpha)
+		score := -search.quiescenceSearch(-beta, -alpha, &childPV)
 
 		search.Pos.UndoMove(move)
 		search.RemoveHistory()
@@ -291,7 +293,10 @@ func (search *Search) quiescenceSearch(alpha, beta int16) int16 {
 
 		if bestScore > alpha {
 			alpha = bestScore
+			pv.Update(move, childPV)
 		}
+
+		childPV.Clear()
 	}
 
 	return bestScore

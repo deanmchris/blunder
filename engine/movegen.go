@@ -132,6 +132,12 @@ func genPawnAttacks(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveL
 				moves.AddMove(newMove(from, to, Attack, AttackEP))
 				continue
 			}
+
+			if isPromoting(stm, to) {
+				moves.AddMove(newMove(from, to, Promotion, QueenPromotion))
+				continue
+			}
+
 			moves.AddMove(newMove(from, to, Attack, NoFlag))
 		}
 	}
