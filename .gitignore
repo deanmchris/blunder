@@ -1,5 +1,6 @@
 # Ignore blunder binary files and log files
 
+*.pgn
 *.txt
 blunder/blunder*
 blunder/log*
