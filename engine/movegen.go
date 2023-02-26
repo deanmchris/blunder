@@ -97,7 +97,7 @@ func genPawnMoves(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveLis
 
 		for pawnPush != 0 {
 			to := BitScanAndClear(&pawnPush)
-			if isPromoting(stm, to) {
+			if isPromoting(to) {
 				makePromotionMoves(from, to, moves)
 				continue
 			}
@@ -111,7 +111,7 @@ func genPawnMoves(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveLis
 				continue
 			}
 
-			if isPromoting(stm, to) {
+			if isPromoting(to) {
 				makePromotionMoves(from, to, moves)
 				continue
 			}
@@ -133,7 +133,7 @@ func genPawnAttacks(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveL
 				continue
 			}
 
-			if isPromoting(stm, to) {
+			if isPromoting(to) {
 				moves.AddMove(newMove(from, to, Promotion, QueenPromotion))
 				continue
 			}
@@ -222,11 +222,11 @@ func genBishopMovesBB(sq uint8, blockers uint64) uint64 {
 	return BishopMoves[sq][(uint64(blockers)*magic.MagicNo)>>magic.Shift]
 }
 
-func isPromoting(usColor, toSq uint8) bool {
-	if usColor == White {
-		return toSq >= 56 && toSq <= 63
-	}
-	return toSq <= 7
+func isPromoting(toSq uint8) bool {
+	// Since a pawn can never move to the backrank
+	// of it's own color, we don't care about
+	// checking the side to move.
+	return (toSq >= 56 && toSq <= 63) || toSq <= 7
 }
 
 func makePromotionMoves(from, to uint8, moves *MoveList) {
