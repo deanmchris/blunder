@@ -51,7 +51,7 @@ func GenerateChunks(filename string) chan string {
 		for scanner.Scan() {
 			line := scanner.Text()
 
-			if strings.Contains(line, "Event") {
+			if strings.Contains(line, "[Event ") {
 				eventTagsSeen++
 
 				if eventTagsSeen > 1 {
