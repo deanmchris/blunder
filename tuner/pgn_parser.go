@@ -2,11 +2,12 @@ package tuner
 
 import (
 	"blunder/engine"
+	"bufio"
 	"fmt"
 	"os"
 	"regexp"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -30,35 +31,45 @@ type PGN struct {
 	Moves   []uint32
 }
 
-func generateChunks(filename string) chan string {
+func GenerateChunks(filename string) chan string {
 	chunks := make(chan string)
 
 	go func() {
 		defer close(chunks)
 
-		buf, err := os.ReadFile(filename)
+		file, err := os.Open(filename)
 		if err != nil {
 			panic(err)
 		}
 
-		eventTagRegex, _ := regexp.Compile(EventTagPattern)
+		reader := bufio.NewReader(file)
+		scanner := bufio.NewScanner(reader)
 
-		pgns := string(buf)
-		allIndexes := eventTagRegex.FindAllStringSubmatchIndex(pgns, -1)
+		chunk := strings.Builder{}
+		eventTagsSeen := 0
 
-		for i := 0; i < len(allIndexes); i++ {
-			chunkStart := allIndexes[i][0]
-			chunkEnd := 0
+		for scanner.Scan() {
+			line := scanner.Text()
 
-			if i+1 == len(allIndexes) {
-				chunkEnd = len(pgns)
+			if strings.Contains(line, "Event") {
+				eventTagsSeen++
+
+				if eventTagsSeen > 1 {
+					chunks <- strings.TrimSpace(chunk.String())
+					chunk.Reset()
+					chunk.WriteString(line)
+					chunk.WriteString("\n")
+				} else {
+					chunk.WriteString(line)
+					chunk.WriteString("\n")
+				}
 			} else {
-				chunkEnd = allIndexes[i+1][0]
+				chunk.WriteString(line)
+				chunk.WriteString("\n")
 			}
-
-			chunks <- strings.TrimSpace(pgns[chunkStart:chunkEnd])
 		}
 
+		chunks <- strings.TrimSpace(chunk.String())
 	}()
 
 	return chunks
@@ -66,7 +77,7 @@ func generateChunks(filename string) chan string {
 
 // Parse a file of PGNs. The file name is assumed to be the name of a
 // file in the blunder/tuner directory.
-func parsePGNFile(filename string, minElo uint16, maxGames uint32) (chan *PGN) {
+func parsePGNFile(filename string, minElo uint16, maxGames uint32) chan *PGN {
 	pgns := make(chan *PGN)
 
 	go func() {
@@ -83,7 +94,7 @@ func parsePGNFile(filename string, minElo uint16, maxGames uint32) (chan *PGN) {
 		var pos engine.Position
 		var gamesParsed uint32
 
-		for chunk := range generateChunks(filename) {
+		for chunk := range GenerateChunks(filename) {
 			var fen string
 			var outcome uint8
 			var moves []uint32
