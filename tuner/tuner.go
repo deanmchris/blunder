@@ -117,7 +117,8 @@ func loadPositions(infile string, numPositions int) (positions []TuningPosition)
 	scanner := bufio.NewScanner(reader)
 	pos := engine.Position{}
 
-	for positionCount := 0; scanner.Scan() && positionCount < numPositions; positionCount++ {
+	positionCount := 0
+	for positionCount = 0; scanner.Scan() && positionCount < numPositions; positionCount++ {
 		line := scanner.Text()
 		fields := strings.Fields(line)
 
@@ -138,7 +139,7 @@ func loadPositions(infile string, numPositions int) (positions []TuningPosition)
 		)
 	}
 
-	fmt.Printf("Done loading %d positions...\n", numPositions)
+	fmt.Printf("Done loading %d positions...\n", positionCount)
 	return positions
 }
 
@@ -178,7 +179,6 @@ func computeDefaultWeightVector() (weights []Weight) {
 	weights = append(weights, Weight{300, EG_PIECE_VALUES_TAG})
 	weights = append(weights, Weight{500, EG_PIECE_VALUES_TAG})
 	weights = append(weights, Weight{900, EG_PIECE_VALUES_TAG})
-
 
 	for pieceType := uint8(0); pieceType < engine.NoType; pieceType++ {
 		for j := 0; j < 64; j++ {
@@ -264,7 +264,7 @@ func computeMSE(weights []Weight, positions []TuningPosition) (errSum float64) {
 	for i := range positions {
 		pos := &positions[i]
 		eval := evaluate(weights, pos.Features)
-		sigmoid := 1 / (1 + math.Exp(-K * eval))
+		sigmoid := 1 / (1 + math.Exp(-K*eval))
 		errorTerm := pos.Outcome - sigmoid
 		errSum += math.Pow(errorTerm, 2)
 	}
@@ -279,7 +279,7 @@ func computePartialGradient(partialGradients chan []float64, weights []Weight, p
 		pos := &positions[i]
 
 		eval := evaluate(weights, pos.Features)
-		sigmoid := 1 / (1 + math.Exp(-K * eval))
+		sigmoid := 1 / (1 + math.Exp(-K*eval))
 
 		errorTerm := pos.Outcome - sigmoid
 		evalTerm := sigmoid * (1 - sigmoid)
@@ -302,7 +302,14 @@ func computeGradient(weights []Weight, positions []TuningPosition, numCores int)
 
 	posPerProcess := len(positions) / numCores
 	for i := 0; i < len(positions); i += posPerProcess {
-		go computePartialGradient(partialGradients, weights, positions[i:i+posPerProcess])
+		endIndex := i + posPerProcess
+		if len(positions)-endIndex < posPerProcess {
+			endIndex = len(positions) - 1
+			go computePartialGradient(partialGradients, weights, positions[i:endIndex])
+			break
+		}
+
+		go computePartialGradient(partialGradients, weights, positions[i:endIndex])
 	}
 
 	for i := 0; i < numCores; i++ {
@@ -325,7 +332,7 @@ func Tune(infile string, epochs, numPositions, numCores int, learningRate float6
 		weights = computeWeightVector()
 	}
 
-	positions := loadPositions(infile, numPositions, )
+	positions := loadPositions(infile, numPositions)
 	beforeErr := computeMSE(weights, positions)
 
 	N := float64(numPositions)
