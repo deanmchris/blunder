@@ -63,8 +63,6 @@ func main() {
 	if len(os.Args) < 2 {
 		uciInterface := engine.UCIInterface{}
 		uciInterface.UCILoop()
-
-		// TODO: Why is tuner generating crappy values? GIGO? Or tuner adjustments?
 	} else {
 		switch os.Args[1] {
 		case "tune":
