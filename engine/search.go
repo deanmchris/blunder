@@ -31,27 +31,27 @@ var MVV_LVA = [7][6]uint16{
 }
 
 type PVLine struct {
-	moves []uint32
+	Moves []uint32
 }
 
 func (pvLine *PVLine) Clear() {
-	pvLine.moves = nil
+	pvLine.Moves = nil
 }
 
 func (pvLine *PVLine) Update(move uint32, newPVLine PVLine) {
 	pvLine.Clear()
-	pvLine.moves = append(pvLine.moves, move)
-	pvLine.moves = append(pvLine.moves, newPVLine.moves...)
+	pvLine.Moves = append(pvLine.Moves, move)
+	pvLine.Moves = append(pvLine.Moves, newPVLine.Moves...)
 }
 
 func (pvLine *PVLine) GetBestMove() uint32 {
-	return pvLine.moves[0]
+	return pvLine.Moves[0]
 }
 
 func (pvLine PVLine) String() string {
 	pv := strings.Builder{}
-	for i := 0; i < len(pvLine.moves); i++ {
-		move := pvLine.moves[i]
+	for i := 0; i < len(pvLine.Moves); i++ {
+		move := pvLine.Moves[i]
 		if move == NullMove {
 			break
 		}
@@ -155,7 +155,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 
 	if depth == 0 {
 		search.totalNodes--
-		return search.quiescenceSearch(alpha, beta, pv)
+		return search.QuiescenceSearch(alpha, beta, pv)
 	}
 
 	if search.totalNodes >= search.Timer.MaxNodeCount {
@@ -235,7 +235,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 	return bestScore
 }
 
-func (search *Search) quiescenceSearch(alpha, beta int16, pv *PVLine) int16 {
+func (search *Search) QuiescenceSearch(alpha, beta int16, pv *PVLine) int16 {
 	search.totalNodes++
 
 	if search.totalNodes >= search.Timer.MaxNodeCount {
@@ -278,7 +278,7 @@ func (search *Search) quiescenceSearch(alpha, beta int16, pv *PVLine) int16 {
 
 		search.AddHistory(search.Pos.Hash)
 
-		score := -search.quiescenceSearch(-beta, -alpha, &childPV)
+		score := -search.QuiescenceSearch(-beta, -alpha, &childPV)
 
 		search.Pos.UndoMove(move)
 		search.RemoveHistory()

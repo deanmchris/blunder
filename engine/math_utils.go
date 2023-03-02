@@ -11,3 +11,10 @@ func Abs[Real constraints.Integer | constraints.Float](n Real) Real {
 	}
 	return n
 }
+
+func Min[Real constraints.Integer | constraints.Float](a, b Real) Real {
+	if a < b {
+		return a
+	}
+	return b
+}

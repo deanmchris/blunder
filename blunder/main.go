@@ -40,6 +40,18 @@ func main() {
 		"Use default weights for a fresh tuning session, or the current ones in evaluation.go",
 	)
 
+	genFENsCommand := flag.NewFlagSet("gen-fens", flag.ExitOnError)
+	genFENsInputFile := genFENsCommand.String("input-file", "", "The input pgn file to extract quiet fens/positions from.")
+	genFENsOutputFile := genFENsCommand.String("output-file", "fens.epd", "The file to output the quiet fens too. If one is not given, a file will be created.")
+	genFENsSampleSize := genFENsCommand.Int("sample-size", 10, "The number of random quiet positions to extract from each game.")
+	genFENsMaxGames := genFENsCommand.Int("max-games", 1e5, "The maximum number of games to attempt to extract quiet positions from.")
+	genFENsMinElo := genFENsCommand.Int(
+		"min-elo",
+		0,
+		"The minimum Elo that white and black must be rated for a game to be included.\n"+
+			"Unrated games are skipped if the value is greater than 0.",
+	)
+
 	perftCmd := flag.NewFlagSet("perft", flag.ExitOnError)
 	perftFen := perftCmd.String("fen", engine.FENStartPosition, "The position to start PERFT from.")
 	perftDepth := perftCmd.Int("depth", 1, "The depth to run PERFT up to.")
@@ -51,6 +63,8 @@ func main() {
 	if len(os.Args) < 2 {
 		uciInterface := engine.UCIInterface{}
 		uciInterface.UCILoop()
+
+		// TODO: Why is tuner generating crappy values? GIGO? Or tuner adjustments?
 	} else {
 		switch os.Args[1] {
 		case "tune":
@@ -62,6 +76,15 @@ func main() {
 			}
 
 			tuner.Tune(*tuneInputFile, *tuneEpochs, *tuneNumPositions, *tuneNumCores, *tuneLearningRate, false, *tuneUseDefaultWeights)
+		case "gen-fens":
+			genFENsCommand.Parse(os.Args[2:])
+
+			if *genFENsInputFile == "" {
+				fmt.Println("\nInput file is needed to generate fens")
+				os.Exit(1)
+			}
+
+			tuner.GenTrainingData(*genFENsInputFile, *genFENsOutputFile, *genFENsSampleSize, uint16(*genFENsMinElo), uint32(*genFENsMaxGames))
 		case "perft":
 			perftCmd.Parse(os.Args[2:])
 
@@ -87,6 +110,8 @@ func main() {
 			fmt.Println(engine.NewPosition(*printFen))
 		case "help":
 			fmt.Println("\nperft: Run PERFT testing ")
+			fmt.Println("gen-fens: Extract a set of quiet fens from a given PGN file.")
+			fmt.Println("tune: Run the engine's tuner.")
 			fmt.Println("print: Display a position")
 			fmt.Println("help: Show this help message")
 			fmt.Println("\nNo command starts the UCI protocol")

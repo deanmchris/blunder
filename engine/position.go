@@ -209,6 +209,94 @@ func (pos *Position) LoadFEN(fen string) {
 	pos.Hash = Zobrist.GenHash(pos)
 }
 
+func (pos Position) GenFEN() string {
+	positionStr := strings.Builder{}
+
+	for rankStartPos := 56; rankStartPos >= 0; rankStartPos -= 8 {
+		emptySquares := 0
+		for sq := rankStartPos; sq < rankStartPos+8; sq++ {
+			pieceType := pos.GetPieceType(uint8(sq))
+			if pieceType == NoType {
+				emptySquares++
+			} else {
+				// If we have some consecutive empty squares, add them to the FEN
+				// string board, and reset the empty squares counter.
+				if emptySquares > 0 {
+					positionStr.WriteString(strconv.Itoa(emptySquares))
+					emptySquares = 0
+				}
+
+				pieceType := pos.GetPieceType(uint8(sq))
+				pieceColor := pos.GetPieceColor(uint8(sq))
+				pieceChar := PieceTypeToChar[pieceType]
+
+				if pieceColor == White {
+					pieceChar = unicode.ToUpper(pieceChar)
+				}
+
+				// In FEN strings pawns are represented with p's not i's
+				if pieceChar == 'i' {
+					pieceChar = 'p'
+				} else if pieceChar == 'I' {
+					pieceChar = 'P'
+				}
+
+				positionStr.WriteRune(pieceChar)
+			}
+		}
+
+		if emptySquares > 0 {
+			positionStr.WriteString(strconv.Itoa(emptySquares))
+			emptySquares = 0
+		}
+
+		positionStr.WriteString("/")
+	}
+
+	sideToMove := ""
+	castlingRights := ""
+	epSquare := ""
+
+	if pos.SideToMove == White {
+		sideToMove = "w"
+	} else {
+		sideToMove = "b"
+	}
+
+	if pos.CastlingRights&WhiteKingsideRight != 0 {
+		castlingRights += "K"
+	}
+	if pos.CastlingRights&WhiteQueensideRight != 0 {
+		castlingRights += "Q"
+	}
+	if pos.CastlingRights&BlackKingsideRight != 0 {
+		castlingRights += "k"
+	}
+	if pos.CastlingRights&BlackQueensideRight != 0 {
+		castlingRights += "q"
+	}
+
+	if castlingRights == "" {
+		castlingRights = "-"
+	}
+
+	if pos.EPSq == NoSq {
+		epSquare = "-"
+	} else {
+		epSquare = sqToCoord(pos.EPSq)
+	}
+
+	// Technically this FEN isn't accurate as the full move counter
+	// isn't tracked by Blunder's internal position object, so it's
+	// always zero. But for our purposes this is good enough.
+	return fmt.Sprintf(
+		"%s %s %s %s %d %d",
+		strings.TrimSuffix(positionStr.String(), "/"),
+		sideToMove, castlingRights, epSquare,
+		pos.HalfMoveClock, 0,
+	)
+}
+
 func (pos *Position) ComputePinAndCheckInfo() {
 	kingSq := bitScan(pos.Pieces[King] & pos.Sides[pos.SideToMove])
 	pos.pinned = pos.computePinnedPieces(kingSq, pos.SideToMove)
