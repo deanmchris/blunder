@@ -25,8 +25,8 @@ func main() {
 			"<full fen> [<result float>], where 'result float' is either 1.0 (white won),\n"+
 			"0.0 (black won), or 0.5 (draw).",
 	)
-	tuneEpochs := tuneCommand.Int("epochs", 50000, "The number of epochs to run the tuner for.")
-	tuneLearningRate := tuneCommand.Float64("learning-rate", 1e6, "The learning rate of the gradient descent algorithm.")
+	tuneEpochs := tuneCommand.Int("epochs", 20000, "The number of epochs to run the tuner for.")
+	tuneLearningRate := tuneCommand.Float64("learning-rate", 0.95, "The learning rate of the gradient descent algorithm.")
 	tuneNumCores := tuneCommand.Int("num-cores", 1, "The number of cores to assume can be used while tuning.")
 	tuneNumPositions := tuneCommand.Int(
 		"num-positions",

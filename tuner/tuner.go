@@ -15,6 +15,7 @@ const (
 	BlackWin float64 = 0.0
 	Draw     float64 = 0.5
 	K        float64 = 0.008
+	Epsilon  float64 = 1e-8
 
 	// Make PSQT tags correspond to piece types to use
 	// piece type iterator variable to compute right tag value.
@@ -340,10 +341,14 @@ func Tune(infile string, epochs, numPositions, numCores int, learningRate float6
 	errors := []float64{beforeErr}
 	errorRecordingRate := epochs / 100
 
+	sumOfGradientsSquared := make([]float64, len(weights))
+
 	for epoch := 0; epoch < epochs; epoch++ {
 		gradients := computeGradient(weights, positions, numCores)
 		for k, gradient := range gradients {
-			weights[k].Value += -(learningRate * -2 * K / N * gradient)
+			completeGradient := -2 * K / N * gradient
+			weights[k].Value -= learningRate / math.Sqrt(sumOfGradientsSquared[k] + Epsilon) * completeGradient
+			sumOfGradientsSquared[k] += completeGradient * completeGradient
 		}
 
 		fmt.Printf("Epoch number %d completed\n", epoch+1)
