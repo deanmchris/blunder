@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+const (
+	PerftTTSize = 10
+)
+
 type TestData struct {
 	Fen               string
 	Depth             uint8
@@ -66,6 +70,7 @@ func TestMovegen(t *testing.T) {
 	InitZobrist()
 
 	pos := Position{}
+	tt := NewTransTable[PerftEntry](PerftTTSize)
 	data := loadTestData()
 
 	fmt.Println("Begin perft testing.")
@@ -81,7 +86,7 @@ func TestMovegen(t *testing.T) {
 		numberOfTests++
 		pos.LoadFEN(testData.Fen)
 
-		nodes := Perft(&pos, testData.Depth)
+		nodes := Perft(&pos, testData.Depth, tt)
 		totalNodes += int(nodes)
 
 		if nodes == testData.ExpectedNodeCount {

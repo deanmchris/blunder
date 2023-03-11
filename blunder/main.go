@@ -56,6 +56,7 @@ func main() {
 	perftFen := perftCmd.String("fen", engine.FENStartPosition, "The position to start PERFT from.")
 	perftDepth := perftCmd.Int("depth", 1, "The depth to run PERFT up to.")
 	perftDivide := perftCmd.Bool("divide", false, "Display the number of nodes each move produces.")
+	perftTTSize := perftCmd.Int("tt-size", 10, "The size of the transposition table in MB")
 
 	printCmd := flag.NewFlagSet("print", flag.ExitOnError)
 	printFen := printCmd.String("fen", engine.FENStartPosition, "The position to display")
@@ -87,16 +88,17 @@ func main() {
 			perftCmd.Parse(os.Args[2:])
 
 			pos := engine.NewPosition(*perftFen)
+			tt := engine.NewTransTable[engine.PerftEntry](uint64(*perftTTSize))
 			nodes := uint64(0)
 			var endTime time.Duration
 
 			if *perftDivide {
 				startTime := time.Now()
-				nodes = engine.DividePerft(&pos, uint8(*perftDepth))
+				nodes = engine.DividePerft(&pos, uint8(*perftDepth), tt)
 				endTime = time.Since(startTime)
 			} else {
 				startTime := time.Now()
-				nodes = engine.Perft(&pos, uint8(*perftDepth))
+				nodes = engine.Perft(&pos, uint8(*perftDepth), tt)
 				endTime = time.Since(startTime)
 			}
 
