@@ -8,14 +8,16 @@ import (
 )
 
 const (
-	MaxPly             uint8  = 100
-	Infinity           int16  = 10000
-	CheckmateThreshold int16  = 9000
-	Draw               int16  = 0
-	MaxPVLength        uint8  = 50
-	MaxGamePly         uint16 = 700
+	DefaultSearchTTSize uint64 = 64
+	MaxPly              uint8  = 100
+	Infinity            int16  = 10000
+	CheckmateThreshold  int16  = 9000
+	Draw                int16  = 0
+	MaxPVLength         uint8  = 50
+	MaxGamePly          uint16 = 700
 
 	Buffer            uint16 = math.MaxUint16 - 200
+	TTMoveScore       uint16 = 60
 	FirstKillerScore  uint16 = 6
 	SecondKillerScore uint16 = 4
 )
@@ -76,6 +78,7 @@ func (pair *KillerMovePair) AddKillerMove(newKillerMove uint32) {
 type Search struct {
 	Pos   Position
 	Timer TimeManager
+	TT    TransTable[SearchEntry]
 
 	Killers [MaxPly]KillerMovePair
 
@@ -92,6 +95,7 @@ func NewSearch(fen string) Search {
 
 func (search *Search) Setup(fen string) {
 	search.Pos.LoadFEN(fen)
+	search.TT.Resize(DefaultSearchTTSize)
 	search.zobristHistoryPly = 0
 	search.zobristHistory[0] = search.Pos.Hash
 }
@@ -182,12 +186,21 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 		return Draw
 	}
 
+	entry := search.TT.GetEntry(search.Pos.Hash)
+	ttScore, ttMove, shouldUse := entry.GetScoreAndBestMove(search.Pos.Hash, ply, depth, alpha, beta)
+
+	if !isRoot && shouldUse {
+		return ttScore
+	}
+
 	moves := genAllMoves(&search.Pos)
 	childPV := PVLine{}
 	bestScore := -Infinity
 	numLegalMoves := uint8(0)
+	nodeType := FailLowNode
+	bestMove := NullMove
 
-	scoreMoves(search, &moves, ply)
+	scoreMoves(search, &moves, ttMove, ply)
 
 	for i := uint8(0); i < moves.Count; i++ {
 		swapBestMoveToIdx(&moves, i)
@@ -208,9 +221,11 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 
 		if score > bestScore {
 			bestScore = score
+			bestMove = move
 		}
 
 		if bestScore >= beta {
+			nodeType = FailHighNode
 			if search.Pos.GetPieceType(toSq(move)) == NoType {
 				search.Killers[ply].AddKillerMove(move)
 			}
@@ -219,6 +234,7 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 
 		if bestScore > alpha {
 			alpha = bestScore
+			nodeType = PVNode
 			pv.Update(move, childPV)
 		}
 
@@ -230,6 +246,11 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 			return -Infinity + int16(ply)
 		}
 		return Draw
+	}
+
+	if !search.Timer.IsStopped() {
+		entry := search.TT.GetEntry(search.Pos.Hash)
+		entry.StoreNewInfo(search.Pos.Hash, bestMove, bestScore, depth, nodeType, ply)
 	}
 
 	return bestScore
@@ -265,7 +286,7 @@ func (search *Search) QuiescenceSearch(alpha, beta int16, pv *PVLine) int16 {
 	moves := genAttacks(&search.Pos)
 	childPV := PVLine{}
 
-	scoreMoves(search, &moves, 0)
+	scoreMoves(search, &moves, NullMove, 0)
 
 	for i := uint8(0); i < moves.Count; i++ {
 		swapBestMoveToIdx(&moves, i)
@@ -311,11 +332,13 @@ func (search *Search) posIsDrawByRepition() bool {
 	return false
 }
 
-func scoreMoves(search *Search, moves *MoveList, ply uint8) {
+func scoreMoves(search *Search, moves *MoveList, ttMove uint32, ply uint8) {
 	for i := uint8(0); i < moves.Count; i++ {
 		move := &moves.Moves[i]
 
-		if search.Pos.GetPieceType(toSq(*move)) != NoType {
+		if equals(*move, ttMove) {
+			addScore(move, Buffer+TTMoveScore)
+		} else if search.Pos.GetPieceType(toSq(*move)) != NoType {
 			from, to := fromSq(*move), toSq(*move)
 			attackerType, attackedType := search.Pos.GetPieceType(from), search.Pos.GetPieceType(to)
 			addScore(move, Buffer+MVV_LVA[attackedType][attackerType])

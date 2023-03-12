@@ -26,9 +26,12 @@ func (inter *UCIInterface) reset() {
 func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Printf("\nid name %s\n", EngineName)
 	fmt.Printf("id author %s\n", EngineAuthor)
+	fmt.Printf("\noption name Hash type spin default 64 min 1 max 32000\n")
+	fmt.Print("option name Clear Hash type button\n")
 
 	fmt.Print("\nAvailable UCI commands:\n")
 	fmt.Print("    * uci\n    * isready\n    * ucinewgame")
+	fmt.Print("\n    * setoption name <NAME> value <VALUE>")
 
 	fmt.Print("\n    * position")
 	fmt.Print("\n\t* fen <FEN>")
@@ -42,6 +45,37 @@ func (inter *UCIInterface) uciCommandResponse() {
 
 	fmt.Print("\n    * stop\n    * quit\n\n")
 	fmt.Printf("uciok\n\n")
+}
+
+func (inter *UCIInterface) setOptionCommandResponse(command string) {
+	fields := strings.Fields(command)
+	var option, value string
+	parsingWhat := ""
+
+	for _, field := range fields {
+		if field == "name" {
+			parsingWhat = "name"
+		} else if field == "value" {
+			parsingWhat = "value"
+		} else if parsingWhat == "name" {
+			option += field + " "
+		} else if parsingWhat == "value" {
+			value += field + " "
+		}
+	}
+
+	option = strings.TrimSuffix(option, " ")
+	value = strings.TrimSuffix(value, " ")
+
+	switch option {
+	case "Hash":
+		size, err := strconv.Atoi(value)
+		if err == nil {
+			inter.search.TT.Resize(uint64(size))
+		}
+	case "Clear Hash":
+		inter.search.TT.Clear()
+	}
 }
 
 func (inter *UCIInterface) positionCommandResponse(command string) {
@@ -146,6 +180,8 @@ func (inter *UCIInterface) UCILoop() {
 			inter.uciCommandResponse()
 		} else if command == "isready\n" {
 			fmt.Printf("readyok\n")
+		} else if strings.HasPrefix(command, "setoption") {
+			inter.setOptionCommandResponse(command)
 		} else if strings.HasPrefix(command, "ucinewgame") {
 			inter.reset()
 		} else if strings.HasPrefix(command, "position") {
