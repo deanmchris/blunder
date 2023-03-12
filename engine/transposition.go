@@ -49,21 +49,21 @@ func (entry *SearchEntry) GetScoreAndBestMove(hash uint64, ply, depth uint8, alp
 
 			if entry.NodeType == PVNode {
 				// If we have an exact entry, we can use the saved score.
-				score = entry.Score
+				score = entryScore
 				shouldUse = true
 			} else if entry.NodeType == FailLowNode && entryScore <= alpha {
 				// If we have an alpha entry, and the entry's score is less than our
 				// current alpha, then we know that our current alpha is probably the
 				// best score we can get in this node, so we can stop searching and use
 				// alpha.
-				score = entryScore
+				score = alpha
 				shouldUse = true
 			} else if entry.NodeType == FailHighNode && entryScore >= beta {
 				// If we have a beta entry, and the entry's score is greater than our
 				// current beta, then we have a beta-cutoff, since while searching this
 				// node previously, we found a value greater than the current beta. So we
 				// can stop searching and use beta.
-				score = entryScore
+				score = beta
 				shouldUse = true
 			}
 		}
