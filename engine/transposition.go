@@ -1,7 +1,8 @@
 package engine
 
 const (
-	DefaultTTSize      = 64
+	SearchTTSize       = 64
+	PerftTTSize        = 10
 	TTEntrySizeInBytes = 16
 
 	LeftMost56Bits uint64 = 0xffffffffffffff00

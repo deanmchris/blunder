@@ -11,10 +11,6 @@ import (
 	"time"
 )
 
-const (
-	PerftTTSize = 10
-)
-
 type TestData struct {
 	Fen               string
 	Depth             uint8

@@ -8,13 +8,12 @@ import (
 )
 
 const (
-	DefaultSearchTTSize uint64 = 64
-	MaxPly              uint8  = 100
-	Infinity            int16  = 10000
-	CheckmateThreshold  int16  = 9000
-	Draw                int16  = 0
-	MaxPVLength         uint8  = 50
-	MaxGamePly          uint16 = 700
+	MaxPly             uint8  = 100
+	Infinity           int16  = 10000
+	CheckmateThreshold int16  = 9000
+	Draw               int16  = 0
+	MaxPVLength        uint8  = 50
+	MaxGamePly         uint16 = 700
 
 	Buffer            uint16 = math.MaxUint16 - 200
 	TTMoveScore       uint16 = 60
@@ -95,7 +94,7 @@ func NewSearch(fen string) Search {
 
 func (search *Search) Setup(fen string) {
 	search.Pos.LoadFEN(fen)
-	search.TT.Resize(DefaultSearchTTSize)
+	search.TT.Resize(SearchTTSize)
 	search.zobristHistoryPly = 0
 	search.zobristHistory[0] = search.Pos.Hash
 }

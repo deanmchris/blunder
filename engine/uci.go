@@ -166,6 +166,8 @@ func (inter *UCIInterface) UCILoop() {
 	fmt.Println("Author:", EngineAuthor)
 	fmt.Println("Engine:", EngineName)
 	fmt.Println("Email:", EngineAuthorEmail)
+	fmt.Printf("Default hash size: %d\n", SearchTTSize)
+	fmt.Printf("Default PERFT hash size: %d\n", PerftTTSize)
 
 	reader := bufio.NewReader(os.Stdin)
 
