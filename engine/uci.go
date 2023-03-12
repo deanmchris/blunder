@@ -13,6 +13,15 @@ const (
 	EngineName        = "Blunder 9.0.0"
 	EngineAuthor      = "Christian Dean"
 	EngineAuthorEmail = "deanmchris@gmail.com"
+
+	Banner = `
+██████╗░██╗░░░░░██╗░░░██╗███╗░░██╗██████╗░███████╗██████╗░
+██╔══██╗██║░░░░░██║░░░██║████╗░██║██╔══██╗██╔════╝██╔══██╗
+██████╦╝██║░░░░░██║░░░██║██╔██╗██║██║░░██║█████╗░░██████╔╝
+██╔══██╗██║░░░░░██║░░░██║██║╚████║██║░░██║██╔══╝░░██╔══██╗
+██████╦╝███████╗╚██████╔╝██║░╚███║██████╔╝███████╗██║░░██║
+╚═════╝░╚══════╝░╚═════╝░╚═╝░░╚══╝╚═════╝░╚══════╝╚═╝░░╚═╝
+		`
 )
 
 type UCIInterface struct {
@@ -163,11 +172,12 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 }
 
 func (inter *UCIInterface) UCILoop() {
+	fmt.Println(Banner)
 	fmt.Println("Author:", EngineAuthor)
 	fmt.Println("Engine:", EngineName)
 	fmt.Println("Email:", EngineAuthorEmail)
-	fmt.Printf("Default hash size: %d\n", SearchTTSize)
-	fmt.Printf("Default PERFT hash size: %d\n", PerftTTSize)
+	fmt.Printf("Default hash size: %d MB\n", SearchTTSize)
+	fmt.Printf("Default PERFT hash size: %d MB\n", PerftTTSize)
 
 	reader := bufio.NewReader(os.Stdin)
 
