@@ -175,6 +175,9 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 
 	search.Pos.ComputePinAndCheckInfo()
 
+	isRoot := ply == 0
+	childPV := PVLine{}
+
 	// =====================================================================//
 	// CHECK EXTENSION: Extend the search depth by one if we're in check,   //
 	// so that we're less likely to push danger over the search horizon,    //
@@ -186,7 +189,6 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 	}
 
 	possibleMateInOne := search.Pos.InCheck && ply == 1
-	isRoot := ply == 0
 	if !isRoot && ((search.Pos.HalfMoveClock == 100 && !possibleMateInOne) || search.posIsDrawByRepition()) {
 		return Draw
 	}
@@ -205,7 +207,6 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 	}
 
 	moves := genAllMoves(&search.Pos)
-	childPV := PVLine{}
 	bestScore := -Infinity
 	numLegalMoves := uint8(0)
 	nodeType := FailLowNode
