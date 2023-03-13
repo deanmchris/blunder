@@ -175,6 +175,12 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 
 	search.Pos.ComputePinAndCheckInfo()
 
+	// =====================================================================//
+	// CHECK EXTENSION: Extend the search depth by one if we're in check,   //
+	// so that we're less likely to push danger over the search horizon,    //
+	// and we won't enter quiescence search while in check.                 //
+	// =====================================================================//
+
 	if search.Pos.InCheck {
 		depth++
 	}
@@ -184,6 +190,12 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 	if !isRoot && ((search.Pos.HalfMoveClock == 100 && !possibleMateInOne) || search.posIsDrawByRepition()) {
 		return Draw
 	}
+
+	// =====================================================================//
+	// TRANSPOSITION TABLE PROBING: Probe the transposition table to see if //
+	// we have a useable matching entry for the current position. If we get //
+	// a hit, return the score and stop searching.                          //
+	// =====================================================================//
 
 	entry := search.TT.GetEntry(search.Pos.Hash)
 	ttScore, ttMove, shouldUse := entry.GetScoreAndBestMove(search.Pos.Hash, ply, depth, alpha, beta)
@@ -212,6 +224,21 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 
 		search.AddHistory(search.Pos.Hash)
 		numLegalMoves++
+
+		// =====================================================================//
+		// PRINCIPAL VARIATION SEARCH: Due to good move ordering, the first     //
+		// move we search is likely the best move, and all the remaining moves  //
+		// will end up failing-low. To prove this cheaply we search all moves   //
+		// after the first move with a null window cenetered around alpha. Thus //
+		// beta-cutoffs will occur in children nodes of the same color if a     //
+		// value better than alpha is found, since we only care if alpha is     //
+		// beaten, not by how much. If beta-cutoffs occur in all of our         //
+		// immediate children of the same color, then we've actually found a    //
+		// better move than the first and need to research with a full-window   //
+		// to get it's exact value. But most of the time we're correct, the     //
+		// first move is the best, and we save time verifying this by searching //
+		// non-first moves with a null-window.                                  //
+		// =====================================================================//
 
 		score := int16(0)
 		if numLegalMoves == 1 {
