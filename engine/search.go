@@ -127,7 +127,7 @@ func (search *Search) RunSearch() uint32 {
 		pv.Clear()
 
 		startTime := time.Now()
-		score := search.negamax(depth, 0, -Infinity, Infinity, &pv)
+		score := search.negamax(depth, 0, -Infinity, Infinity, &pv, false)
 		endTime := time.Since(startTime)
 
 		if search.Timer.IsStopped() {
@@ -153,7 +153,7 @@ func (search *Search) RunSearch() uint32 {
 	return bestMove
 }
 
-func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLine) int16 {
+func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLine, doNMP bool) int16 {
 	search.totalNodes++
 
 	if ply == uint8(MaxPly) {
@@ -210,6 +210,35 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 		return ttScore
 	}
 
+	// =====================================================================//
+	// NULL MOVE PRUNING: If our opponet is given a free move, can they     //
+	// improve their position? If we do a quick search after giving our     //
+	// opponet this free move and we still find a move with a score better  //
+	// than beta, our opponet can't improve their position and they         //
+	// wouldn't take this path, so we have a beta cut-off and can prune     //
+	// this branch.                                                         //
+	// =====================================================================//
+
+	if doNMP && !search.Pos.InCheck && depth >= NMP_Depth_Limit && !search.Pos.NoMajorsOrMiniors() {
+		search.Pos.DoNullMove()
+		search.AddHistory(search.Pos.Hash)
+
+		R := int8(2)
+		score := -search.negamax(depth-1-R, ply+1, -beta, -beta+1, &childPV, false)
+
+		search.RemoveHistory()
+		search.Pos.UndoNullMove()
+		childPV.Clear()
+
+		if search.Timer.IsStopped() {
+			return 0
+		}
+
+		if score >= beta && Abs(score) < CheckmateThreshold {
+			return beta
+		}
+	}
+
 	moves := genAllMoves(&search.Pos)
 	bestScore := -Infinity
 	numLegalMoves := uint8(0)
@@ -247,11 +276,11 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 
 		score := int16(0)
 		if numLegalMoves == 1 {
-			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV)
+			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV, false)
 		} else {
-			score = -search.negamax(depth-1, ply+1, -alpha-1, -alpha, &childPV)
+			score = -search.negamax(depth-1, ply+1, -alpha-1, -alpha, &childPV, true)
 			if score > alpha && score < beta {
-				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV)
+				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV, true)
 			}
 		}
 

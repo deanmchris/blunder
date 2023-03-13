@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"math/bits"
 	"strconv"
 	"strings"
 	"unicode"
@@ -303,6 +304,14 @@ func (pos *Position) ComputePinAndCheckInfo() {
 	pos.InCheck = sqIsAttacked(pos, pos.SideToMove, kingSq)
 }
 
+func (pos *Position) NoMajorsOrMiniors() bool {
+	knights := bits.OnesCount64(pos.Pieces[Knight])
+	bishops := bits.OnesCount64(pos.Pieces[Bishop])
+	rook := bits.OnesCount64(pos.Pieces[Rook])
+	queen := bits.OnesCount64(pos.Pieces[Queen])
+	return knights+bishops+rook+queen == 0
+}
+
 func (pos *Position) DoMove(move uint32) bool {
 	from := fromSq(move)
 	to := toSq(move)
@@ -476,6 +485,46 @@ func (pos *Position) UndoMove(move uint32) {
 			pos.putPiece(state.CapturedType, state.CapturedColor, to)
 		}
 	}
+}
+
+func (pos *Position) DoNullMove() {
+	state := &pos.prevStates[pos.StateIdx]
+	state.Hash = pos.Hash
+	state.CastlingRights = pos.CastlingRights
+	state.EPSq = pos.EPSq
+	state.HalfMoveClock = pos.HalfMoveClock
+	state.Pinned = pos.pinned
+	state.InCheck = pos.InCheck
+	state.Phase = pos.Phase
+	state.MGScores = pos.MGScores
+	state.EGScores = pos.EGScores
+
+	pos.StateIdx++
+
+	pos.Hash ^= Zobrist.EPNumber(pos.EPSq)
+	pos.EPSq = NoSq
+
+	pos.HalfMoveClock = 0
+
+	pos.SideToMove ^= 1
+	pos.Hash ^= Zobrist.SideToMoveNumber()
+}
+
+func (pos *Position) UndoNullMove() {
+	pos.StateIdx--
+	state := &pos.prevStates[pos.StateIdx]
+
+	pos.Hash = state.Hash
+	pos.CastlingRights = state.CastlingRights
+	pos.EPSq = state.EPSq
+	pos.HalfMoveClock = state.HalfMoveClock
+	pos.pinned = state.Pinned
+	pos.InCheck = state.InCheck
+	pos.Phase = state.Phase
+	pos.MGScores = state.MGScores
+	pos.EGScores = state.EGScores
+
+	pos.SideToMove ^= 1
 }
 
 func (pos *Position) computePinnedPieces(kingSq, usColor uint8) uint64 {
