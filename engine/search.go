@@ -213,7 +213,15 @@ func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) i
 		search.AddHistory(search.Pos.Hash)
 		numLegalMoves++
 
-		score := -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV)
+		score := int16(0)
+		if numLegalMoves == 1 {
+			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV)
+		} else {
+			score = -search.negamax(depth-1, ply+1, -alpha-1, -alpha, &childPV)
+			if score > alpha && score < beta {
+				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV)
+			}
+		}
 
 		search.Pos.UndoMove(move)
 		search.RemoveHistory()
