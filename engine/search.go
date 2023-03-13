@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	MaxPly             uint8  = 100
+	MaxPly             int8   = 100
 	Infinity           int16  = 10000
 	CheckmateThreshold int16  = 9000
 	Draw               int16  = 0
@@ -19,6 +19,10 @@ const (
 	TTMoveScore       uint16 = 60
 	FirstKillerScore  uint16 = 6
 	SecondKillerScore uint16 = 4
+
+	// Pruning constants
+
+	NMP_Depth_Limit int8 = 2
 )
 
 var MVV_LVA = [7][6]uint16{
@@ -119,7 +123,7 @@ func (search *Search) RunSearch() uint32 {
 
 	search.Timer.Start()
 
-	for depth := uint8(1); depth <= MaxPly && depth <= search.Timer.MaxDepth; depth++ {
+	for depth := int8(1); depth <= MaxPly && depth <= search.Timer.MaxDepth; depth++ {
 		pv.Clear()
 
 		startTime := time.Now()
@@ -149,14 +153,14 @@ func (search *Search) RunSearch() uint32 {
 	return bestMove
 }
 
-func (search *Search) negamax(depth, ply uint8, alpha, beta int16, pv *PVLine) int16 {
+func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLine) int16 {
 	search.totalNodes++
 
-	if ply == MaxPly {
+	if ply == uint8(MaxPly) {
 		return Evaluate(&search.Pos)
 	}
 
-	if depth == 0 {
+	if depth <= 0 {
 		search.totalNodes--
 		return search.QuiescenceSearch(alpha, beta, pv)
 	}

@@ -16,7 +16,7 @@ type TimeManager struct {
 	MoveTime     int64
 	MovesToGo    int16
 	MaxNodeCount uint64
-	MaxDepth     uint8
+	MaxDepth     int8
 
 	// Fields to calculate when the search should be stopped.
 	stop        bool
@@ -25,7 +25,7 @@ type TimeManager struct {
 }
 
 func (tm *TimeManager) Setup(timeLeft, increment, moveTime int64,
-	movesToGo int16, maxDepth uint8, maxNodeCount uint64) {
+	movesToGo int16, maxDepth int8, maxNodeCount uint64) {
 
 	tm.TimeLeft = timeLeft
 	tm.Increment = increment

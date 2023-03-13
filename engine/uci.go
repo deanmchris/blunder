@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	EngineName        = "Blunder 9.0.0"
+	EngineName        = "Blunder 9.0.0-neg-depth"
 	EngineAuthor      = "Christian Dean"
 	EngineAuthorEmail = "deanmchris@gmail.com"
 
@@ -163,7 +163,7 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 		int64(increment),
 		int64(moveTime),
 		int16(movesToGo),
-		uint8(maxDepth),
+		int8(maxDepth),
 		maxNodeCount,
 	)
 

@@ -18,12 +18,12 @@ const (
 type SearchEntry struct {
 	Hash     uint64
 	BestMove uint32
-	Depth    uint8
+	Depth    int8
 	Score    int16
 	NodeType uint8
 }
 
-func (entry *SearchEntry) GetScoreAndBestMove(hash uint64, ply, depth uint8, alpha, beta int16) (int16, uint32, bool) {
+func (entry *SearchEntry) GetScoreAndBestMove(hash uint64, ply uint8, depth int8, alpha, beta int16) (int16, uint32, bool) {
 	shouldUse := false
 	score := int16(0)
 	bestMove := NullMove
@@ -73,7 +73,7 @@ func (entry *SearchEntry) GetScoreAndBestMove(hash uint64, ply, depth uint8, alp
 	return score, bestMove, shouldUse
 }
 
-func (entry *SearchEntry) StoreNewInfo(hash uint64, bestMove uint32, score int16, depth, nodeType, ply uint8) {
+func (entry *SearchEntry) StoreNewInfo(hash uint64, bestMove uint32, score int16, depth int8, nodeType, ply uint8) {
 	if score > CheckmateThreshold {
 		score += int16(ply)
 	} else if score < -CheckmateThreshold {
