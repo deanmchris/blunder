@@ -126,7 +126,7 @@ type Position struct {
 	pinned uint64
 	InCheck bool
 
-	prevStates [50]State
+	prevStates [MaxPly]State
 	StateIdx   uint8
 
 	Phase uint8
@@ -148,7 +148,7 @@ func (pos *Position) LoadFEN(fen string) {
 	pos.pinned = EmptyBB
 	pos.InCheck = false
 
-	pos.prevStates = [50]State{}
+	pos.prevStates = [MaxPly]State{}
 	pos.StateIdx = 0
 
 	pos.Phase = 0
