@@ -22,7 +22,9 @@ const (
 
 	// Pruning constants
 
-	NMP_Depth_Limit int8 = 2
+	NMP_Depth_Limit         int8  = 2
+	StaticNMPDepthThreshold int8  = 8
+	StaticNMPBaseMargin     int16 = 85
 )
 
 var MVV_LVA = [7][6]uint16{
@@ -197,6 +199,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 	search.Pos.ComputePinAndCheckInfo()
 
 	isRoot := ply == 0
+	isPVNode := beta-alpha != 1
 	childPV := PVLine{}
 
 	// =====================================================================//
@@ -226,6 +229,24 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 
 	if !isRoot && shouldUse {
 		return ttScore
+	}
+
+	// =====================================================================//
+	// STATIC NULL MOVE PRUNING: If our current material score is so good   //
+	// that even if we give ourselves a big hit materially and subtract a   //
+	// large amount of our material score (the "score margin") and our      //
+	// material score is still greater than beta, we assume this node will  //
+	// fail-high and we can prune its branch.                               //
+	// =====================================================================//
+
+	if depth <= StaticNMPDepthThreshold &&
+		!search.Pos.InCheck && !isPVNode && Abs(beta) < CheckmateThreshold {
+
+		staticScore := Evaluate(&search.Pos)
+		scoreMargin := StaticNMPBaseMargin * int16(depth)
+		if staticScore-scoreMargin >= beta {
+			return staticScore - scoreMargin
+		}
 	}
 
 	// =====================================================================//
