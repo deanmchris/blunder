@@ -88,7 +88,7 @@ func main() {
 			perftCmd.Parse(os.Args[2:])
 
 			pos := engine.NewPosition(*perftFen)
-			tt := engine.NewTransTable[engine.PerftEntry](uint64(*perftTTSize))
+			tt := engine.NewTransTable[engine.PerftBucket](uint64(*perftTTSize))
 			nodes := uint64(0)
 			var endTime time.Duration
 

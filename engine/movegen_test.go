@@ -66,7 +66,7 @@ func TestMovegen(t *testing.T) {
 	InitZobrist()
 
 	pos := Position{}
-	tt := NewTransTable[PerftEntry](PerftTTSize)
+	tt := NewTransTable[PerftBucket](PerftTTSize)
 	data := loadTestData()
 
 	fmt.Println("Begin perft testing.")

@@ -236,13 +236,14 @@ func makePromotionMoves(from, to uint8, moves *MoveList) {
 	moves.AddMove(newMove(from, to, Promotion, QueenPromotion))
 }
 
-func Perft(pos *Position, depth uint8, tt *TransTable[PerftEntry]) uint64 {
+func Perft(pos *Position, depth uint8, tt *TransTable[PerftBucket]) uint64 {
 	if depth == 0 {
 		return 1
 	}
 
 	if tt.size > 0 {
-		if nodeCnt, ok := tt.GetEntry(pos.Hash).GetNodeCount(pos.Hash, depth); ok {
+		entry := tt.GetBucket(pos.Hash).GetEntryForProbing(pos.Hash)
+		if nodeCnt, ok := entry.GetNodeCount(pos.Hash, depth); ok {
 			return nodeCnt
 		}
 	}
@@ -261,15 +262,17 @@ func Perft(pos *Position, depth uint8, tt *TransTable[PerftEntry]) uint64 {
 	}
 
 	if tt.size > 0 {
-		tt.GetEntry(pos.Hash).StoreNewInfo(pos.Hash, nodes, depth)
+		entry := tt.GetBucket(pos.Hash).GetEntryForStoring(pos.Hash)
+		entry.StoreNewInfo(pos.Hash, nodes, depth)
 	}
 
 	return nodes
 }
 
-func DividePerft(pos *Position, depth uint8, tt *TransTable[PerftEntry]) uint64 {
+func DividePerft(pos *Position, depth uint8, tt *TransTable[PerftBucket]) uint64 {
 	if tt.size > 0 {
-		if nodeCnt, ok := tt.GetEntry(pos.Hash).GetNodeCount(pos.Hash, depth); ok {
+		entry := tt.GetBucket(pos.Hash).GetEntryForProbing(pos.Hash)
+		if nodeCnt, ok := entry.GetNodeCount(pos.Hash, depth); ok {
 			return nodeCnt
 		}
 	}
@@ -290,7 +293,8 @@ func DividePerft(pos *Position, depth uint8, tt *TransTable[PerftEntry]) uint64 
 	}
 
 	if tt.size > 0 {
-		tt.GetEntry(pos.Hash).StoreNewInfo(pos.Hash, nodes, depth)
+		entry := tt.GetBucket(pos.Hash).GetEntryForStoring(pos.Hash)
+		entry.StoreNewInfo(pos.Hash, nodes, depth)
 	}
 
 	return nodes

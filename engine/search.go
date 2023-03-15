@@ -81,13 +81,16 @@ func (pair *KillerMovePair) AddKillerMove(newKillerMove uint32) {
 type Search struct {
 	Pos   Position
 	Timer TimeManager
-	TT    TransTable[SearchEntry]
+	TT    TransTable[SearchBucket]
 
 	Killers [MaxPly]KillerMovePair
 
 	totalNodes        uint64
 	zobristHistoryPly uint16
 	zobristHistory    [MaxGamePly]uint64
+
+	ageCounter uint16
+	age        uint8
 }
 
 func NewSearch(fen string) Search {
@@ -101,6 +104,9 @@ func (search *Search) Setup(fen string) {
 	search.TT.Resize(SearchTTSize)
 	search.zobristHistoryPly = 0
 	search.zobristHistory[0] = search.Pos.Hash
+
+	search.ageCounter = 0
+	search.age = 0
 }
 
 func (search *Search) StopSearch() {
@@ -120,6 +126,11 @@ func (search *Search) RunSearch() uint32 {
 	bestMove := NullMove
 	totalTime := int64(0)
 	search.totalNodes = 0
+
+	search.age = uint8(search.ageCounter % 16) 
+	search.ageCounter += 1
+
+	fmt.Println(search.ageCounter, search.age)
 
 	search.Timer.Start()
 
@@ -203,7 +214,8 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 	// a hit, return the score and stop searching.                          //
 	// =====================================================================//
 
-	entry := search.TT.GetEntry(search.Pos.Hash)
+	bucket := search.TT.GetBucket(search.Pos.Hash)
+	entry := bucket.GetEntryForProbing(search.Pos.Hash, search.age)
 	ttScore, ttMove, shouldUse := entry.GetScoreAndBestMove(search.Pos.Hash, ply, depth, alpha, beta)
 
 	if !isRoot && shouldUse {
@@ -317,8 +329,8 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 	}
 
 	if !search.Timer.IsStopped() {
-		entry := search.TT.GetEntry(search.Pos.Hash)
-		entry.StoreNewInfo(search.Pos.Hash, bestMove, bestScore, depth, nodeType, ply)
+		entry := bucket.GetEntryForStoring(search.Pos.Hash, search.age)
+		entry.StoreNewInfo(search.Pos.Hash, bestMove, bestScore, depth, nodeType, ply, search.age)
 	}
 
 	return bestScore
