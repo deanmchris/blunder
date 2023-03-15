@@ -79,10 +79,9 @@ func (pair *KillerMovePair) AddKillerMove(newKillerMove uint32) {
 }
 
 type Search struct {
-	Pos   Position
-	Timer TimeManager
-	TT    TransTable[SearchBucket]
-
+	Pos     Position
+	Timer   TimeManager
+	TT      TransTable[SearchBucket]
 	Killers [MaxPly]KillerMovePair
 
 	totalNodes        uint64
@@ -95,16 +94,25 @@ type Search struct {
 
 func NewSearch(fen string) Search {
 	search := Search{}
-	search.Setup(fen)
+	search.LoadFEN(fen)
+	search.TT.Resize(SearchTTSize)
 	return search
 }
 
-func (search *Search) Setup(fen string) {
+func (search *Search) ResetInternals(fen string) {
+	search.LoadFEN(fen)
+	search.TT.Clear()
+
+	for i := range search.Killers {
+		search.Killers[i].FirstKiller = NullMove
+		search.Killers[i].SecondKiller = NullMove
+	}
+}
+
+func (search *Search) LoadFEN(fen string) {
 	search.Pos.LoadFEN(fen)
-	search.TT.Resize(SearchTTSize)
 	search.zobristHistoryPly = 0
 	search.zobristHistory[0] = search.Pos.Hash
-
 	search.ageCounter = 0
 	search.age = 0
 }
@@ -127,7 +135,7 @@ func (search *Search) RunSearch() uint32 {
 	totalTime := int64(0)
 	search.totalNodes = 0
 
-	search.age = uint8(search.ageCounter % 16) 
+	search.age = uint8(search.ageCounter % 16)
 	search.ageCounter += 1
 
 	fmt.Println(search.ageCounter, search.age)

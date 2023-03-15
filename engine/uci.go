@@ -28,8 +28,12 @@ type UCIInterface struct {
 	search Search
 }
 
-func (inter *UCIInterface) reset() {
+func (inter *UCIInterface) setup() {
 	inter.search = NewSearch(FENStartPosition)
+}
+
+func (inter *UCIInterface) reset() {
+	inter.search.ResetInternals(FENStartPosition)
 }
 
 func (inter *UCIInterface) uciCommandResponse() {
@@ -101,7 +105,8 @@ func (inter *UCIInterface) positionCommandResponse(command string) {
 		args = strings.Join(remaining_args[6:], " ")
 	}
 
-	inter.search.Setup(fenString)
+	inter.search.LoadFEN(fenString)
+
 	if strings.HasPrefix(args, "moves") {
 		args = strings.TrimSuffix(strings.TrimPrefix(args, "moves"), " ")
 		if args != "" {
@@ -177,12 +182,11 @@ func (inter *UCIInterface) UCILoop() {
 	fmt.Println("Engine:", EngineName)
 	fmt.Println("Email:", EngineAuthorEmail)
 	fmt.Printf("Default hash size: %d MB\n", SearchTTSize)
-	fmt.Printf("Default PERFT hash size: %d MB\n", PerftTTSize)
+	fmt.Printf("Default PERFT hash size: %d MB\n\n", PerftTTSize)
 
 	reader := bufio.NewReader(os.Stdin)
 
-	inter.uciCommandResponse()
-	inter.reset()
+	inter.setup()
 
 	for {
 		command, _ := reader.ReadString('\n')
