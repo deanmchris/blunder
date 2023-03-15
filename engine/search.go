@@ -138,8 +138,6 @@ func (search *Search) RunSearch() uint32 {
 	search.age = uint8(search.ageCounter % 16)
 	search.ageCounter += 1
 
-	fmt.Println(search.ageCounter, search.age)
-
 	search.Timer.Start()
 
 	for depth := int8(1); depth <= MaxPly && depth <= search.Timer.MaxDepth; depth++ {
