@@ -1,7 +1,7 @@
 package engine
 
 const (
-	SearchTTSize       = 64
+	SearchTTSize       = 16
 	PerftTTSize        = 10
 	TTEntrySizeInBytes = 16
 	BucketSize         = 4
