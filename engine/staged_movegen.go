@@ -19,11 +19,6 @@ type StagedMoveGenerator struct {
 	quietsIdx   uint8
 }
 
-var CAPTURES uint64
-var QUIETS uint64
-var CAP_RECORDED uint64
-var Q_RECORDED uint64
-
 func (mg *StagedMoveGenerator) Next() uint32 {
 	nextMove := NullMove
 
@@ -45,9 +40,6 @@ mainLoop:
 				mg.capturesIdx = 0
 				mg.captures = genAttacks(&mg.search.Pos)
 				scoreMoves(mg.search, &mg.captures, mg.ttMove, mg.ply)
-
-				CAPTURES += uint64(mg.captures.Count)
-				CAP_RECORDED++
 			}
 
 			if mg.capturesIdx == mg.captures.Count {
@@ -69,9 +61,6 @@ mainLoop:
 				mg.quietsIdx = 0
 				mg.quiets = genQuiets(&mg.search.Pos)
 				scoreMoves(mg.search, &mg.quiets, mg.ttMove, mg.ply)
-
-				QUIETS += uint64(mg.captures.Count)
-				Q_RECORDED++
 			}
 
 			if mg.quietsIdx == mg.quiets.Count {
