@@ -45,6 +45,26 @@ func genAttacks(pos *Position) (moves MoveList) {
 	return moves
 }
 
+func genQuiets(pos *Position) (moves MoveList) {
+	targets := ^pos.Sides[pos.SideToMove^1]
+	usBB := pos.Sides[pos.SideToMove]
+	enemyBB := pos.Sides[pos.SideToMove^1]
+
+	genKingMoves(pos.Pieces[King]&usBB, targets, enemyBB, usBB, &moves)
+	genKnightMoves(pos.Pieces[Knight]&usBB, targets, enemyBB, usBB, &moves)
+	genBishopMoves(pos.Pieces[Bishop]&usBB, targets, enemyBB, usBB, &moves)
+	genRookMoves(pos.Pieces[Rook]&usBB, targets, enemyBB, usBB, &moves)
+	genQueenMoves(pos.Pieces[Queen]&usBB, targets, enemyBB, usBB, &moves)
+
+	genPawnPushesAndPromotions(
+		pos.Pieces[Pawn]&usBB,
+		enemyBB, usBB, pos.SideToMove, &moves,
+	)
+	genCastlingMoves(pos, &moves)
+
+	return moves
+}
+
 func genKingMoves(kingBB, filter, enemyBB, usBB uint64, moves *MoveList) {
 	from := BitScanAndClear(&kingBB)
 	genMovesFromBB(KingMoves[from]&^usBB&filter, enemyBB, from, moves)
@@ -117,6 +137,28 @@ func genPawnMoves(pawnsBB, enemyBB, usBB uint64, stm, epSq uint8, moves *MoveLis
 			}
 
 			moves.AddMove(newMove(from, to, Attack, NoFlag))
+		}
+	}
+}
+
+func genPawnPushesAndPromotions(pawnsBB, enemyBB, usBB uint64, stm uint8, moves *MoveList) {
+	for pawnsBB != 0 {
+		from := BitScanAndClear(&pawnsBB)
+
+		pawnOnePush := PawnPushes[stm][from] & ^(usBB | enemyBB)
+		pawnTwoPush := ((pawnOnePush & MaskRank[Rank6]) << 8) & ^(usBB | enemyBB)
+		if stm == White {
+			pawnTwoPush = ((pawnOnePush & MaskRank[Rank3]) >> 8) & ^(usBB | enemyBB)
+		}
+
+		pawnPush := pawnOnePush | pawnTwoPush
+		for pawnPush != 0 {
+			to := BitScanAndClear(&pawnPush)
+			if isPromoting(to) {
+				makePromotionMoves(from, to, moves)
+				continue
+			}
+			moves.AddMove(newMove(from, to, Quiet, NoFlag))
 		}
 	}
 }
