@@ -39,7 +39,7 @@ func (inter *UCIInterface) reset() {
 func (inter *UCIInterface) uciCommandResponse() {
 	fmt.Printf("\nid name %s\n", EngineName)
 	fmt.Printf("id author %s\n", EngineAuthor)
-	fmt.Printf("\noption name Hash type spin default 64 min 1 max 32000\n")
+	fmt.Printf("\noption name Hash type spin default 16 min 1 max 32000\n")
 	fmt.Print("option name Clear Hash type button\n")
 
 	fmt.Print("\nAvailable UCI commands:\n")
