@@ -242,8 +242,12 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 	if depth <= StaticNMPDepthThreshold &&
 		!search.Pos.InCheck && !isPVNode && Abs(beta) < CheckmateThreshold {
 
-		staticScore := Evaluate(&search.Pos)
 		scoreMargin := StaticNMPBaseMargin * int16(depth)
+		if depth <= 2 {
+			scoreMargin /= 2
+		}
+
+		staticScore := Evaluate(&search.Pos)
 		if staticScore-scoreMargin >= beta {
 			return staticScore - scoreMargin
 		}
