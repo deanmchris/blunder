@@ -298,6 +298,11 @@ func (pos Position) GenFEN() string {
 	)
 }
 
+func (pos *Position) StmInCheck() bool {
+	kingSq := bitScan(pos.Pieces[King] & pos.Sides[pos.SideToMove])
+	return sqIsAttacked(pos, pos.SideToMove, kingSq)
+}
+
 func (pos *Position) ComputePinAndCheckInfo() {
 	kingSq := bitScan(pos.Pieces[King] & pos.Sides[pos.SideToMove])
 	pos.pinned = pos.computePinnedPieces(kingSq, pos.SideToMove)

@@ -26,6 +26,7 @@ const (
 	NMP_Depth_Limit         int8  = 2
 	StaticNMPDepthThreshold int8  = 8
 	StaticNMPBaseMargin     int16 = 85
+	LMRLegalMovesLimit      uint8 = 5
 )
 
 var MVV_LVA = [7][6]uint16{
@@ -357,8 +358,21 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 		if numLegalMoves == 1 {
 			score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV, false)
 		} else {
-			score = -search.negamax(depth-1, ply+1, -alpha-1, -alpha, &childPV, true)
-			if score > alpha && score < beta {
+			tactical := isPVNode || search.Pos.InCheck || search.Pos.StmInCheck()
+			reduction := int8(0)
+
+			if !tactical && numLegalMoves >= LMRLegalMovesLimit {
+				reduction = 2
+			}
+
+			score = -search.negamax(depth-1-reduction, ply+1, -alpha-1, -alpha, &childPV, true)
+
+			if score > alpha && reduction > 0 {
+				score = -search.negamax(depth-1, ply+1, -alpha-1, -alpha, &childPV, true)
+				if score > alpha {
+					score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV, true)
+				}
+			} else if score > alpha && score < beta {
 				score = -search.negamax(depth-1, ply+1, -beta, -alpha, &childPV, true)
 			}
 		}
