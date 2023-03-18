@@ -19,6 +19,7 @@ const (
 	TTMoveScore       uint16 = 60
 	FirstKillerScore  uint16 = 6
 	SecondKillerScore uint16 = 4
+	MaxHistoryScore   uint16  = Buffer - 30
 
 	// Pruning constants
 
@@ -80,11 +81,42 @@ func (pair *KillerMovePair) AddKillerMove(newKillerMove uint32) {
 	}
 }
 
+type HistoryTable struct {
+	table [2][64][64]uint16
+}
+
+func (ht *HistoryTable) GetScore(stm, from, to uint8) uint16 {
+	return ht.table[stm][from][to]
+}
+
+func (ht* HistoryTable) Increment(stm, from, to uint8, inc uint16) {
+	ht.table[stm][from][to] = Min(ht.table[stm][from][to] + inc, MaxHistoryScore)
+}
+
+func (ht* HistoryTable) Age(stm uint8) {
+	for sq1 := 0; sq1 < 64; sq1++ {
+		for sq2 := 0; sq2 < 64; sq2++ {
+			ht.table[stm][sq1][sq2] >>= 1
+		}
+	}
+}
+
+func (ht* HistoryTable) Clear() {
+	for side := 0; side < 1; side++ {
+		for sq1 := 0; sq1 < 64; sq1++ {
+			for sq2 := 0; sq2 < 64; sq2++ {
+				ht.table[side][sq1][sq2]  = 0
+			}
+		}
+	}
+}
+
 type Search struct {
 	Pos     Position
 	Timer   TimeManager
 	TT      TransTable[SearchBucket]
 	Killers [MaxPly]KillerMovePair
+	CutoffHistory HistoryTable
 
 	totalNodes        uint64
 	zobristHistoryPly uint16
@@ -104,6 +136,7 @@ func NewSearch(fen string) Search {
 func (search *Search) ResetInternals(fen string) {
 	search.LoadFEN(fen)
 	search.TT.Clear()
+	search.CutoffHistory.Clear()
 
 	for i := range search.Killers {
 		search.Killers[i].FirstKiller = NullMove
@@ -140,6 +173,7 @@ func (search *Search) RunSearch() uint32 {
 	search.age = uint8(search.ageCounter % 16)
 	search.ageCounter += 1
 
+	search.CutoffHistory.Age(search.Pos.SideToMove)
 	search.Timer.Start()
 
 	for depth := int8(1); depth <= MaxPly && depth <= search.Timer.MaxDepth; depth++ {
@@ -341,6 +375,11 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 			nodeType = FailHighNode
 			if search.Pos.GetPieceType(toSq(move)) == NoType {
 				search.Killers[ply].AddKillerMove(move)
+				search.CutoffHistory.Increment(
+					search.Pos.SideToMove,
+					fromSq(move), toSq(move), 
+					uint16(depth),
+				)
 			}
 			break
 		}
@@ -460,6 +499,14 @@ func scoreMoves(search *Search, moves *MoveList, ttMove uint32, ply uint8) {
 				addScore(move, Buffer+FirstKillerScore)
 			} else if equals(search.Killers[ply].SecondKiller, *move) {
 				addScore(move, Buffer+SecondKillerScore)
+			} else {
+				addScore(
+					move, 
+					search.CutoffHistory.GetScore(
+						search.Pos.SideToMove,
+						fromSq(*move), toSq(*move),
+					),
+				)
 			}
 		}
 	}
