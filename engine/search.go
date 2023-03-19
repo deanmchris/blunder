@@ -340,18 +340,14 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 		numLegalMoves++
 
 		// =====================================================================//
-		// PRINCIPAL VARIATION SEARCH: Due to good move ordering, the first     //
-		// move we search is likely the best move, and all the remaining moves  //
-		// will end up failing-low. To prove this cheaply we search all moves   //
-		// after the first move with a null window cenetered around alpha. Thus //
-		// beta-cutoffs will occur in children nodes of the same color if a     //
-		// value better than alpha is found, since we only care if alpha is     //
-		// beaten, not by how much. If beta-cutoffs occur in all of our         //
-		// immediate children of the same color, then we've actually found a    //
-		// better move than the first and need to research with a full-window   //
-		// to get it's exact value. But most of the time we're correct, the     //
-		// first move is the best, and we save time verifying this by searching //
-		// non-first moves with a null-window.                                  //
+		// LATE MOVE REDUCTION: Since our move ordering is good, the            //
+		// first move is likely to be the best move in the position, which      //
+		// means it's part of the principal variation. So instead of searching  //
+		// every move equally, search the first move with full-depth and full-  //
+		// window, and search every move after with a reduced-depth and null-   //
+		// window to prove it'll fail low cheaply. If it raises alpha however,  //
+		// we have to use a full-window, a full-depth, or both to get an        //
+		// accurate score for the move.                                         //
 		// =====================================================================//
 
 		score := int16(0)
