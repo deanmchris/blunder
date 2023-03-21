@@ -19,7 +19,7 @@ const (
 	TTMoveScore       uint16 = 60
 	FirstKillerScore  uint16 = 6
 	SecondKillerScore uint16 = 4
-	MaxHistoryScore   uint16  = Buffer - 30
+	MaxHistoryScore   uint16 = Buffer - 30
 
 	// Pruning constants
 
@@ -90,11 +90,11 @@ func (ht *HistoryTable) GetScore(stm, from, to uint8) uint16 {
 	return ht.table[stm][from][to]
 }
 
-func (ht* HistoryTable) Increment(stm, from, to uint8, inc uint16) {
-	ht.table[stm][from][to] = Min(ht.table[stm][from][to] + inc, MaxHistoryScore)
+func (ht *HistoryTable) Increment(stm, from, to uint8, inc uint16) {
+	ht.table[stm][from][to] = Min(ht.table[stm][from][to]+inc, MaxHistoryScore)
 }
 
-func (ht* HistoryTable) Age(stm uint8) {
+func (ht *HistoryTable) Age(stm uint8) {
 	for sq1 := 0; sq1 < 64; sq1++ {
 		for sq2 := 0; sq2 < 64; sq2++ {
 			ht.table[stm][sq1][sq2] >>= 1
@@ -102,21 +102,21 @@ func (ht* HistoryTable) Age(stm uint8) {
 	}
 }
 
-func (ht* HistoryTable) Clear() {
+func (ht *HistoryTable) Clear() {
 	for side := 0; side < 1; side++ {
 		for sq1 := 0; sq1 < 64; sq1++ {
 			for sq2 := 0; sq2 < 64; sq2++ {
-				ht.table[side][sq1][sq2]  = 0
+				ht.table[side][sq1][sq2] = 0
 			}
 		}
 	}
 }
 
 type Search struct {
-	Pos     Position
-	Timer   TimeManager
-	TT      TransTable[SearchBucket]
-	Killers [MaxPly]KillerMovePair
+	Pos           Position
+	Timer         TimeManager
+	TT            TransTable[SearchBucket]
+	Killers       [MaxPly]KillerMovePair
 	CutoffHistory HistoryTable
 
 	totalNodes        uint64
@@ -323,14 +323,14 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 	nodeType := FailLowNode
 
 	moveGen := StagedMoveGenerator{
-		search:   search,
-		ttMove:   ttMove,
-		ply:      ply,
-		stage:    HashMoveStage,
+		search: search,
+		ttMove: ttMove,
+		ply:    ply,
+		stage:  HashMoveStage,
 	}
 
 	for move := moveGen.Next(); !equals(move, NullMove); move = moveGen.Next() {
-		
+
 		if !search.Pos.DoMove(move) {
 			search.Pos.UndoMove(move)
 			continue
@@ -387,7 +387,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pv *PVLi
 				search.Killers[ply].AddKillerMove(move)
 				search.CutoffHistory.Increment(
 					search.Pos.SideToMove,
-					fromSq(move), toSq(move), 
+					fromSq(move), toSq(move),
 					uint16(depth),
 				)
 			}
@@ -511,7 +511,7 @@ func scoreMoves(search *Search, moves *MoveList, ttMove uint32, ply uint8) {
 				addScore(move, Buffer+SecondKillerScore)
 			} else {
 				addScore(
-					move, 
+					move,
 					search.CutoffHistory.GetScore(
 						search.Pos.SideToMove,
 						fromSq(*move), toSq(*move),
