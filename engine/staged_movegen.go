@@ -19,6 +19,10 @@ type StagedMoveGenerator struct {
 	quietsIdx   uint8
 }
 
+func (mg *StagedMoveGenerator) GetStage() uint8 {
+	return mg.stage
+}
+
 func (mg *StagedMoveGenerator) Next() uint32 {
 	nextMove := NullMove
 
