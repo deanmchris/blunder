@@ -189,7 +189,7 @@ func computeDefaultWeightVector() (weights []Weight) {
 
 	for pieceType := uint8(0); pieceType < engine.NoType; pieceType++ {
 		for sq := 0; sq < 64; sq++ {
-			weights = append(weights, Weight{0, 6 + pieceType})
+			weights = append(weights, Weight{0, EG_PAWN_PSQT_TAG + pieceType - 1})
 		}
 	}
 
