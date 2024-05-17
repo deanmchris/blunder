@@ -13,8 +13,6 @@ The inspiration for Blunder started near the beginning of 2021. Me and many of m
 
 With my intial failure, I started doing more research and discovered the rich field of computer chess programming, and the many helpful people that are a part of it. About 5 months and ten attempts later, I released the first version of Blunder! And I've been working to improve Blunder ever since. As for the programming language switch, though Python is an amazing language (I think anyway), and the first language I learned, it's simply not fast enough for the purpose of writing a relatively strong chess engine. So instead of writing another C/C++ chess engine, I decided to give Go a try, and I've enjoyed working with its tools.
 
-I've also [started a blog](https://algerbrex.github.io/) to track and write about the development of Blunder.
-
 Ratings
 -------
 
