@@ -8,7 +8,7 @@ import (
 )
 
 // A type representing a bitboard, which is a unsigned 64-bit number. Blunder's
-// bitboard representation has the most significant bit being A1 and the least signficanrt
+// bitboard representation has the most significant bit being A1 and the least significant
 // bit being H8.
 type Bitboard uint64
 
@@ -33,7 +33,7 @@ func (bitboard *Bitboard) ClearBit(sq uint8) {
 	*bitboard &= ^SquareBB[sq]
 }
 
-// Test whether the bit of the given bitbord at the given
+// Test whether the bit of the given bitboard at the given
 // position is set.
 func (bb Bitboard) BitSet(sq uint8) bool {
 	return (bb & SquareBB[sq]) != 0
@@ -80,7 +80,7 @@ func (bitboard Bitboard) String() (bitboardAsString string) {
 	return bitboardAsString
 }
 
-// Initalize the bitboard constants.
+// Initialize the bitboard constants.
 func InitBitboards() {
 	var sq uint8
 	for sq = 0; sq < 65; sq++ {

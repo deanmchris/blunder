@@ -49,7 +49,7 @@ func abs[Int constraints.Integer](n Int) Int {
 	return n
 }
 
-// Get the maximum between two intgers.
+// Get the maximum between two integers.
 func max[Int constraints.Integer](a, b Int) Int {
 	if a > b {
 		return a
@@ -68,17 +68,17 @@ func Min[Int constraints.Integer](a, b Int) Int {
 // An implementation of a xorshift pseudo-random number
 // generator for 64 bit numbers, based on the implementation
 // by Stockfish.
-type PseduoRandomGenerator struct {
+type PseudoRandomGenerator struct {
 	state uint64
 }
 
 // Seed the generator.
-func (prng *PseduoRandomGenerator) Seed(seed uint64) {
+func (prng *PseudoRandomGenerator) Seed(seed uint64) {
 	prng.state = seed
 }
 
 // Generator a random 64 bit number.
-func (prng *PseduoRandomGenerator) Random64() uint64 {
+func (prng *PseudoRandomGenerator) Random64() uint64 {
 	prng.state ^= prng.state >> 12
 	prng.state ^= prng.state << 25
 	prng.state ^= prng.state >> 27
@@ -88,7 +88,7 @@ func (prng *PseduoRandomGenerator) Random64() uint64 {
 // Generate a random 64 bit number with few bits. This method is
 // useful in finding magic numbers faster for generating slider
 // attacks.
-func (prng *PseduoRandomGenerator) SparseRandom64() uint64 {
+func (prng *PseudoRandomGenerator) SparseRandom64() uint64 {
 	return prng.Random64() & prng.Random64() & prng.Random64()
 }
 

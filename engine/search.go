@@ -38,7 +38,7 @@ const (
 	CounterMoveBonus uint16 = 5
 
 	// A constant representing the maximum game ply,
-	// used to initalize the array for holding repetition
+	// used to initialize the array for holding repetition
 	// detection history.
 	MaxGamePly = 1024
 
@@ -163,7 +163,7 @@ func (search *Search) RemoveHistory() {
 	search.zobristHistoryPly--
 }
 
-// The main search function for Blunder, implemented as an interative
+// The main search function for Blunder, implemented as an iterative
 // deepening loop.
 func (search *Search) Search() Move {
 	search.side = search.Pos.SideToMove
@@ -326,7 +326,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	// is at 99. Mate should always trumps the counter, so make sure we
 	// don't return a draw evaluation for such a situation.
 	possibleMateInOne := inCheck && ply == 1
-	if !isRoot && ((search.Pos.Rule50 >= 100 && !possibleMateInOne) || search.isDrawByRepition()) {
+	if !isRoot && ((search.Pos.Rule50 >= 100 && !possibleMateInOne) || search.isDrawByRepetition()) {
 		return search.contempt()
 	}
 
@@ -336,7 +336,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	// =====================================================================//
 	// TRANSPOSITION TABLE PROBING: Probe the transposition table to see if //
-	// we have a useable matching entry for the current position. If we get //
+	// we have a usable matching entry for the current position. If we get //
 	// a hit, return the score and stop searching.                          //
 	// =====================================================================//
 
@@ -365,15 +365,15 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	}
 
 	// =====================================================================//
-	// NULL MOVE PRUNING: If our opponet is given a free move, can they     //
+	// NULL MOVE PRUNING: If our opponent is given a free move, can they     //
 	// improve their position? If we do a quick search after giving our     //
-	// opponet this free move and we still find a move with a score better  //
-	// than beta, our opponet can't improve their position and they         //
+	// opponent this free move and we still find a move with a score better  //
+	// than beta, our opponent can't improve their position and they         //
 	// wouldn't take this path, so we have a beta cut-off and can prune     //
 	// this branch.                                                         //
 	// =====================================================================//
 
-	if doNull && !inCheck && !isPVNode && depth >= NMR_Depth_Limit && !search.Pos.NoMajorsOrMiniors() {
+	if doNull && !inCheck && !isPVNode && depth >= NMR_Depth_Limit && !search.Pos.NoMajorsOrMinors() {
 		search.Pos.DoNullMove()
 		search.AddHistory(search.Pos.Hash)
 
@@ -394,7 +394,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	}
 
 	// =====================================================================//
-	// RAZORING: If we're close to the horzion and the static evaluation is //
+	// RAZORING: If we're close to the horizon and the static evaluation is //
 	// very bad, let's try to immediately drop to qsearch and confirm the   //
 	// position will likely fail low. If the qsearch score does fail-low,   //
 	// trust it and return alpha.         									//
@@ -426,7 +426,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 
 	// =====================================================================//
 	// INTERNAL ITERATIVE DEEPENING: If we're in a situation where we have  //
-	// no PV move, it'll be more efficent to spend some time doing a quick, //
+	// no PV move, it'll be more efficient to spend some time doing a quick,//
 	// reduced depth search to get a PV move that we can search first, in   //
 	// hopes of getting a quick beta-cutoff.          						//
 	// =====================================================================//
@@ -468,7 +468,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		// =====================================================================//
 		// LATE MOVE PRUNING: Because of move ordering, moves late in the move  //
 		// list are not very likely to be interesting, so save time by          //
-		// completing pruning such moves without searching them. Cauation needs //
+		// completing pruning such moves without searching them. Caution needs //
 		// to be taken we don't miss a tactical move however, so the further    //
 		// away we prune from the horizon, the "later" the move needs to be.    //
 		// =====================================================================//
@@ -514,14 +514,14 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 			// transposition table, check if it's "singular", i.e. substantially    //
 			// better than any of the other moves in the position. We do this by    //
 			// getting the move's score from the transposition table, and subtract- //
-			// ing from it a certian margin. We then do a reduced depth search, in  //
+			// ing from it a certain margin. We then do a reduced depth search, in  //
 			// the current position, with a window centered around the reduced      //
 			// score, to see if any of the other moves can match or beat the        //
 			// reduced score. If any of the moves can't even beat the reduced score //
 			// let's extend the search, since the best move seems particularly      //
 			// important, and we don't want to miss something. We just need to be   //
-			// careful not to let the search "explode", by repeadtly extending the  //
-			// the depth, so once we've extended the search down a certian path,    //
+			// careful not to let the search "explode", by repeatedly extending the  //
+			// the depth, so once we've extended the search down a certain path,    //
 			// make sure to stop extending any children nodes.                      //
 			// =====================================================================//
 
@@ -581,7 +581,7 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 		}
 
 		// If we have a beta-cutoff (i.e this move gives us a score better than what
-		// our opponet can already guarantee early in the tree), return beta and the move
+		// our opponent can already guarantee early in the tree), return beta and the move
 		// that caused the cutoff as the best move.
 		if score >= beta {
 			ttFlag = BetaFlag
@@ -635,10 +635,10 @@ func (search *Search) negamax(depth int8, ply uint8, alpha, beta int16, pvLine *
 	return bestScore
 }
 
-// Onece we reach a depth of zero in the main negamax search, instead of
+// Once we reach a depth of zero in the main negamax search, instead of
 // returning a static evaluation right away, continue to search deeper using
 // a special form of negamax until the position is quiet (i.e there are no
-// winning tatical captures). Doing this is known as quiescence search, and
+// winning tactical captures). Doing this is known as quiescence search, and
 // it makes the static evaluation much more accurate.
 func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, ply uint8) int16 {
 	search.totalNodes++
@@ -662,7 +662,7 @@ func (search *Search) Qsearch(alpha, beta int16, maxPly uint8, pvLine *PVLine, p
 	bestScore := EvaluatePos(&search.Pos)
 	inCheck := ply <= 2 && search.Pos.InCheck()
 
-	// If the score is greater than beta, what our opponet can
+	// If the score is greater than beta, what our opponent can
 	// already guarantee early in the search tree, then we
 	// have a beta-cutoff.
 	//
@@ -801,14 +801,14 @@ func (search *Search) ClearHistoryTable() {
 }
 
 // Determine the draw score based on the phase of the game and whose moving,
-// to encourge the engine to strive for a win in the middle-game, but be
-// satisified with a draw in the endgame.
+// to encourage the engine to strive for a win in the middle-game, but be
+// satisfied with a draw in the endgame.
 func (search *Search) contempt() int16 {
 	return Draw
 }
 
 // Determine if the current board state is being repeated.
-func (search *Search) isDrawByRepition() bool {
+func (search *Search) isDrawByRepetition() bool {
 	for repPly := uint16(0); repPly < search.zobristHistoryPly; repPly++ {
 		if search.zobristHistory[repPly] == search.Pos.Hash {
 			return true

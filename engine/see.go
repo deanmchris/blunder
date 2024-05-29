@@ -12,7 +12,7 @@ var PieceValues [7]int16 = [7]int16{
 	0,
 }
 
-// Peform a static exchange evaluation on target square of the move given,
+// Perform a static exchange evaluation on target square of the move given,
 // and return a score of the move from the perspective of the side to move.
 func (pos *Position) See(move Move) int16 {
 	toSq := move.ToSq()
@@ -103,7 +103,7 @@ func (pos *Position) minAttacker(attadef Bitboard, color uint8, attacker *uint8)
 	for *attacker = Pawn; *attacker <= King; *attacker++ {
 		subset := attadef & pos.Pieces[color][*attacker]
 		if subset != 0 {
-			// Bit-twidling to return a single bit if there are multiple bits.
+			// Bit-twiddling to return a single bit if there are multiple bits.
 			return subset & -subset
 		}
 	}

@@ -21,7 +21,7 @@ const (
 var Zobrist _Zobrist
 
 // A struct which holds the random numbers for the zobrist hashing, and
-// has methods to create and incrementally update the hashs.
+// has methods to create and incrementally update the hash.
 type _Zobrist struct {
 	// Each aspect of the board needs to be a given a unique random 64-bit number
 	// that will be xor-ed together with other unique random numbers from the positions
@@ -41,7 +41,7 @@ type _Zobrist struct {
 
 // Populate the zobrist arrays with random 64-bit numbers.
 func (zobrist *_Zobrist) init() {
-	var prng PseduoRandomGenerator
+	var prng PseudoRandomGenerator
 	prng.Seed(ZobristSeedValue)
 
 	for index := 0; index < 768; index++ {
@@ -106,7 +106,7 @@ func (zobrist *_Zobrist) GenHash(pos *Position) (hash uint64) {
 }
 
 // Precomputing all possible en passant file numbers
-// is much more efficent for Blunder than calculating
+// is much more efficient for Blunder than calculating
 // them on the fly.
 var PossibleEPFiles [65]uint8 = [65]uint8{
 	8, 8, 8, 8, 8, 8, 8, 8,

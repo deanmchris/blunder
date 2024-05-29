@@ -2,17 +2,17 @@ package engine
 
 import "fmt"
 
-// move.go constaints the implementation of a move datatype.
+// move.go contains the implementation of a move datatype.
 
 const (
-	// Constants represeting the four possible move types.
+	// Constants representing the four possible move types.
 	Quiet     uint8 = 0
 	Attack    uint8 = 1
 	Castle    uint8 = 2
 	Promotion uint8 = 3
 
 	// Constants representing move flags indicating what kind of promotion
-	// is occuring.
+	// is occurring.
 	KnightPromotion uint8 = 0
 	BishopPromotion uint8 = 1
 	RookPromotion   uint8 = 2
@@ -29,8 +29,8 @@ const (
 type Move uint32
 
 // Create a new move. The first 6 bits are the from square, the next 6 bits are the to square,
-// the next two represent the move type, the next two are reserved for any speical flags needed
-// to give full information concering the move, and the last 16-bits are used for scoring a move
+// the next two represent the move type, the next two are reserved for any special flags needed
+// to give full information concerning the move, and the last 16-bits are used for scoring a move
 // for move-ordering in the search phase.
 func NewMove(from, to, moveType, flag uint8) Move {
 	return Move(uint32(from)<<26 | uint32(to)<<20 | uint32(moveType)<<18 | uint32(flag)<<16)

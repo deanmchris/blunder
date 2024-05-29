@@ -75,7 +75,7 @@ func (inter *UCIInterface) positionCommandResponse(command string) {
 	}
 
 	// Set the board to the appropriate position and make
-	// the moves that have occured if any to update the position.
+	// the moves that have occurred if any to update the position.
 	inter.Search.Setup(fenString)
 	if strings.HasPrefix(args, "moves") {
 		args = strings.TrimSuffix(strings.TrimPrefix(args, "moves"), " ")
@@ -119,7 +119,7 @@ func (inter *UCIInterface) setOptionCommandResponse(command string) {
 	case "Hash":
 		size, err := strconv.Atoi(value)
 		if err == nil {
-			inter.Search.TT.Unitialize()
+			inter.Search.TT.Uninitialize()
 			inter.Search.TT.Resize(uint64(size), SearchEntrySize)
 		}
 	case "Clear Hash":
@@ -163,7 +163,7 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 			entry := entries[rand.Intn(len(entries))]
 			move := moveFromCoord(&inter.Search.Pos, entry.Move)
 
-			if inter.Search.Pos.MoveIsPseduoLegal(move) {
+			if inter.Search.Pos.MoveIsPseudoLegal(move) {
 				time.Sleep(time.Duration(inter.OptionBookMoveDelay) * time.Second)
 				fmt.Printf("bestmove %v\n", move)
 				return
@@ -218,7 +218,7 @@ func (inter *UCIInterface) goCommandResponse(command string) {
 }
 
 func (inter *UCIInterface) quitCommandResponse() {
-	inter.Search.TT.Unitialize()
+	inter.Search.TT.Uninitialize()
 }
 
 func (inter *UCIInterface) UCILoop() {

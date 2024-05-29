@@ -49,12 +49,12 @@ var PieceMobilityEG = [5]int16{0, 2, 3, 2, 6}
 var BishopPairBonusMG int16 = 22
 var BishopPairBonusEG int16 = 30
 
-var IsolatedPawnPenatlyMG int16 = 17
-var IsolatedPawnPenatlyEG int16 = 6
-var DoubledPawnPenatlyMG int16 = 1
-var DoubledPawnPenatlyEG int16 = 16
+var IsolatedPawnpenaltyMG int16 = 17
+var IsolatedPawnpenaltyEG int16 = 6
+var DoubledPawnpenaltyMG int16 = 1
+var DoubledPawnpenaltyEG int16 = 16
 
-// A middlegame equivelent of this bonus is not missing,
+// A middlegame equivalent of this bonus is not missing,
 // and one was used at first. But several thousand
 // iterations of the tuner indicated that such a "bonus"
 // was actually quite bad to give in the middlegame.
@@ -343,14 +343,14 @@ func evalPawn(pos *Position, color, sq uint8, eval *Eval) {
 
 	// Evaluate isolated pawns.
 	if IsolatedPawnMasks[FileOf(sq)]&usPawns == 0 {
-		eval.MGScores[color] -= IsolatedPawnPenatlyMG
-		eval.EGScores[color] -= IsolatedPawnPenatlyEG
+		eval.MGScores[color] -= IsolatedPawnpenaltyMG
+		eval.EGScores[color] -= IsolatedPawnpenaltyEG
 	}
 
 	// Evaluate doubled pawns.
 	if DoubledPawnMasks[color][sq]&usPawns != 0 {
-		eval.MGScores[color] -= DoubledPawnPenatlyMG
-		eval.EGScores[color] -= DoubledPawnPenatlyEG
+		eval.MGScores[color] -= DoubledPawnpenaltyMG
+		eval.EGScores[color] -= DoubledPawnpenaltyEG
 	}
 
 	// Evaluate passed pawns, but make sure they're not behind a friendly pawn.
@@ -508,11 +508,11 @@ func evalKing(pos *Position, color, sq uint8, eval *Eval) {
 		enemyPoints += uint16(SemiOpenFileNextToKingPenalty)
 	}
 
-	// Take all the king saftey points collected for the enemy,
-	// and see what kind of penatly we should get.
-	penatly := int16((enemyPoints * enemyPoints) / 4)
+	// Take all the king safety points collected for the enemy,
+	// and see what kind of penalty we should get.
+	penalty := int16((enemyPoints * enemyPoints) / 4)
 	if eval.KingAttackers[color^1] >= 2 && pos.Pieces[color^1][Queen] != 0 {
-		eval.MGScores[color] -= penatly
+		eval.MGScores[color] -= penalty
 	}
 }
 
@@ -532,19 +532,19 @@ func isDrawn(pos *Position) bool {
 	queens := pos.Pieces[White][Queen].CountBits() + pos.Pieces[Black][Queen].CountBits()
 
 	majors := rooks + queens
-	miniors := knights + bishops
+	minors := knights + bishops
 
-	if pawns+majors+miniors == 0 {
+	if pawns+majors+minors == 0 {
 		// KvK => draw
 		return true
 	} else if majors+pawns == 0 {
-		if miniors == 1 {
-			// K & minior v K => draw
+		if minors == 1 {
+			// K & minor v K => draw
 			return true
-		} else if miniors == 2 && whiteKnights == 1 && blackKnights == 1 {
+		} else if minors == 2 && whiteKnights == 1 && blackKnights == 1 {
 			// KNvKN => draw
 			return true
-		} else if miniors == 2 && whiteBishops == 1 && blackBishops == 1 {
+		} else if minors == 2 && whiteBishops == 1 && blackBishops == 1 {
 			// KBvKB => draw when only when bishops are the same color
 			whiteBishopSq := pos.Pieces[White][Bishop].Msb()
 			blackBishopSq := pos.Pieces[Black][Bishop].Msb()
@@ -577,8 +577,8 @@ func isDrawish(pos *Position) bool {
 	blackMinors := blackBishops + blackKnights
 
 	majors := rooks + queens
-	miniors := knights + bishops
-	all := majors + miniors
+	minors := knights + bishops
+	all := majors + minors
 
 	if pawns == 0 {
 		if all == 2 && blackQueens == 1 && whiteQueens == 1 {

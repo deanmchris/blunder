@@ -1,6 +1,6 @@
 package engine
 
-// timemanager.go implements the time mangement logic which Blunder
+// time_manager.go implements the time management logic which Blunder
 // uses during its search phase. It controls when the search should be
 // stopped given the arguments passed through the UCI "go" command,
 // as well as dynamic factors of the search.
@@ -14,7 +14,7 @@ const (
 	InfiniteTime int64 = -1
 )
 
-// A struct which holds data for a timer for Blunder's time mangement.
+// A struct which holds data for a timer for Blunder's time management.
 type TimeManager struct {
 	// Fields for UCI go command arguments
 	TimeLeft     int64
@@ -30,7 +30,7 @@ type TimeManager struct {
 	stopTime    time.Time
 }
 
-// Setup the interals of the timer given the "go" command arguments.
+// Setup the internals of the timer given the "go" command arguments.
 func (tm *TimeManager) Setup(timeLeft, increment, moveTime int64,
 	movesToGo int16, maxDepth uint8, maxNodeCount uint64) {
 
@@ -64,7 +64,7 @@ func (tm *TimeManager) Start(gamePly uint16) {
 
 	timeForMove := int64(0)
 	if int64(tm.MovesToGo) != NoValue {
-		// If we have a certian amount of moves to go before the time we have left
+		// If we have a certain amount of moves to go before the time we have left
 		// is reset, use that value to divide the time currently left.
 		timeForMove = tm.TimeLeft / int64(tm.MovesToGo)
 	} else {
@@ -90,7 +90,7 @@ func (tm *TimeManager) Start(gamePly uint16) {
 		timeForMove = tm.TimeLeft - 150
 	}
 
-	// If taking away 150ms puts us at orbelow zero, use 100ms
+	// If taking away 150ms puts us at below zero, use 100ms
 	// to just get a move to return.
 	if timeForMove <= 0 {
 		timeForMove = 100
